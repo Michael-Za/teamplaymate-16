@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -21,77 +22,28 @@ import {
 import { toast } from 'sonner';
 import { paypalService } from '../services/paypalService';
 
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  features: string[];
-  popular?: boolean;
-}
-
 const PayPalPayment: React.FC = () => {
   const { language } = useLanguage();
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { plans, currentPlan } = useSubscription();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'failed'>('idle');
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
-
-  // Mock plan data - in real app, this would come from props or API
-  const plans: Plan[] = [
-    {
-      id: 'basic',
-      name: language === 'en' ? 'Basic Plan' : 'Plan Básico',
-      price: 9.99,
-      currency: 'EUR',
-      features: [
-        language === 'en' ? 'Up to 25 players' : 'Hasta 25 jugadores',
-        language === 'en' ? 'Basic analytics' : 'Análisis básico',
-        language === 'en' ? 'Match reports' : 'Reportes de partidos',
-        language === 'en' ? 'Email support' : 'Soporte por email'
-      ]
-    },
-    {
-      id: 'pro',
-      name: language === 'en' ? 'Pro Plan' : 'Plan Pro',
-      price: 19.99,
-      currency: 'EUR',
-      popular: true,
-      features: [
-        language === 'en' ? 'Up to 100 players' : 'Hasta 100 jugadores',
-        language === 'en' ? 'Advanced analytics' : 'Análisis avanzado',
-        language === 'en' ? 'Real-time tracking' : 'Seguimiento en tiempo real',
-        language === 'en' ? 'Priority support' : 'Soporte prioritario'
-      ]
-    },
-    {
-      id: 'enterprise',
-      name: language === 'en' ? 'Enterprise Plan' : 'Plan Empresarial',
-      price: 49.99,
-      currency: 'EUR',
-      features: [
-        language === 'en' ? 'Unlimited players' : 'Jugadores ilimitados',
-        language === 'en' ? 'Custom analytics' : 'Análisis personalizado',
-        language === 'en' ? 'API access' : 'Acceso a API',
-        language === 'en' ? '24/7 support' : 'Soporte 24/7'
-      ]
-    }
-  ];
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('yearly');
 
   useEffect(() => {
     const planId = searchParams.get('plan');
     if (planId) {
       const plan = plans.find(p => p.id === planId);
       if (plan) {
-        setSelectedPlan(plan);
+        setSelectedPlan(planId);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, plans]);
 
   const handlePayment = async () => {
     if (!user || !selectedPlan) {
@@ -103,17 +55,40 @@ const PayPalPayment: React.FC = () => {
     setPaymentStatus('processing');
 
     try {
-      const amount = billingInterval === 'yearly' ? selectedPlan.price * 10 : selectedPlan.price; // 2 months free for yearly
+      const plan = plans.find(p => p.id === selectedPlan);
+      if (!plan) {
+        toast.error(language === 'en' ? 'Plan not found' : 'Plan no encontrado');
+        setLoading(false);
+        return;
+      }
+
+      const amount = billingInterval === 'yearly' ? plan.price : Math.round(plan.price / 12);
       
       const paymentData = {
-        planId: selectedPlan.id,
-        planName: selectedPlan.name,
+        planId: selectedPlan,
+        planName: plan.name,
         amount,
-        currency: selectedPlan.currency,
+        currency: plan.currency,
         billingInterval,
         userEmail: user.email,
         userId: user.id
       };
+
+      // Check if user already has this plan
+      const hasActive = user?.email ? paypalService.hasActiveSubscription(user.email, planId) : false;
+      if (hasActive) {
+        toast.error(language === 'en' ? 'You already have an active subscription for this plan' : 'Ya tienes una suscripción activa para este plan');
+        setPaymentStatus('failed');
+        return;
+      }
+
+      // Check payment attempts
+      const attempts = user?.email ? paypalService.getPaymentAttempts(user.email, planId) : 0;
+      if (attempts >= 3) {
+        toast.error(language === 'en' ? 'You have exceeded the maximum number of payment attempts for this plan' : 'Has excedido el número máximo de intentos de pago para este plan');
+        setPaymentStatus('failed');
+        return;
+      }
 
       const response = await paypalService.createPayment(paymentData);
 
@@ -162,9 +137,18 @@ const PayPalPayment: React.FC = () => {
     }
   };
 
+  const getPlanPrice = (plan: any) => {
+    if (billingInterval === 'yearly') {
+      return plan.price;
+    } else {
+      // Monthly pricing (convert yearly to monthly)
+      return Math.round(plan.price / 12);
+    }
+  };
+
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
-      theme === 'dark' 
+      theme === 'midnight' 
         ? 'bg-gradient-to-br from-gray-900 via-black to-gray-900' 
         : 'bg-gradient-to-br from-gray-50 to-white'
     }`}>
@@ -179,14 +163,14 @@ const PayPalPayment: React.FC = () => {
             variant="ghost"
             onClick={() => navigate('/pricing')}
             className={`mr-4 ${
-              theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+              theme === 'midnight' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             {language === 'en' ? 'Back to Pricing' : 'Volver a Precios'}
           </Button>
           <h1 className={`text-3xl font-bold ${
-            theme === 'dark' ? 'text-white' : 'text-gray-900'
+            theme === 'midnight' ? 'text-white' : 'text-gray-900'
           }`}>
             {language === 'en' ? 'PayPal Payment' : 'Pago con PayPal'}
           </h1>
@@ -200,13 +184,13 @@ const PayPalPayment: React.FC = () => {
             transition={{ delay: 0.1 }}
           >
             <Card className={`h-fit ${
-              theme === 'dark' 
+              theme === 'midnight' 
                 ? 'bg-gray-800 border-gray-700' 
                 : 'bg-white border-gray-200'
             }`}>
               <CardHeader>
                 <h2 className={`text-xl font-semibold ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  theme === 'midnight' ? 'text-white' : 'text-gray-900'
                 }`}>
                   {language === 'en' ? 'Select Your Plan' : 'Selecciona tu Plan'}
                 </h2>
@@ -218,20 +202,20 @@ const PayPalPayment: React.FC = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
-                      selectedPlan?.id === plan.id
-                        ? theme === 'dark'
+                      selectedPlan === plan.id
+                        ? theme === 'midnight'
                           ? 'border-yellow-500 bg-yellow-500/10'
                           : 'border-blue-500 bg-blue-50'
-                        : theme === 'dark'
+                        : theme === 'midnight'
                           ? 'border-gray-600 hover:border-gray-500'
                           : 'border-gray-200 hover:border-gray-300'
                     }`}
-                    onClick={() => setSelectedPlan(plan)}
+                    onClick={() => setSelectedPlan(plan.id)}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center">
                         <h3 className={`font-semibold ${
-                          theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          theme === 'midnight' ? 'text-white' : 'text-gray-900'
                         }`}>
                           {plan.name}
                         </h3>
@@ -243,13 +227,13 @@ const PayPalPayment: React.FC = () => {
                         )}
                       </div>
                       <div className={`text-right ${
-                        theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        theme === 'midnight' ? 'text-white' : 'text-gray-900'
                       }`}>
                         <div className="text-2xl font-bold">
-                          €{billingInterval === 'yearly' ? (plan.price * 10).toFixed(2) : plan.price.toFixed(2)}
+                          €{getPlanPrice(plan)}
                         </div>
                         <div className={`text-sm ${
-                          theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                          theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'
                         }`}>
                           /{billingInterval === 'yearly' ? (language === 'en' ? 'year' : 'año') : (language === 'en' ? 'month' : 'mes')}
                         </div>
@@ -259,9 +243,9 @@ const PayPalPayment: React.FC = () => {
                       {plan.features.map((feature, index) => (
                         <div key={index} className="flex items-center text-sm">
                           <CheckCircle className={`w-4 h-4 mr-2 ${
-                            theme === 'dark' ? 'text-green-400' : 'text-green-500'
+                            theme === 'midnight' ? 'text-green-400' : 'text-green-500'
                           }`} />
-                          <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
+                          <span className={theme === 'midnight' ? 'text-gray-300' : 'text-gray-600'}>
                             {feature}
                           </span>
                         </div>
@@ -272,10 +256,10 @@ const PayPalPayment: React.FC = () => {
 
                 {/* Billing Interval Toggle */}
                 <div className={`p-4 rounded-lg border ${
-                  theme === 'dark' ? 'border-gray-600 bg-gray-700/50' : 'border-gray-200 bg-gray-50'
+                  theme === 'midnight' ? 'border-gray-600 bg-gray-700/50' : 'border-gray-200 bg-gray-50'
                 }`}>
                   <h4 className={`font-medium mb-3 ${
-                    theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    theme === 'midnight' ? 'text-white' : 'text-gray-900'
                   }`}>
                     {language === 'en' ? 'Billing Cycle' : 'Ciclo de Facturación'}
                   </h4>
@@ -294,7 +278,7 @@ const PayPalPayment: React.FC = () => {
                     >
                       {language === 'en' ? 'Yearly' : 'Anual'}
                       <Badge className="ml-2 bg-green-500 text-white text-xs">
-                        {language === 'en' ? '2 months free' : '2 meses gratis'}
+                        {language === 'en' ? 'Save 20%' : 'Ahorra 20%'}
                       </Badge>
                     </Button>
                   </div>
@@ -310,7 +294,7 @@ const PayPalPayment: React.FC = () => {
             transition={{ delay: 0.2 }}
           >
             <Card className={`h-fit ${
-              theme === 'dark' 
+              theme === 'midnight' 
                 ? 'bg-gradient-to-br from-gray-800 via-gray-900 to-black border-yellow-500/30' 
                 : 'bg-gradient-to-br from-white to-gray-50 border-blue-200'
             }`}>
@@ -319,12 +303,12 @@ const PayPalPayment: React.FC = () => {
                   {getStatusIcon()}
                 </div>
                 <h2 className={`text-xl font-semibold text-center ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  theme === 'midnight' ? 'text-white' : 'text-gray-900'
                 }`}>
                   {language === 'en' ? 'Secure PayPal Payment' : 'Pago Seguro con PayPal'}
                 </h2>
                 <p className={`text-center ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                  theme === 'midnight' ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   {getStatusMessage()}
                 </p>
@@ -333,7 +317,7 @@ const PayPalPayment: React.FC = () => {
                 {/* PayPal Logo */}
                 <div className="flex items-center justify-center">
                   <div className={`p-4 rounded-full ${
-                    theme === 'dark' ? 'bg-yellow-500/20' : 'bg-blue-100'
+                    theme === 'midnight' ? 'bg-yellow-500/20' : 'bg-blue-100'
                   }`}>
                     <svg className="w-16 h-16 text-yellow-500" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-.635 4.005c-.08.52-.527.901-1.05.901zm2.18-14.97c-.524 0-.968.382-1.05.9l-.635 4.005c-.08.52-.527.901-1.05.901H4.331l1.635-10.337h5.11c1.76 0 3.027.351 3.716 1.425.517.806.414 1.895-.317 3.114-.731 1.22-2.065 1.992-3.719 1.992H9.256z"/>
@@ -344,45 +328,46 @@ const PayPalPayment: React.FC = () => {
                 {/* Order Summary */}
                 {selectedPlan && (
                   <div className={`p-4 rounded-lg border ${
-                    theme === 'dark' ? 'border-gray-600 bg-gray-700/50' : 'border-gray-200 bg-gray-50'
+                    theme === 'midnight' ? 'border-gray-600 bg-gray-700/50' : 'border-gray-200 bg-gray-50'
                   }`}>
                     <h3 className={`font-semibold mb-3 ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-900'
+                      theme === 'midnight' ? 'text-white' : 'text-gray-900'
                     }`}>
                       {language === 'en' ? 'Order Summary' : 'Resumen del Pedido'}
                     </h3>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
-                          {selectedPlan.name}
-                        </span>
-                        <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                          €{billingInterval === 'yearly' ? (selectedPlan.price * 10).toFixed(2) : selectedPlan.price.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}>
-                          {language === 'en' ? 'Billing Cycle' : 'Ciclo de Facturación'}
-                        </span>
-                        <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                          {billingInterval === 'yearly' ? (language === 'en' ? 'Yearly' : 'Anual') : (language === 'en' ? 'Monthly' : 'Mensual')}
-                        </span>
-                      </div>
-                      {billingInterval === 'yearly' && (
-                        <div className="flex justify-between text-green-500">
-                          <span>{language === 'en' ? 'Discount (2 months free)' : 'Descuento (2 meses gratis)'}</span>
-                          <span>-€{(selectedPlan.price * 2).toFixed(2)}</span>
-                        </div>
-                      )}
-                      <hr className={theme === 'dark' ? 'border-gray-600' : 'border-gray-200'} />
-                      <div className="flex justify-between font-semibold text-lg">
-                        <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                          {language === 'en' ? 'Total' : 'Total'}
-                        </span>
-                        <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                          €{billingInterval === 'yearly' ? (selectedPlan.price * 10).toFixed(2) : selectedPlan.price.toFixed(2)}
-                        </span>
-                      </div>
+                      {(() => {
+                        const plan = plans.find(p => p.id === selectedPlan);
+                        return plan ? (
+                          <>
+                            <div className="flex justify-between">
+                              <span className={theme === 'midnight' ? 'text-gray-300' : 'text-gray-600'}>
+                                {plan.name}
+                              </span>
+                              <span className={theme === 'midnight' ? 'text-white' : 'text-gray-900'}>
+                                €{getPlanPrice(plan)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className={theme === 'midnight' ? 'text-gray-300' : 'text-gray-600'}>
+                                {language === 'en' ? 'Billing Cycle' : 'Ciclo de Facturación'}
+                              </span>
+                              <span className={theme === 'midnight' ? 'text-white' : 'text-gray-900'}>
+                                {billingInterval === 'yearly' ? (language === 'en' ? 'Yearly' : 'Anual') : (language === 'en' ? 'Monthly' : 'Mensual')}
+                              </span>
+                            </div>
+                            <hr className={theme === 'midnight' ? 'border-gray-600' : 'border-gray-200'} />
+                            <div className="flex justify-between font-semibold text-lg">
+                              <span className={theme === 'midnight' ? 'text-white' : 'text-gray-900'}>
+                                {language === 'en' ? 'Total' : 'Total'}
+                              </span>
+                              <span className={theme === 'midnight' ? 'text-white' : 'text-gray-900'}>
+                                €{getPlanPrice(plan)}
+                              </span>
+                            </div>
+                          </>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 )}
@@ -392,7 +377,7 @@ const PayPalPayment: React.FC = () => {
                   onClick={handlePayment}
                   disabled={loading || !selectedPlan || paymentStatus === 'processing'}
                   className={`w-full h-14 text-lg font-semibold transition-all duration-300 transform hover:scale-105 ${
-                    theme === 'dark'
+                    theme === 'midnight'
                       ? 'bg-gradient-to-r from-yellow-600 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:via-yellow-400 hover:to-yellow-500 text-black shadow-lg shadow-yellow-500/25'
                       : 'bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 hover:from-blue-500 hover:via-blue-400 hover:to-blue-500 text-white shadow-lg shadow-blue-500/25'
                   }`}
@@ -415,13 +400,13 @@ const PayPalPayment: React.FC = () => {
                 {/* Security Features */}
                 <div className="space-y-3">
                   <div className={`flex items-center justify-center text-sm ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'
                   }`}>
                     <Shield className="w-4 h-4 mr-2" />
                     {language === 'en' ? 'Protected by PayPal Buyer Protection' : 'Protegido por PayPal Buyer Protection'}
                   </div>
                   <div className={`flex items-center justify-center text-sm ${
-                    theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                    theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'
                   }`}>
                     <Lock className="w-4 h-4 mr-2" />
                     {language === 'en' ? '256-bit SSL encryption' : 'Cifrado SSL de 256 bits'}
@@ -432,7 +417,7 @@ const PayPalPayment: React.FC = () => {
                     ))}
                   </div>
                   <p className={`text-center text-xs ${
-                    theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                    theme === 'midnight' ? 'text-gray-500' : 'text-gray-400'
                   }`}>
                     {language === 'en' ? 'Trusted by millions worldwide' : 'Confiado por millones en todo el mundo'}
                   </p>

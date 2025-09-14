@@ -48,10 +48,13 @@ const ResetPassword = () => {
     setVerifyingCode(true);
     
     try {
+      // Use the verifyResetCode function from AuthContext
       const result = await verifyResetCode(email, resetCode);
       
-      if (result.error) {
+      if (result?.error) {
         toast.error(result.error);
+      } else if (result?.data?.valid === false) {
+        toast.error('Invalid or expired reset code. Please try again.');
       } else {
         setCodeVerified(true);
         toast.success('Code verified! Now set your new password.');
@@ -92,9 +95,10 @@ const ResetPassword = () => {
     setLoading(true);
     
     try {
+      // Use the resetPasswordWithCode function from AuthContext
       const result = await resetPasswordWithCode(email, resetCode, newPassword);
       
-      if (result.error) {
+      if (result?.error) {
         toast.error(result.error);
       } else {
         setPasswordReset(true);

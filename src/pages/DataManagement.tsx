@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import DataManagementSection from '../components/DataManagementSection';
+import { DataManagementSection } from '../components/DataManagementSection';
 import { useTheme } from '../contexts/ThemeContext';
 import { Database } from 'lucide-react';
 
@@ -18,7 +18,7 @@ const DataManagement: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Data Management</h1>
         <p className={`${
           isHighContrast ? 'hc-text' :
-          theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+          theme === 'midnight' ? 'text-gray-600' : 'text-gray-600'
         }`}>
           Manage your team data, player information, and club details
         </p>

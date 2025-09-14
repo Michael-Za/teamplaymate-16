@@ -76,6 +76,12 @@ export interface ClubData {
 class DataManagementService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes
+  private playersUpdateCallback: ((players: Player[]) => void) | null = null;
+
+  // Method to subscribe to player updates
+  setPlayersUpdateCallback(callback: ((players: Player[]) => void) | null) {
+    this.playersUpdateCallback = callback;
+  }
 
   private getCachedData(key: string): any | null {
     const cached = this.cache.get(key);
@@ -156,11 +162,21 @@ class DataManagementService {
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       };
 
-      const response = await axios.post(api.players.create, playerData, { headers });
+      // Transform player data for API submission
+      const transformedData = this.transformPlayerForAPI(playerData);
+
+      const response = await axios.post(api.players.create, transformedData, { headers });
       const player = response.data?.data || response.data;
 
       // Clear cache
       this.clearPlayerCache();
+      
+      // Notify subscribers of player update
+      if (this.playersUpdateCallback) {
+        const updatedPlayers = await this.getPlayers();
+        this.playersUpdateCallback(updatedPlayers);
+      }
+      
       toast.success('Player created successfully');
       return player;
     } catch (error: any) {
@@ -182,11 +198,21 @@ class DataManagementService {
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       };
 
-      const response = await axios.put(api.players.update(playerId), updates, { headers });
+      // Transform player data for API submission
+      const transformedData = this.transformPlayerForAPI(updates);
+
+      const response = await axios.put(api.players.update(playerId), transformedData, { headers });
       const player = response.data?.data || response.data;
 
       // Clear cache
       this.clearPlayerCache();
+      
+      // Notify subscribers of player update
+      if (this.playersUpdateCallback) {
+        const updatedPlayers = await this.getPlayers();
+        this.playersUpdateCallback(updatedPlayers);
+      }
+      
       toast.success('Player updated successfully');
       return player;
     } catch (error: any) {
@@ -209,6 +235,13 @@ class DataManagementService {
 
       // Clear cache
       this.clearPlayerCache();
+      
+      // Notify subscribers of player update
+      if (this.playersUpdateCallback) {
+        const updatedPlayers = await this.getPlayers();
+        this.playersUpdateCallback(updatedPlayers);
+      }
+      
       toast.success('Player deleted successfully');
       return true;
     } catch (error: any) {
@@ -454,7 +487,6 @@ class DataManagementService {
    */
   private getFallbackPlayers(): Player[] {
     const now = new Date().toISOString();
-    const positions = ['DEL', 'CEN', 'DEF', 'POR'];
     
     return [
       {
@@ -608,6 +640,68 @@ class DataManagementService {
         goals: 0,
         assists: 2,
         minutes: 2700,
+        team_id: '1',
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: '6',
+        name: 'Kylian Mbappé',
+        position: 'FWD',
+        age: 25,
+        nationality: 'France',
+        email: 'kylian@example.com',
+        phone: '+1234567895',
+        address: '303 Paris St, France',
+        date_of_birth: '1998-12-20',
+        contract_end: '2028-06-30',
+        salary: 800000,
+        fitness: 96,
+        injuries: [],
+        notes: 'Lightning fast forward with incredible finishing',
+        skills: {
+          technical: 90,
+          physical: 95,
+          tactical: 85,
+          mental: 88
+        },
+        medicalClearance: true,
+        lastMedicalCheck: '2024-01-15',
+        joinDate: '2023-07-01',
+        goals: 42,
+        assists: 12,
+        minutes: 3200,
+        team_id: '1',
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: '7',
+        name: 'Erling Haaland',
+        position: 'FWD',
+        age: 23,
+        nationality: 'Norway',
+        email: 'erling@example.com',
+        phone: '+1234567896',
+        address: '404 Oslo Ave, Norway',
+        date_of_birth: '2000-07-21',
+        contract_end: '2027-06-30',
+        salary: 750000,
+        fitness: 94,
+        injuries: [],
+        notes: 'Powerful striker with exceptional goal-scoring ability',
+        skills: {
+          technical: 88,
+          physical: 96,
+          tactical: 82,
+          mental: 87
+        },
+        medicalClearance: true,
+        lastMedicalCheck: '2024-01-18',
+        joinDate: '2023-07-01',
+        goals: 38,
+        assists: 8,
+        minutes: 2900,
         team_id: '1',
         created_at: now,
         updated_at: now

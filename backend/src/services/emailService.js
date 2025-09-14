@@ -164,7 +164,11 @@ class EmailService {
         appUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
         supportEmail: 'statsor1@gmail.com',
         year: new Date().getFullYear(),
-        expiryTime: '10 minutes'
+        expiryTime: '15 minutes',
+        email: user.email,
+        requestTime: new Date().toLocaleString(),
+        ipAddress: 'Hidden for security',
+        userAgent: 'Hidden for security'
       });
 
       return await this.sendEmail({

@@ -257,10 +257,15 @@ export const AIAssistantSection: React.FC = () => {
     try {
       updateServiceHealth('aiBackend', 'connecting');
       const aiAssistantUrl = import.meta.env['VITE_AI_ASSISTANT_BACKEND_URL'] || 'http://localhost:8080';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(`${aiAssistantUrl}/api/v1/ai/status`, {
         method: 'GET',
-        timeout: 5000
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         updateServiceHealth('aiBackend', 'connected');
@@ -283,14 +288,19 @@ export const AIAssistantSection: React.FC = () => {
     try {
       updateServiceHealth('subscription', 'connecting');
       const apiUrl = import.meta.env['VITE_API_URL'] || 'http://localhost:3001';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(`${apiUrl}/api/subscription/status`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
           'Content-Type': 'application/json'
         },
-        timeout: 5000
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         updateServiceHealth('subscription', 'connected');
@@ -300,7 +310,7 @@ export const AIAssistantSection: React.FC = () => {
       }
     } catch (error) {
       console.error('Subscription service check failed:', error);
-      updateServiceHealth('subscription', 'disconnected', error instanceof Error ? error.message : 'Service unavailable');
+      updateServiceHealth('subscription', 'disconnected');
       return false;
     }
   };
@@ -309,14 +319,19 @@ export const AIAssistantSection: React.FC = () => {
     try {
       updateServiceHealth('usageStats', 'connecting');
       const apiUrl = import.meta.env['VITE_API_URL'] || 'http://localhost:3001';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(`${apiUrl}/api/usage/stats`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
           'Content-Type': 'application/json'
         },
-        timeout: 5000
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         updateServiceHealth('usageStats', 'connected');
@@ -326,7 +341,7 @@ export const AIAssistantSection: React.FC = () => {
       }
     } catch (error) {
       console.error('Usage stats service check failed:', error);
-      updateServiceHealth('usageStats', 'disconnected', error instanceof Error ? error.message : 'Service unavailable');
+      updateServiceHealth('usageStats', 'disconnected');
       return false;
     }
   };
@@ -369,7 +384,7 @@ export const AIAssistantSection: React.FC = () => {
     toast.info('Attempting to reconnect services...');
     
     const failedServices = Object.entries(serviceHealth)
-      .filter(([_, service]) => service.status === 'disconnected')
+      .filter(([_, service]) => service === 'disconnected')
       .map(([name]) => name);
     
     const results = await Promise.allSettled(
@@ -901,10 +916,10 @@ export const AIAssistantSection: React.FC = () => {
   const cardClasses = `
     h-full w-full flex flex-col
     ${isHighContrast ? 'hc-card' :
-      theme === 'dark' 
+      theme === 'midnight' 
         ? isEyeFriendlyMode 
-          ? 'bg-gray-800/60 border-gray-600 text-white' 
-          : 'bg-gray-800 border-gray-700 text-white'
+          ? 'bg-green-50/80 border-green-200'
+          : 'bg-white border-gray-200'
         : isEyeFriendlyMode
           ? 'bg-green-50/80 border-green-200'
           : 'bg-white border-gray-200'
@@ -921,7 +936,7 @@ export const AIAssistantSection: React.FC = () => {
       className={containerClasses}
     >
       <Card className={cardClasses}>
-        <CardHeader className={`${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'} border-b`}>
+        <CardHeader className={`${'border-gray-100'} border-b`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {!isFullScreen && (
@@ -929,7 +944,7 @@ export const AIAssistantSection: React.FC = () => {
                   variant="ghost"
                   size="icon"
                   onClick={() => window.history.back()}
-                  className="mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  className="mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
@@ -939,14 +954,14 @@ export const AIAssistantSection: React.FC = () => {
                 <Bot className="h-6 w-6 text-white animate-pulse" />
               </div>
               <div>
-                <CardTitle className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} flex items-center space-x-2`}>
-                  <span>AI Captain Pro</span>
+                <CardTitle className={`${'text-gray-900'} flex items-center space-x-2`}>
+                  <span>AI Assistant</span>
                   <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-2 py-1 border-0">
-                    GPT-4 Enhanced
+                    Enhanced
                   </Badge>
                 </CardTitle>
                 <p className="text-sm text-gray-600 mt-1">
-                  Advanced Football Analytics & Tactical Intelligence
+                  Intelligent Football Management Assistant
                 </p>
               </div>
             </div>
@@ -983,9 +998,9 @@ export const AIAssistantSection: React.FC = () => {
                     'bg-red-500'
                   }`}></div>
                   <span className="text-xs text-gray-600">
-                    {serviceHealth.aiBackend === 'connected' ? 'AI Engine: Online' : 
-                     serviceHealth.aiBackend === 'connecting' ? 'AI Engine: Connecting...' : 
-                     'AI Engine: Offline'}
+                    {serviceHealth.aiBackend === 'connected' ? 'AI: Online' : 
+                     serviceHealth.aiBackend === 'connecting' ? 'AI: Connecting...' : 
+                     'AI: Offline'}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -995,51 +1010,11 @@ export const AIAssistantSection: React.FC = () => {
                     'bg-red-500'
                   }`}></div>
                   <span className="text-xs text-gray-600">
-                    {serviceHealth.data === 'connected' ? 'Data Services: Online' : 
-                     serviceHealth.data === 'connecting' ? 'Data Services: Connecting...' : 
-                     'Data Services: Offline'}
+                    {serviceHealth.data === 'connected' ? 'Data: Online' : 
+                     serviceHealth.data === 'connecting' ? 'Data: Connecting...' : 
+                     'Data: Offline'}
                   </span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    serviceHealth.subscription === 'connected' ? 'bg-green-500' : 
-                    serviceHealth.subscription === 'connecting' ? 'bg-yellow-500 animate-pulse' : 
-                    'bg-red-500'
-                  }`}></div>
-                  <span className="text-xs text-gray-600">
-                    {serviceHealth.subscription === 'connected' ? 'Subscription: Active' : 
-                     serviceHealth.subscription === 'connecting' ? 'Subscription: Checking...' : 
-                     'Subscription: Inactive'}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    serviceHealth.usageStats === 'connected' ? 'bg-green-500' : 
-                    serviceHealth.usageStats === 'connecting' ? 'bg-yellow-500 animate-pulse' : 
-                    'bg-red-500'
-                  }`}></div>
-                  <span className="text-xs text-gray-600">
-                    {serviceHealth.usageStats === 'connected' ? 'Analytics: Online' : 
-                     serviceHealth.usageStats === 'connecting' ? 'Analytics: Connecting...' : 
-                     'Analytics: Offline'}
-                  </span>
-                </div>
-                {/* Retry Button for Failed Services */}
-                {(serviceHealth.data === 'disconnected' || 
-                  serviceHealth.aiBackend === 'disconnected' || 
-                  serviceHealth.subscription === 'disconnected' || 
-                  serviceHealth.usageStats === 'disconnected') && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={retryFailedServices}
-                    className="mt-2 text-xs px-2 py-1 h-6"
-                    title="Retry failed service connections"
-                  >
-                    <RefreshCw className="w-3 h-3 mr-1" />
-                    Retry
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -1047,28 +1022,24 @@ export const AIAssistantSection: React.FC = () => {
       
         <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
-            <TabsList className={`grid w-full grid-cols-2 ${theme === 'dark' ? 'bg-gray-800/50 border border-gray-700/50' : 'bg-white border border-gray-200 shadow-sm'} m-4 mb-0 p-1 rounded-xl`}>
+            <TabsList className={`grid w-full grid-cols-2 ${'bg-white border border-gray-200 shadow-sm'} m-4 mb-0 p-1 rounded-xl`}>
               <TabsTrigger 
                 value="chat" 
                 className={`flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 px-4 py-2 ${
-                  theme === 'dark' 
-                    ? 'data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-lg text-gray-300 hover:text-white hover:bg-gray-700/50' 
-                    : 'data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  'data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 <MessageSquare className="h-4 w-4" />
                 Chat
               </TabsTrigger>
               <TabsTrigger 
-                value="analytics" 
+                value="history" 
                 className={`flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 px-4 py-2 ${
-                  theme === 'dark' 
-                    ? 'data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-lg text-gray-300 hover:text-white hover:bg-gray-700/50' 
-                    : 'data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  'data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                <BarChart3 className="h-4 w-4" />
-                Analytics
+                <Clock className="h-4 w-4" />
+                History
               </TabsTrigger>
             </TabsList>
 
@@ -1084,14 +1055,12 @@ export const AIAssistantSection: React.FC = () => {
                         className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                           message.sender === 'user'
                             ? 'bg-blue-500 text-white'
-                            : theme === 'dark' 
-                              ? 'bg-gray-600 text-white border border-gray-500' 
-                              : 'bg-white text-gray-900 border border-gray-200'
+                            : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
                         }`}
                       >
                         <p className="text-sm">{message.content}</p>
                         <p className={`text-xs mt-1 ${
-                          message.sender === 'user' ? 'text-blue-100' : theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                          message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
                         }`}>
                           {message.timestamp.toLocaleTimeString()}
                         </p>
@@ -1100,7 +1069,7 @@ export const AIAssistantSection: React.FC = () => {
                   ))}
                   {isLoading && (
                     <div className="flex justify-start">
-                      <div className={`${theme === 'dark' ? 'bg-gray-600 text-white border border-gray-500' : 'bg-white text-gray-900 border border-gray-200'} px-4 py-2 rounded-lg`}>
+                      <div className={'bg-white text-gray-900 border border-gray-200 shadow-sm px-4 py-2 rounded-lg'}>
                         <div className="flex items-center space-x-2">
                           <div className="flex space-x-1">
                             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
@@ -1134,259 +1103,39 @@ export const AIAssistantSection: React.FC = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="analytics" className="p-4 pt-0 flex-1 flex flex-col overflow-hidden">
+            <TabsContent value="history" className="p-4 pt-0 flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
-                <div className="analytics-grid">
-                  <div className={`analytics-card ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-lg p-6`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-lg font-semibold`}>Team Performance</h4>
-                      <Badge className="bg-green-100 text-green-800">Real-time</Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-blue-400 text-2xl font-bold' : 'text-blue-600 text-2xl font-bold'}>{analyticsData.winProbability}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Win Probability</div>
-                      </div>
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-purple-400 text-2xl font-bold' : 'text-purple-600 text-2xl font-bold'}>{analyticsData.formationEfficiency}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Formation Efficiency</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-blue-400 text-2xl font-bold' : 'text-blue-600 text-2xl font-bold'}>{analyticsData.pressingIntensity}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Pressing Intensity</div>
-                      </div>
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-purple-400 text-2xl font-bold' : 'text-purple-600 text-2xl font-bold'}>{analyticsData.counterAttackSuccess}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Counter Attack Success</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-blue-400 text-2xl font-bold' : 'text-blue-600 text-2xl font-bold'}>{analyticsData.possession}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Possession</div>
-                      </div>
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-blue-400 text-2xl font-bold' : 'text-blue-600 text-2xl font-bold'}>{analyticsData.shotsOnTarget}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Shots on Target</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-blue-400 text-2xl font-bold' : 'text-blue-600 text-2xl font-bold'}>{analyticsData.passingAccuracy}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Passing Accuracy</div>
-                      </div>
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-purple-400 text-2xl font-bold' : 'text-purple-600 text-2xl font-bold'}>{analyticsData.defensiveStability}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>Defensive Stability</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={`analytics-card ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-lg p-6`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-lg font-semibold`}>Player Efficiency</h4>
-                      <Badge className="bg-green-100 text-green-800">Real-time</Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-blue-400 text-2xl font-bold' : 'text-blue-600 text-2xl font-bold'}>{playerEfficiencyData[0].value}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>{playerEfficiencyData[0].name}</div>
-                      </div>
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-purple-400 text-2xl font-bold' : 'text-purple-600 text-2xl font-bold'}>{playerEfficiencyData[1].value}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>{playerEfficiencyData[1].name}</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-blue-400 text-2xl font-bold' : 'text-blue-600 text-2xl font-bold'}>{playerEfficiencyData[2].value}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>{playerEfficiencyData[2].name}</div>
-                      </div>
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-purple-400 text-2xl font-bold' : 'text-purple-600 text-2xl font-bold'}>{playerEfficiencyData[3].value}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>{playerEfficiencyData[3].name}</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-blue-400 text-2xl font-bold' : 'text-blue-600 text-2xl font-bold'}>{playerEfficiencyData[4].value}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>{playerEfficiencyData[4].name}</div>
-                      </div>
-                      <div className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} p-4 rounded-lg text-center`}>
-                        <div className={theme === 'dark' ? 'text-purple-400 text-2xl font-bold' : 'text-purple-600 text-2xl font-bold'}>{playerEfficiencyData[5].value}%</div>
-                        <div className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} text-sm`}>{playerEfficiencyData[5].name}</div>
-                      </div>
-                    </div>
-                    <div className="chart-container">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart
-                          cx={200}
-                          cy={200}
-                          outerRadius={150}
-                          data={playerEfficiencyData}
-                        >
-                          <PolarGrid />
-                          <PolarAngleAxis dataKey="name" />
-                          <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                          <Radar
-                            name="Efficiency"
-                            dataKey="value"
-                            stroke="#3B82F6"
-                            fill="#3B82F6"
-                            fillOpacity={0.6}
-                          />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className={`analytics-card ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-lg p-6`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className={theme === 'dark' ? 'text-white text-lg font-semibold' : 'text-gray-900 text-lg font-semibold'}>Tactical Distribution</h4>
-                      <Badge className="bg-green-100 text-green-800">Real-time</Badge>
-                    </div>
-                    <div className="chart-container">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPieChart>
-                          <Pie
-                            data={tacticalDistribution}
-                            cx={200}
-                            cy={200}
-                            labelLine={false}
-                            label={({ name, percent }) => `${name}: ${(percent !== undefined ? percent * 100 : 0).toFixed(0)}%`}
-                            outerRadius={150}
-                            fill="#8884d8"
-                            dataKey="value"
-                          >
-                            {tacticalDistribution.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                        </RechartsPieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className={`analytics-card ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-lg p-6`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-lg font-semibold`}>Player Stats</h4>
-                      <Badge className="bg-green-100 text-green-800">Real-time</Badge>
-                    </div>
-                    <div className="chart-container">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={playerStatsData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#f0f0f0'} />
-                          <XAxis dataKey="name" stroke={theme === 'dark' ? '#9CA3AF' : '#666'} />
-                          <YAxis stroke={theme === 'dark' ? '#9CA3AF' : '#666'} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: theme === 'dark' ? '#1F2937' : 'white', 
-                              border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
-                              borderRadius: '8px',
-                              color: theme === 'dark' ? 'white' : 'black'
-                            }} 
-                          />
-                          <Bar dataKey="goals" fill="#3B82F6" />
-                          <Bar dataKey="assists" fill="#8B5CF6" />
-                          <Bar dataKey="rating" fill="#EC4899" />
-                          <Bar dataKey="fitness" fill="#EAB308" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className={`analytics-card ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-lg p-6`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-lg font-semibold`}>Match Predictions</h4>
-                      <Badge className="bg-blue-100 text-blue-800">Last 30 Days</Badge>
-                    </div>
-                    <div className="space-y-4">
-                      {matchPredictions.map((prediction, index) => (
-                        <div key={index} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <span className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} text-sm`}>{prediction.opponent}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-semibold`}>{prediction.winProb}% Win</span>
-                            <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-semibold`}>{prediction.drawProb}% Draw</span>
-                            <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-semibold`}>{prediction.lossProb}% Loss</span>
-                            <span className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} text-sm`}>{prediction.difficulty}</span>
-                          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    { id: '1', title: 'Team Formation Analysis', date: '2023-10-15', preview: 'Analyzed our 4-3-3 formation and suggested improvements...' },
+                    { id: '2', title: 'Player Performance Review', date: '2023-10-10', preview: 'Reviewed player statistics and identified top performers...' },
+                    { id: '3', title: 'Match Strategy Discussion', date: '2023-10-05', preview: 'Discussed tactics for upcoming match against Barcelona...' },
+                    { id: '4', title: 'Injury Prevention Plan', date: '2023-09-28', preview: 'Created a plan to reduce injury risks for key players...' },
+                    { id: '5', title: 'Transfer Market Insights', date: '2023-09-20', preview: 'Analyzed potential signings to strengthen our squad...' },
+                    { id: '6', title: 'Training Optimization', date: '2023-09-15', preview: 'Optimized training schedule based on player workload...' }
+                  ].map((chat) => (
+                    <Card 
+                      key={chat.id} 
+                      className={'bg-white border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer'}
+                      onClick={() => {
+                        toast.info(`Loading chat: ${chat.title}`);
+                      }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className={'text-gray-900 font-semibold'}>{chat.title}</h3>
+                          <p className={'text-gray-600 text-sm mt-1'}>{chat.preview}</p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={`analytics-card ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-lg p-6`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-lg font-semibold`}>Match History</h4>
-                      <Badge className="bg-blue-100 text-blue-800">Last 30 Days</Badge>
-                    </div>
-                    <div className="space-y-4">
-                      {matchHistory.map((match, index) => (
-                        <div key={index} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <span className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} text-sm`}>{match.opponent}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-semibold`}>{match.result}</span>
-                            <span className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} text-sm`}>{match.date}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={`analytics-card ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} rounded-lg p-6`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-lg font-semibold`}>Key Insights</h4>
-                      <Badge className="bg-green-100 text-green-800">Real-time</Badge>
-                    </div>
-                    <div className="space-y-4">
-                      {keyInsights.map((insight, index) => (
-                        <div key={index} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className={insight.type === 'positive' ? 'w-3 h-3 rounded-full bg-green-500' : 'w-3 h-3 rounded-full bg-red-500'}></div>
-                            <span className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} text-sm`}>{insight.title}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-semibold`}>{insight.description}</span>
-                            <span className={insight.type === 'positive' ? 'text-green-500 text-xs' : 'text-red-500 text-xs'}>{insight.impact}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={theme === 'dark' ? 'bg-gray-800 border border-gray-700 rounded-lg p-6' : 'bg-white border border-gray-200 rounded-lg p-6'}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className={theme === 'dark' ? 'text-white text-lg font-semibold' : 'text-gray-900 text-lg font-semibold'}>Player Analytics</h4>
-                      <Badge className="bg-green-100 text-green-800">Real-time</Badge>
-                    </div>
-                    <div className="h-48">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={playerAnalytics}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#f0f0f0'} />
-                          <XAxis dataKey="name" stroke={theme === 'dark' ? '#9CA3AF' : '#666'} />
-                          <YAxis stroke={theme === 'dark' ? '#9CA3AF' : '#666'} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: theme === 'dark' ? '#1F2937' : 'white', 
-                              border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
-                              borderRadius: '8px',
-                              color: theme === 'dark' ? 'white' : 'black'
-                            }} 
-                          />
-                          <Bar dataKey="goals" fill="#3B82F6" />
-                          <Bar dataKey="assists" fill="#8B5CF6" />
-                          <Bar dataKey="rating" fill="#EC4899" />
-                          <Bar dataKey="form" fill="#EAB308" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
+                        <Button variant="ghost" size="sm" className="p-1">
+                          <Eye className="h-4 w-4 text-gray-500" />
+                        </Button>
+                      </div>
+                      <div className={'flex items-center mt-3 text-xs text-gray-400'}>
+                        <Clock className="h-3 w-3 mr-1" />
+                        {chat.date}
+                      </div>
+                    </Card>
+                  ))}
                 </div>
               </div>
             </TabsContent>

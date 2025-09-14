@@ -109,6 +109,15 @@ const SignUp = () => {
   };
 
   const handleDemoAccount = async () => {
+    // Check if mock auth is enabled
+    const enableMockAuth = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+    
+    // Only allow demo account creation when mock auth is enabled
+    if (!enableMockAuth) {
+      toast.error('Demo accounts are not available in this environment.');
+      return;
+    }
+    
     if (loading || googleLoading || demoLoading) {
       toast.error('Please wait, authentication in progress...');
       return;
@@ -130,17 +139,17 @@ const SignUp = () => {
       };
       
       // Initialize demo account data
-       const demoData = demoAccountService.initializeDemoAccount();
+      const demoData = demoAccountService.initializeDemoAccount();
        
-       // Set user in auth context
-       setUser(demoUser);
+      // Set user in auth context
+      setUser(demoUser);
        
-       // Store auth data
-       const mockToken = 'demo-token-' + Date.now();
-       localStorage.setItem('auth_token', mockToken);
-       localStorage.setItem('statsor_user', JSON.stringify(demoUser));
+      // Store auth data
+      const mockToken = 'demo-token-' + Date.now();
+      localStorage.setItem('auth_token', mockToken);
+      localStorage.setItem('statsor_user', JSON.stringify(demoUser));
        
-       const result = { user: demoUser, error: null };
+      const result = { user: demoUser, error: null };
       
       if (result.error) {
         toast.error('Failed to create demo account. Please try again.');

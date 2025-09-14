@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -6,7 +7,6 @@ import { Badge } from './ui/badge';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
   Trophy, 
@@ -70,11 +70,11 @@ const MatchTimer: React.FC = () => {
 
   return (
     <Card className={`glass-card animate-fade-in hover-lift ${
-      theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
     }`}>
       <CardHeader>
         <CardTitle className="text-center gradient-text-primary animate-soft-pulse">
-          {language === 'en' ? 'Match Timer' : 'Cronómetro'}
+          {language === 'en' ? 'Match Timer' : 'Match Timer'}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -277,18 +277,18 @@ const ActionButtons: React.FC = () => {
   };
 
   const actions = [
-    { id: 'goal_favor', label: language === 'en' ? 'Goal For' : 'Gol a Favor', color: isHighContrast ? 'hc-button-primary' : 'bg-green-500', icon: Goal },
-    { id: 'goal_against', label: language === 'en' ? 'Goal Against' : 'Gol en Contra', color: isHighContrast ? 'hc-button-primary' : 'bg-red-500', icon: Goal },
-    { id: 'assist', label: language === 'en' ? 'Assist' : 'Asistencia', color: isHighContrast ? 'hc-button-primary' : 'bg-blue-500', icon: Target },
-    { id: 'foul_favor', label: language === 'en' ? 'Foul For' : 'Falta a Favor', color: isHighContrast ? 'hc-button-secondary' : 'bg-yellow-500', icon: UserX },
-    { id: 'foul_against', label: language === 'en' ? 'Foul Against' : 'Falta en Contra', color: isHighContrast ? 'hc-button-secondary' : 'bg-orange-500', icon: UserX },
-    { id: 'shot_goal', label: language === 'en' ? 'Shot on Goal' : 'Tiro a Portería', color: isHighContrast ? 'hc-button-primary' : 'bg-purple-500', icon: Activity },
-    { id: 'shot_out', label: language === 'en' ? 'Shot Out' : 'Tiro Fuera', color: isHighContrast ? 'hc-button-secondary' : 'bg-gray-500', icon: Activity },
-    { id: 'corner_favor', label: language === 'en' ? 'Corner For' : 'Corner a Favor', color: isHighContrast ? 'hc-button-primary' : 'bg-teal-500', icon: MapPin },
-    { id: 'corner_against', label: language === 'en' ? 'Corner Against' : 'Corner en Contra', color: isHighContrast ? 'hc-button-secondary' : 'bg-pink-500', icon: MapPin },
-    { id: 'offside', label: language === 'en' ? 'Offside' : 'Fuera de Juego', color: isHighContrast ? 'hc-button-secondary' : 'bg-indigo-500', icon: UserX },
-    { id: 'penalty_favor', label: language === 'en' ? 'Penalty For' : 'Penalty a Favor', color: isHighContrast ? 'hc-button-primary' : 'bg-green-600', icon: Award },
-    { id: 'penalty_against', label: language === 'en' ? 'Penalty Against' : 'Penalty en Contra', color: isHighContrast ? 'hc-button-primary' : 'bg-red-600', icon: Award }
+    { id: 'goal_favor', label: language === 'en' ? 'Goal For' : 'Goal For', color: isHighContrast ? 'hc-button-primary' : 'bg-green-500', icon: Goal },
+    { id: 'goal_against', label: language === 'en' ? 'Goal Against' : 'Goal Against', color: isHighContrast ? 'hc-button-primary' : 'bg-red-500', icon: Goal },
+    { id: 'assist', label: language === 'en' ? 'Assist' : 'Assist', color: isHighContrast ? 'hc-button-primary' : 'bg-blue-500', icon: Target },
+    { id: 'foul_favor', label: language === 'en' ? 'Foul For' : 'Foul For', color: isHighContrast ? 'hc-button-secondary' : 'bg-yellow-500', icon: UserX },
+    { id: 'foul_against', label: language === 'en' ? 'Foul Against' : 'Foul Against', color: isHighContrast ? 'hc-button-secondary' : 'bg-orange-500', icon: UserX },
+    { id: 'shot_goal', label: language === 'en' ? 'Shot on Goal' : 'Shot on Goal', color: isHighContrast ? 'hc-button-primary' : 'bg-purple-500', icon: Activity },
+    { id: 'shot_out', label: language === 'en' ? 'Shot Out' : 'Shot Out', color: isHighContrast ? 'hc-button-secondary' : 'bg-gray-500', icon: Activity },
+    { id: 'corner_favor', label: language === 'en' ? 'Corner For' : 'Corner For', color: isHighContrast ? 'hc-button-primary' : 'bg-teal-500', icon: MapPin },
+    { id: 'corner_against', label: language === 'en' ? 'Corner Against' : 'Corner Against', color: isHighContrast ? 'hc-button-secondary' : 'bg-pink-500', icon: MapPin },
+    { id: 'offside', label: language === 'en' ? 'Offside' : 'Offside', color: isHighContrast ? 'hc-button-secondary' : 'bg-indigo-500', icon: UserX },
+    { id: 'penalty_favor', label: language === 'en' ? 'Penalty For' : 'Penalty For', color: isHighContrast ? 'hc-button-primary' : 'bg-green-600', icon: Award },
+    { id: 'penalty_against', label: language === 'en' ? 'Penalty Against' : 'Penalty Against', color: isHighContrast ? 'hc-button-primary' : 'bg-red-600', icon: Award }
   ];
 
   const handleActionClick = (actionId: string) => {
@@ -350,11 +350,11 @@ const ActionButtons: React.FC = () => {
 
       <Card className={`relative overflow-hidden ${
         isHighContrast ? 'hc-card' :
-        theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
       }`}>
         <CardHeader>
           <CardTitle>
-            {language === 'en' ? 'Actions' : 'Acciones'}
+            {language === 'en' ? 'Actions' : 'Actions'}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -404,7 +404,7 @@ const ActionButtons: React.FC = () => {
                       <action.icon className="w-4 h-4 mb-1" />
                     </motion.div>
                     <motion.span 
-                      className="text-center leading-tight"
+                      className="text-center leading-tight text-contained"
                       animate={{
                         y: isHovered ? -1 : 0,
                         z: isHovered ? 3 : 0
@@ -444,14 +444,14 @@ const PlayerField: React.FC = () => {
   return (
     <Card className={`${
       isHighContrast ? 'hc-card' :
-      theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
     }`}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>{language === 'en' ? 'Players' : 'Jugadores'}</span>
+          <span>{language === 'en' ? 'Players' : 'Players'}</span>
           <Button size="sm" className="bg-green-600 hover:bg-green-700">
             <Plus className="w-4 h-4 mr-1" />
-            {language === 'en' ? 'Add' : 'Agregar'}
+            {language === 'en' ? 'Add' : 'Add'}
           </Button>
         </CardTitle>
       </CardHeader>
@@ -465,7 +465,7 @@ const PlayerField: React.FC = () => {
               transition={{ delay: index * 0.1 }}
               className={`p-3 rounded-lg border flex items-center space-x-3 ${
                 isHighContrast ? 'border-black bg-white' :
-                theme === 'dark' ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-50'
+                theme === 'midnight' ? 'border-gray-200 bg-white' : 'border-gray-200 bg-white'
               } ${player.position === 'SUB' ? 'opacity-50' : ''}`}
             >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
@@ -477,12 +477,12 @@ const PlayerField: React.FC = () => {
               }`}>
                 {player.jersey}
               </div>
-              <div className="flex-1">
-                <div className={`font-semibold text-sm ${
-                  isHighContrast ? 'text-black' : ''
+              <div className="flex-1 min-w-0">
+                <div className={`font-semibold text-sm text-contained ${
+                  isHighContrast ? 'text-black' : 'text-gray-900'
                 }`}>{player.name}</div>
-                <div className={`text-xs ${
-                  isHighContrast ? 'text-black opacity-70' : 'opacity-70'
+                <div className={`text-xs text-contained ${
+                  isHighContrast ? 'text-black opacity-70' : 'text-gray-600'
                 }`}>{player.position}</div>
               </div>
             </motion.div>
@@ -494,16 +494,17 @@ const PlayerField: React.FC = () => {
 };
 
 export const InteractiveDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { theme, isHighContrast } = useTheme();
-  const { language } = useLanguage();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const [evolutionData, setEvolutionData] = useState([
-    { partido: 1, victories: 0, points: 0 },
-    { partido: 2, victories: 50, points: 1 },
-    { partido: 3, victories: 100, points: 3 },
-    { partido: 4, victories: 25, points: 1 },
-    { partido: 5, victories: 100, points: 3 },
-    { partido: 6, victories: 100, points: 3 }
+    { partido: 1, victories: 0, points: 0, goalsFor: 0, goalsAgainst: 0 },
+    { partido: 2, victories: 50, points: 1, goalsFor: 2, goalsAgainst: 3 },
+    { partido: 3, victories: 100, points: 3, goalsFor: 3, goalsAgainst: 0 },
+    { partido: 4, victories: 25, points: 1, goalsFor: 1, goalsAgainst: 3 },
+    { partido: 5, victories: 100, points: 3, goalsFor: 4, goalsAgainst: 1 },
+    { partido: 6, victories: 100, points: 3, goalsFor: 3, goalsAgainst: 0 }
   ]);
 
   const playersData = [
@@ -514,37 +515,43 @@ export const InteractiveDashboard: React.FC = () => {
     { name: 'David González', position: 'DEF', minutes: 480, goals: 1, assists: 0, fitness: 2, shots: 3, cards: 1, fitCom: 8 }
   ];
 
+  // Calculate cumulative points for the line chart
+  const cumulativePoints = evolutionData.map((item, index) => {
+    const cumulative = evolutionData.slice(0, index + 1).reduce((sum, curr) => sum + curr.points, 0);
+    return { ...item, cumulative };
+  });
+
   return (
     <div className={`min-h-screen transition-all duration-500 ${
       isHighContrast ? 'hc-dashboard' :
-      theme === 'dark' 
+      theme === 'midnight' 
         ? 'bg-white text-gray-900' 
         : 'bg-white text-gray-900'
     }`}>
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 md:mb-8"
         >
-          <h1 className={`text-3xl font-bold mb-2 ${
-            isHighContrast ? 'text-black' : ''
+          <h1 className={`text-2xl md:text-3xl font-bold mb-2 ${
+            isHighContrast ? 'text-black' : 'text-gray-900'
           }`}>
             Home
           </h1>
         </motion.div>
 
-        {/* Stats Cards - Made all cards the same size with standardized font sizes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="h-full">
-            <Card className="bg-blue-500 text-white border-0 h-full flex flex-col">
+        {/* Stats Cards - Full width cards with different colors */}
+        <div className="grid grid-cols-1 gap-6 mb-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 h-full flex flex-col shadow-lg">
               <CardContent className="p-6 flex flex-col flex-grow">
                 <div className="flex items-center justify-between flex-grow">
                   <div>
                     <p className="text-blue-100 text-sm font-medium">Points</p>
                     <p className="text-3xl font-bold mt-1">24</p>
-                    <p className="text-blue-100 text-xs mt-1">Temporada actual</p>
+                    <p className="text-blue-100 text-xs mt-1">Current Season</p>
                   </div>
                   <Trophy className="h-12 w-12 text-blue-200" />
                 </div>
@@ -552,14 +559,14 @@ export const InteractiveDashboard: React.FC = () => {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="h-full">
-            <Card className="bg-green-500 text-white border-0 h-full flex flex-col">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 h-full flex flex-col shadow-lg">
               <CardContent className="p-6 flex flex-col flex-grow">
                 <div className="flex items-center justify-between flex-grow">
                   <div>
-                    <p className="text-green-100 text-sm font-medium">Último Resultado</p>
+                    <p className="text-green-100 text-sm font-medium">Last Result</p>
                     <p className="text-lg font-bold mt-1">CD Statsor 5-3 Jaén</p>
-                    <p className="text-green-100 text-xs mt-1">hace 3 días</p>
+                    <p className="text-green-100 text-xs mt-1">3 days ago</p>
                   </div>
                   <Target className="h-12 w-12 text-green-200" />
                 </div>
@@ -567,14 +574,14 @@ export const InteractiveDashboard: React.FC = () => {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="h-full">
-            <Card className="bg-purple-500 text-white border-0 h-full flex flex-col">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 h-full flex flex-col shadow-lg">
               <CardContent className="p-6 flex flex-col flex-grow">
                 <div className="flex items-center justify-between flex-grow">
                   <div>
                     <p className="text-purple-100 text-sm font-medium">% Victories</p>
                     <p className="text-3xl font-bold mt-1">66.7%</p>
-                    <p className="text-purple-100 text-xs mt-1">6 de 12 partidos</p>
+                    <p className="text-purple-100 text-xs mt-1">6 of 12 matches</p>
                   </div>
                   <TrendingUp className="h-12 w-12 text-purple-200" />
                 </div>
@@ -582,14 +589,14 @@ export const InteractiveDashboard: React.FC = () => {
             </Card>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="h-full">
-            <Card className="bg-orange-500 text-white border-0 h-full flex flex-col">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 h-full flex flex-col shadow-lg">
               <CardContent className="p-6 flex flex-col flex-grow">
                 <div className="flex items-center justify-between flex-grow">
                   <div>
                     <p className="text-orange-100 text-sm font-medium">Season - Jaén</p>
                     <p className="text-lg font-bold mt-1">Age</p>
-                    <p className="text-orange-100 text-xs mt-1">División</p>
+                    <p className="text-orange-100 text-xs mt-1">Division</p>
                   </div>
                   <Users className="h-12 w-12 text-orange-200" />
                 </div>
@@ -598,103 +605,94 @@ export const InteractiveDashboard: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Evolution Chart and Players Table - Expanded to full width for better visibility */}
-        <div className="grid grid-cols-1 gap-8 mb-8">
-          {/* Evolution Chart - Now takes full width */}
+        {/* Evolution Chart and Players Table - Better organized with proper spacing */}
+        <div className="grid grid-cols-1 gap-6 mb-6">
+          {/* Evolution Chart */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
-            <Card className={`${
+            <Card className={`h-full ${
               isHighContrast ? 'hc-card' :
-              theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
             }`}>
               <CardHeader>
-                <CardTitle>Evolution</CardTitle>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="mr-2 h-5 w-5 text-purple-600" />
+                  Team Evolution
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-80 relative"> {/* Increased height for better visibility */}
-                  <svg className="w-full h-full" viewBox="0 0 400 200">
-                    <defs>
-                      <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.1" />
-                      </linearGradient>
-                      <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="1" />
-                      </linearGradient>
-                    </defs>
-                    {/* Smooth path for the line with distinct colors - increased strokeWidth for smoother line */}
-                    <path
-                      d="M 50 150 C 100 100, 150 50, 200 25 S 300 50, 350 150"
-                      stroke="url(#lineGradient)"
-                      strokeWidth="6"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    {/* Area fill */}
-                    <path
-                      d="M 50 150 C 100 100, 150 50, 200 25 S 300 50, 350 150 L 350 180 L 50 180 Z"
-                      fill="url(#gradient)"
-                    />
-                    {/* Data points with clearer visibility - increased radius for clearer points */}
-                    {evolutionData.map((point, index) => (
-                      <circle
-                        key={index}
-                        cx={50 + (index * 60)}
-                        cy={180 - (point.victories * 1.3)}
-                        r="8"
-                        fill="#8b5cf6"
-                        stroke="white"
-                        strokeWidth="4"
-                      />
-                    ))}
-                  </svg>
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-between px-12 text-sm text-gray-500">
-                    {evolutionData.map((point, index) => (
-                      <span key={index}>Partido {point.partido}</span>
-                    ))}
+                <div className="h-80 relative">
+                  {/* Simplified chart with no overlapping */}
+                  <div className="flex items-end h-64 mt-4 mb-4 border-b border-l border-gray-300 p-4">
+                    {/* Y-axis labels */}
+                    <div className="flex flex-col justify-between h-full mr-3 text-xs text-gray-500">
+                      <span>100%</span>
+                      <span>75%</span>
+                      <span>50%</span>
+                      <span>25%</span>
+                      <span>0%</span>
+                    </div>
+                    
+                    {/* Chart bars - simplified and spaced */}
+                    <div className="flex items-end flex-1 space-x-6">
+                      {cumulativePoints.map((point, index) => (
+                        <div key={index} className="flex flex-col items-center flex-1">
+                          {/* Victory rate bar - simplified */}
+                          <div 
+                            className="w-full bg-green-500 rounded-t transition-all duration-500"
+                            style={{ height: `${point.victories * 0.6}px` }}
+                          ></div>
+                          
+                          {/* Points indicator - simplified */}
+                          <div className="mt-2 text-xs font-semibold text-purple-600">
+                            {point.points} pts
+                          </div>
+                          
+                          {/* X-axis label */}
+                          <div className="mt-1 text-xs text-gray-600">
+                            M{point.partido}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                {/* Enhanced tooltip information with requested data */}
-                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm"> {/* Increased margin and made responsive */}
-                  <div className="p-4 bg-purple-50 rounded-lg"> {/* Increased padding */}
-                    <p className="text-purple-600 font-semibold">Partido 6</p>
-                    <p className="text-gray-600">% Victories: 100%</p>
-                    <p className="text-gray-600">For: 3</p>
-                    <p className="text-gray-600">Against: 0</p>
-                    <p className="text-gray-600">Points: 3</p>
+                  
+                  {/* Legend - simplified */}
+                  <div className="flex justify-center space-x-6 mt-2">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                      <span className="text-xs text-gray-600">Victory Rate</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-purple-500 rounded mr-2"></div>
+                      <span className="text-xs text-gray-600">Points</span>
+                    </div>
                   </div>
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <p className="text-purple-600 font-semibold">Partido 5</p>
-                    <p className="text-gray-600">% Victories: 100%</p>
-                    <p className="text-gray-600">For: 4</p>
-                    <p className="text-gray-600">Against: 1</p>
-                    <p className="text-gray-600">Points: 3</p>
-                  </div>
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <p className="text-purple-600 font-semibold">Partido 4</p>
-                    <p className="text-gray-600">% Victories: 25%</p>
-                    <p className="text-gray-600">For: 1</p>
-                    <p className="text-gray-600">Against: 3</p>
-                    <p className="text-gray-600">Points: 0</p>
-                  </div>
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <p className="text-purple-600 font-semibold">Partido 3</p>
-                    <p className="text-gray-600">% Victories: 100%</p>
-                    <p className="text-gray-600">For: 3</p>
-                    <p className="text-gray-600">Against: 0</p>
-                    <p className="text-gray-600">Points: 3</p>
+                  
+                  {/* Summary statistics - simplified */}
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div className="bg-blue-50 p-3 rounded-lg text-center">
+                      <div className="text-lg font-bold text-blue-600">
+                        {cumulativePoints[cumulativePoints.length - 1]?.cumulative || 0}
+                      </div>
+                      <div className="text-xs text-gray-600">Total Points</div>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded-lg text-center">
+                      <div className="text-lg font-bold text-green-600">
+                        {Math.round(cumulativePoints.reduce((sum, point) => sum + point.victories, 0) / cumulativePoints.length)}%
+                      </div>
+                      <div className="text-xs text-gray-600">Avg Victory Rate</div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Players Table - Now takes full width */}
+          {/* Players Table */}
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }}>
-            <Card className={`${
+            <Card className={`h-full ${
               isHighContrast ? 'hc-card' :
-              theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
             }`}>
               <CardHeader>
                 <CardTitle>Players</CardTitle>
@@ -704,22 +702,22 @@ export const InteractiveDashboard: React.FC = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left py-3">Player</th> {/* Increased padding */}
-                        <th className="text-center py-3">Pos</th>
-                        <th className="text-center py-3">Min</th>
-                        <th className="text-center py-3">Goals</th>
-                        <th className="text-center py-3">Assists</th>
-                        <th className="text-center py-3">Fit</th>
-                        <th className="text-center py-3">Shots</th>
-                        <th className="text-center py-3">Tarj</th>
-                        <th className="text-center py-3">Fit Com</th>
+                        <th className="text-left py-2 px-2">Player</th>
+                        <th className="text-center py-2 px-2">Pos</th>
+                        <th className="text-center py-2 px-2">Min</th>
+                        <th className="text-center py-2 px-2">Goals</th>
+                        <th className="text-center py-2 px-2">Assists</th>
+                        <th className="text-center py-2 px-2">Fit</th>
+                        <th className="text-center py-2 px-2">Shots</th>
+                        <th className="text-center py-2 px-2">Cards</th>
+                        <th className="text-center py-2 px-2">Fit Com</th>
                       </tr>
                     </thead>
                     <tbody>
                       {playersData.map((player, index) => (
                         <tr key={index} className="border-b hover:bg-gray-50">
-                          <td className="py-3 font-medium">{player.name}</td> {/* Increased padding */}
-                          <td className="text-center py-3">
+                          <td className="py-2 px-2 font-medium text-contained">{player.name}</td>
+                          <td className="text-center py-2 px-2">
                             <Badge variant="outline" className={`text-xs ${
                               player.position === 'DEL' ? 'bg-red-100 text-red-800' :
                               player.position === 'CEN' ? 'bg-blue-100 text-blue-800' :
@@ -728,17 +726,17 @@ export const InteractiveDashboard: React.FC = () => {
                               {player.position}
                             </Badge>
                           </td>
-                          <td className="text-center py-3">{player.minutes}</td>
-                          <td className="text-center py-3 font-semibold text-green-600">{player.goals}</td>
-                          <td className="text-center py-3 font-semibold text-blue-600">{player.assists}</td>
-                          <td className="text-center py-3">{player.fitness}</td>
-                          <td className="text-center py-3">{player.shots}</td>
-                          <td className="text-center py-3">
+                          <td className="text-center py-2 px-2">{player.minutes}</td>
+                          <td className="text-center py-2 px-2 font-semibold text-green-600">{player.goals}</td>
+                          <td className="text-center py-2 px-2 font-semibold text-blue-600">{player.assists}</td>
+                          <td className="text-center py-2 px-2">{player.fitness}</td>
+                          <td className="text-center py-2 px-2">{player.shots}</td>
+                          <td className="text-center py-2 px-2">
                             <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800">
                               {player.cards}
                             </Badge>
                           </td>
-                          <td className="text-center py-3">{player.fitCom}</td>
+                          <td className="text-center py-2 px-2">{player.fitCom}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -749,48 +747,66 @@ export const InteractiveDashboard: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Upcoming Matches */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+        {/* Upcoming Matches - Full width card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="mb-6">
           <Card className={`${
             isHighContrast ? 'hc-card' :
-            theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
           }`}>
             <CardHeader>
-              <CardTitle>Próximos Partidos</CardTitle>
+              <CardTitle className="text-gray-900">{t('matches.upcoming')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div>
-                    <p className="font-semibold">25 Julio 2025</p>
-                    <p className="text-sm text-gray-600">CD Statsor vs Jaén FS</p>
-                    <p className="text-sm text-gray-500">Pabellón Municipal</p>
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-base">July 25, 2025</p>
+                    <p className="text-sm text-gray-600 text-contained">CD Statsor vs Jaén FS</p>
+                    <p className="text-xs text-gray-500 text-contained">Pabellón Municipal</p>
                   </div>
-                  <Button variant="outline" size="sm">Ver Detalles</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/matches')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
+                  >
+                    {t('manual.actions.details')}
+                  </Button>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div>
-                    <p className="font-semibold">1 Agosto 2025</p>
-                    <p className="text-sm text-gray-600">CD Statsor vs Granada CF</p>
-                    <p className="text-sm text-gray-500">Estadio Nuevo Los Cármenes</p>
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-base">August 1, 2025</p>
+                    <p className="text-sm text-gray-600 text-contained">CD Statsor vs Granada CF</p>
+                    <p className="text-xs text-gray-500 text-contained">Estadio Nuevo Los Cármenes</p>
                   </div>
-                  <Button variant="outline" size="sm">Ver Detalles</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/matches')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
+                  >
+                    {t('manual.actions.details')}
+                  </Button>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div>
-                    <p className="font-semibold">8 Agosto 2025</p>
-                    <p className="text-sm text-gray-600">CD Statsor vs Real Madrid</p>
-                    <p className="text-sm text-gray-500">Santiago Bernabéu</p>
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-base">August 8, 2025</p>
+                    <p className="text-sm text-gray-600 text-contained">CD Statsor vs Real Madrid</p>
+                    <p className="text-xs text-gray-500 text-contained">Santiago Bernabéu</p>
                   </div>
-                  <Button variant="outline" size="sm">Ver Detalles</Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/matches')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
+                  >
+                    {t('manual.actions.details')}
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Management Sections Navigation - REMOVED as per user request */}
-        
       </div>
     </div>
   );

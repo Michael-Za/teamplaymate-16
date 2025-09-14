@@ -27,9 +27,10 @@ const ForgotPassword = () => {
     setLoading(true);
     
     try {
+      // Use the resetPassword function from AuthContext
       const result = await resetPassword(email);
       
-      if (result.error) {
+      if (result?.error) {
         toast.error(result.error);
       } else {
         setEmailSent(true);

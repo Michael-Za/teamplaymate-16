@@ -123,6 +123,17 @@ const ResponsiveLayoutContent: React.FC<ResponsiveLayoutProps> = ({ children }) 
     return () => clearInterval(interval);
   }, []);
 
+  // Mock player data - in a real app, this would come from an API
+  const [players] = useState([
+    { id: '1', name: 'Fernando Torres', position: 'DEL', number: 9 },
+    { id: '2', name: 'Pablo Sánchez', position: 'CEN', number: 8 },
+    { id: '3', name: 'Juan Pérez', position: 'DEF', number: 4 },
+    { id: '4', name: 'Alejandro Martínez', position: 'POR', number: 1 },
+  ]);
+
+  // Show player dropdown when on players page
+  // const showPlayerDropdown = location.pathname.startsWith('/players') && !sidebarCollapsed;
+
   const navigationItems = [
     { 
       name: t('sidebar.dashboard'), 
@@ -208,12 +219,12 @@ const ResponsiveLayoutContent: React.FC<ResponsiveLayoutProps> = ({ children }) 
       )}
 
       <aside className={cn(
-         `fixed top-0 left-0 z-50 h-full transition-all duration-300 ease-in-out scroll-smooth-mobile bg-black border-r border-gray-800`,
-         sidebarOpen ? "translate-x-0" : "-translate-x-full",
-         sidebarCollapsed ? "w-16" : "w-64",
-         "md:translate-x-0"
-       )}>
-        <div className="flex flex-col h-full">
+       `fixed top-0 left-0 z-50 h-full transition-all duration-300 ease-in-out scroll-smooth-mobile bg-black border-r border-gray-800`,
+       sidebarOpen ? "translate-x-0" : "-translate-x-full",
+       sidebarCollapsed ? "w-16" : "w-64",
+       "md:translate-x-0"
+     )}>
+      <div className="flex flex-col h-full">
           <div className={cn(
              "flex items-center justify-between p-4 border-b border-gray-800",
              sidebarCollapsed && "justify-center px-2"
@@ -249,31 +260,35 @@ const ResponsiveLayoutContent: React.FC<ResponsiveLayoutProps> = ({ children }) 
               const isActive = location.pathname === item.path;
               
               return (
-                <Button
-                  key={item.path}
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full justify-start gap-3 touch-target focus-enhanced transition-all duration-200 text-white hover:bg-gray-800",
-                    sidebarCollapsed ? "px-2" : "px-3",
-                    isActive && "bg-gray-900 text-white border-l-2 border-white"
-                  )}
-                  onClick={() => {
-                    navigate(item.path);
-                    setSidebarOpen(false);
-                  }}
-                >
-                  <Icon size={18} className="flex-shrink-0 text-white" />
-                  {!sidebarCollapsed && (
-                    <>
-                      <span className="flex-1 text-left text-white">{item.name}</span>
-                      {item.badge && (
-                        <Badge variant="secondary" className="ml-auto bg-gray-800 text-white">
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </>
-                  )}
-                </Button>
+                <div key={item.path}>
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start gap-3 touch-target focus-enhanced transition-all duration-200 text-white hover:bg-gray-800",
+                      sidebarCollapsed ? "px-2" : "px-3",
+                      isActive && "bg-gray-900 text-white border-l-2 border-white"
+                    )}
+                    onClick={() => {
+                      navigate(item.path);
+                      setSidebarOpen(false);
+                    }}
+                  >
+                    <Icon size={18} className="flex-shrink-0 text-white" />
+                    {!sidebarCollapsed && (
+                      <>
+                        <span className="flex-1 text-left text-white">{item.name}</span>
+                        {item.badge && (
+                          <Badge variant="secondary" className="ml-auto bg-gray-800 text-white">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </>
+                    )}
+                  </Button>
+                  
+                  {/* Player dropdown - only show when on players page */}
+                  {/* Removed as per user request */}
+                </div>
               );
             })}
           </nav>
@@ -421,8 +436,8 @@ const ResponsiveLayoutContent: React.FC<ResponsiveLayoutProps> = ({ children }) 
           onClose={() => setNotificationPanelOpen(false)} 
         />
 
-        <main className="flex-1 safe-area-bottom scroll-smooth-mobile flex bg-white">
-          <div className="flex-1 container-responsive spacing-responsive py-4 sm:py-6 text-gray-900">
+        <main className="flex-1 safe-area-bottom scroll-smooth-mobile flex bg-white w-full">
+          <div className="flex-1 spacing-responsive py-0 text-gray-900 w-full h-full">
              {children}
            </div>
         </main>

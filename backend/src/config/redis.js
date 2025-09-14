@@ -32,7 +32,33 @@ let redis = null;
 let redisPub = null;
 let redisSub = null;
 
-if (config.redisConfig.host) {
+// Check if we have Upstash Redis configuration
+if (config.redisConfig.upstash.restUrl && config.redisConfig.upstash.restToken) {
+  // Use Upstash Redis with REST API
+  const upstashConfig = {
+    host: config.redisConfig.upstash.restUrl.replace('https://', ''),
+    port: 443,
+    password: config.redisConfig.upstash.restToken,
+    tls: {},
+    retryDelayOnFailover: 100,
+    enableReadyCheck: true,
+    maxRetriesPerRequest: 3,
+    lazyConnect: true,
+    keepAlive: 30000,
+    connectTimeout: 10000,
+    commandTimeout: 5000,
+    retryDelayOnClusterDown: 300,
+    retryDelayOnFailover: 100,
+    maxRetriesPerRequest: 3,
+    enableOfflineQueue: false
+  };
+  
+  redis = new Redis(upstashConfig);
+  redisPub = new Redis(upstashConfig); // For publishing
+  redisSub = new Redis(upstashConfig); // For subscribing
+  
+  redisLogger.info('Upstash Redis configured successfully');
+} else if (config.redisConfig.host) {
   redis = new Redis(redisConfig);
   redisPub = new Redis(redisConfig); // For publishing
   redisSub = new Redis(redisConfig); // For subscribing

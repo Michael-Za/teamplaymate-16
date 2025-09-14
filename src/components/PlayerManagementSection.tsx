@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -21,78 +21,49 @@ import {
   Clock,
   Award,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-
-interface Player {
-  id: string;
-  name: string;
-  position: string;
-  age: number;
-  height: number;
-  weight: number;
-  fitness: number;
-  goals: number;
-  assists: number;
-  minutes: number;
-  cards: number;
-  injuries: string[];
-  notes: string;
-}
+import { useNavigate } from 'react-router-dom';
+import { dataManagementService, Player } from '../services/dataManagementService';
+import { toast } from 'sonner';
 
 export const PlayerManagementSection: React.FC = () => {
+  const navigate = useNavigate();
   const { theme, isHighContrast } = useTheme();
   const [activeTab, setActiveTab] = useState('roster');
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<string | null>(null);
-  const [players, setPlayers] = useState<Player[]>([
-    {
-      id: '1',
-      name: 'Fernando Torres',
-      position: 'DEL',
-      age: 28,
-      height: 183,
-      weight: 75,
-      fitness: 85,
-      goals: 12,
-      assists: 5,
-      minutes: 1240,
-      cards: 2,
-      injuries: [],
-      notes: 'Excellent finishing, needs work on headers'
-    },
-    {
-      id: '2',
-      name: 'Pablo Sánchez',
-      position: 'CEN',
-      age: 25,
-      height: 178,
-      weight: 72,
-      fitness: 78,
-      goals: 4,
-      assists: 8,
-      minutes: 1180,
-      cards: 1,
-      injuries: ['Minor ankle sprain'],
-      notes: 'Great vision and passing ability'
-    },
-    {
-      id: '3',
-      name: 'Juan Pérez',
-      position: 'DEF',
-      age: 30,
-      height: 185,
-      weight: 80,
-      fitness: 82,
-      goals: 2,
-      assists: 1,
-      minutes: 1350,
-      cards: 3,
-      injuries: [],
-      notes: 'Solid defender, good in the air'
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPlayers();
+    
+    // Subscribe to player updates
+    dataManagementService.setPlayersUpdateCallback((updatedPlayers) => {
+      setPlayers(updatedPlayers);
+    });
+    
+    return () => {
+      dataManagementService.setPlayersUpdateCallback(null);
+    };
+  }, []);
+
+  const loadPlayers = async () => {
+    try {
+      setLoading(true);
+      const playersData = await dataManagementService.getPlayers();
+      setPlayers(playersData);
+    } catch (error) {
+      console.error('Error loading players:', error);
+      toast.error('Failed to load players');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const [newPlayer, setNewPlayer] = useState<Partial<Player>>({
     name: '',
@@ -111,39 +82,48 @@ export const PlayerManagementSection: React.FC = () => {
 
   const positions = ['DEL', 'CEN', 'DEF', 'POR'];
 
-  const handleAddPlayer = () => {
+  const handleAddPlayer = async () => {
     if (newPlayer.name && newPlayer.position) {
-      const player: Player = {
-        id: Date.now().toString(),
-        name: newPlayer.name || '',
-        position: newPlayer.position || '',
-        age: newPlayer.age || 0,
-        height: newPlayer.height || 0,
-        weight: newPlayer.weight || 0,
-        fitness: newPlayer.fitness || 0,
-        goals: newPlayer.goals || 0,
-        assists: newPlayer.assists || 0,
-        minutes: newPlayer.minutes || 0,
-        cards: newPlayer.cards || 0,
-        injuries: newPlayer.injuries || [],
-        notes: newPlayer.notes || ''
-      };
-      setPlayers([...players, player]);
-      setNewPlayer({
-        name: '',
-        position: '',
-        age: 0,
-        height: 0,
-        weight: 0,
-        fitness: 0,
-        goals: 0,
-        assists: 0,
-        minutes: 0,
-        cards: 0,
-        injuries: [],
-        notes: ''
-      });
-      setIsAddingPlayer(false);
+      try {
+        const playerData: Partial<Player> = {
+          name: newPlayer.name || '',
+          position: newPlayer.position || '',
+          age: newPlayer.age || 0,
+          height: newPlayer.height || 0,
+          weight: newPlayer.weight || 0,
+          fitness: newPlayer.fitness || 0,
+          goals: newPlayer.goals || 0,
+          assists: newPlayer.assists || 0,
+          minutes: newPlayer.minutes || 0,
+          cards: newPlayer.cards || 0,
+          injuries: newPlayer.injuries || [],
+          notes: newPlayer.notes || ''
+        };
+
+        const createdPlayer = await dataManagementService.createPlayer(playerData);
+        if (createdPlayer) {
+          setPlayers([...players, createdPlayer]);
+          setNewPlayer({
+            name: '',
+            position: '',
+            age: 0,
+            height: 0,
+            weight: 0,
+            fitness: 0,
+            goals: 0,
+            assists: 0,
+            minutes: 0,
+            cards: 0,
+            injuries: [],
+            notes: ''
+          });
+          setIsAddingPlayer(false);
+          toast.success('Player added successfully!');
+        }
+      } catch (error) {
+        console.error('Error adding player:', error);
+        toast.error('Failed to add player');
+      }
     }
   };
 
@@ -163,6 +143,19 @@ export const PlayerManagementSection: React.FC = () => {
     return 'text-red-600';
   };
 
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
+        className="mt-8 flex justify-center items-center h-64"
+      >
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -172,7 +165,7 @@ export const PlayerManagementSection: React.FC = () => {
     >
       <Card className={`${
         isHighContrast ? 'hc-card' :
-        theme === 'dark' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
+        theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
       }`}>
         <CardHeader className="border-b border-gray-100">
           <div className="flex items-center justify-between">
@@ -253,7 +246,7 @@ export const PlayerManagementSection: React.FC = () => {
                         </div>
                         <div>
                           <Label htmlFor="position">Position</Label>
-                          <Select value={newPlayer.position} onValueChange={(value) => setNewPlayer({...newPlayer, position: value})}>
+                          <Select value={newPlayer.position || ''} onValueChange={(value) => setNewPlayer({...newPlayer, position: value})}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select position" />
                             </SelectTrigger>
@@ -333,7 +326,8 @@ export const PlayerManagementSection: React.FC = () => {
                 {/* Players List */}
                 <div className="grid gap-4">
                   {players.map((player) => (
-                    <Card key={player.id} className="border-gray-200">
+                    <Card key={player.id} className="border-gray-200 cursor-pointer hover:shadow-md transition-shadow" 
+                          onClick={() => navigate(`/players/${player.id}`)}>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
@@ -356,7 +350,7 @@ export const PlayerManagementSection: React.FC = () => {
                             <div className="text-right">
                               <div className="flex items-center space-x-2">
                                 <Heart className="h-4 w-4 text-gray-400" />
-                                <span className={`font-semibold ${getFitnessColor(player.fitness)}`}>
+                                <span className={`font-semibold ${getFitnessColor(player.fitness || 0)}`}>
                                   {player.fitness}%
                                 </span>
                               </div>
@@ -364,7 +358,7 @@ export const PlayerManagementSection: React.FC = () => {
                                 {player.goals}G / {player.assists}A
                               </div>
                             </div>
-                            {player.injuries.length > 0 && (
+                            {player.injuries && player.injuries.length > 0 && (
                               <AlertCircle className="h-5 w-5 text-red-500" />
                             )}
                             <Button variant="ghost" size="sm">
@@ -377,7 +371,7 @@ export const PlayerManagementSection: React.FC = () => {
                             {player.notes}
                           </div>
                         )}
-                        {player.injuries.length > 0 && (
+                        {player.injuries && player.injuries.length > 0 && (
                           <div className="mt-2">
                             <div className="flex flex-wrap gap-1">
                               {player.injuries.map((injury, index) => (
@@ -403,8 +397,18 @@ export const PlayerManagementSection: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-blue-600">Top Scorer</p>
-                          <p className="text-lg font-bold text-blue-900">Fernando Torres</p>
-                          <p className="text-sm text-blue-600">12 goals</p>
+                          <p className="text-lg font-bold text-blue-900">
+                            {players.length > 0 
+                              ? players.reduce((top, player) => 
+                                  (player.goals || 0) > (top.goals || 0) ? player : top, players[0]
+                                ).name 
+                              : 'N/A'}
+                          </p>
+                          <p className="text-sm text-blue-600">
+                            {players.length > 0 
+                              ? `${Math.max(...players.map(p => p.goals || 0))} goals` 
+                              : '0 goals'}
+                          </p>
                         </div>
                         <Target className="h-8 w-8 text-blue-500" />
                       </div>
@@ -416,8 +420,18 @@ export const PlayerManagementSection: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-green-600">Most Assists</p>
-                          <p className="text-lg font-bold text-green-900">Pablo Sánchez</p>
-                          <p className="text-sm text-green-600">8 assists</p>
+                          <p className="text-lg font-bold text-green-900">
+                            {players.length > 0 
+                              ? players.reduce((top, player) => 
+                                  (player.assists || 0) > (top.assists || 0) ? player : top, players[0]
+                                ).name 
+                              : 'N/A'}
+                          </p>
+                          <p className="text-sm text-green-600">
+                            {players.length > 0 
+                              ? `${Math.max(...players.map(p => p.assists || 0))} assists` 
+                              : '0 assists'}
+                          </p>
                         </div>
                         <TrendingUp className="h-8 w-8 text-green-500" />
                       </div>
@@ -429,8 +443,18 @@ export const PlayerManagementSection: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-purple-600">Most Minutes</p>
-                          <p className="text-lg font-bold text-purple-900">Juan Pérez</p>
-                          <p className="text-sm text-purple-600">1,350 min</p>
+                          <p className="text-lg font-bold text-purple-900">
+                            {players.length > 0 
+                              ? players.reduce((top, player) => 
+                                  (player.minutes || 0) > (top.minutes || 0) ? player : top, players[0]
+                                ).name 
+                              : 'N/A'}
+                          </p>
+                          <p className="text-sm text-purple-600">
+                            {players.length > 0 
+                              ? `${Math.max(...players.map(p => p.minutes || 0))} min` 
+                              : '0 min'}
+                          </p>
                         </div>
                         <Clock className="h-8 w-8 text-purple-500" />
                       </div>
@@ -442,8 +466,18 @@ export const PlayerManagementSection: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-yellow-600">Best Fitness</p>
-                          <p className="text-lg font-bold text-yellow-900">Fernando Torres</p>
-                          <p className="text-sm text-yellow-600">85%</p>
+                          <p className="text-lg font-bold text-yellow-900">
+                            {players.length > 0 
+                              ? players.reduce((top, player) => 
+                                  (player.fitness || 0) > (top.fitness || 0) ? player : top, players[0]
+                                ).name 
+                              : 'N/A'}
+                          </p>
+                          <p className="text-sm text-yellow-600">
+                            {players.length > 0 
+                              ? `${Math.max(...players.map(p => p.fitness || 0))}%` 
+                              : '0%'}
+                          </p>
                         </div>
                         <Award className="h-8 w-8 text-yellow-500" />
                       </div>
@@ -465,7 +499,7 @@ export const PlayerManagementSection: React.FC = () => {
                             </div>
                             <div>
                               <p className="font-medium text-gray-900">{player.name}</p>
-                              <Badge className={getPositionColor(player.position)} size="sm">
+                              <Badge className={getPositionColor(player.position)}>
                                 {player.position}
                               </Badge>
                             </div>
@@ -473,20 +507,20 @@ export const PlayerManagementSection: React.FC = () => {
                           <div className="grid grid-cols-4 gap-4 text-center">
                             <div>
                               <p className="text-sm text-gray-600">Goals</p>
-                              <p className="font-semibold text-green-600">{player.goals}</p>
+                              <p className="font-semibold text-green-600">{player.goals || 0}</p>
                             </div>
                             <div>
                               <p className="text-sm text-gray-600">Assists</p>
-                              <p className="font-semibold text-blue-600">{player.assists}</p>
+                              <p className="font-semibold text-blue-600">{player.assists || 0}</p>
                             </div>
                             <div>
                               <p className="text-sm text-gray-600">Minutes</p>
-                              <p className="font-semibold text-gray-900">{player.minutes}</p>
+                              <p className="font-semibold text-gray-900">{player.minutes || 0}</p>
                             </div>
                             <div>
                               <p className="text-sm text-gray-600">Fitness</p>
-                              <p className={`font-semibold ${getFitnessColor(player.fitness)}`}>
-                                {player.fitness}%
+                              <p className={`font-semibold ${getFitnessColor(player.fitness || 0)}`}>
+                                {player.fitness || 0}%
                               </p>
                             </div>
                           </div>
@@ -506,7 +540,11 @@ export const PlayerManagementSection: React.FC = () => {
                       <div className="text-center">
                         <Heart className="h-8 w-8 text-green-500 mx-auto mb-2" />
                         <p className="text-sm text-green-600">Average Fitness</p>
-                        <p className="text-2xl font-bold text-green-900">82%</p>
+                        <p className="text-2xl font-bold text-green-900">
+                          {players.length > 0 
+                            ? Math.round(players.reduce((sum, p) => sum + (p.fitness || 0), 0) / players.length) 
+                            : 0}%
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -516,7 +554,9 @@ export const PlayerManagementSection: React.FC = () => {
                       <div className="text-center">
                         <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
                         <p className="text-sm text-red-600">Injured Players</p>
-                        <p className="text-2xl font-bold text-red-900">1</p>
+                        <p className="text-2xl font-bold text-red-900">
+                          {players.filter(p => p.injuries && p.injuries.length > 0).length}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -526,7 +566,9 @@ export const PlayerManagementSection: React.FC = () => {
                       <div className="text-center">
                         <Activity className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                         <p className="text-sm text-blue-600">Ready to Play</p>
-                        <p className="text-2xl font-bold text-blue-900">{players.filter(p => p.fitness >= 70 && p.injuries.length === 0).length}</p>
+                        <p className="text-2xl font-bold text-blue-900">
+                          {players.filter(p => (p.fitness || 0) >= 70 && (!p.injuries || p.injuries.length === 0)).length}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -547,28 +589,28 @@ export const PlayerManagementSection: React.FC = () => {
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900">{player.name}</p>
-                                <Badge className={getPositionColor(player.position)} size="sm">
+                                <Badge className={getPositionColor(player.position)}>
                                   {player.position}
                                 </Badge>
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
                               <Heart className="h-4 w-4 text-gray-400" />
-                              <span className={`font-semibold ${getFitnessColor(player.fitness)}`}>
-                                {player.fitness}%
+                              <span className={`font-semibold ${getFitnessColor(player.fitness || 0)}`}>
+                                {player.fitness || 0}%
                               </span>
                             </div>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div 
                               className={`h-2 rounded-full ${
-                                player.fitness >= 80 ? 'bg-green-500' :
-                                player.fitness >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                (player.fitness || 0) >= 80 ? 'bg-green-500' :
+                                (player.fitness || 0) >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                               }`}
-                              style={{ width: `${player.fitness}%` }}
+                              style={{ width: `${player.fitness || 0}%` }}
                             ></div>
                           </div>
-                          {player.injuries.length > 0 && (
+                          {player.injuries && player.injuries.length > 0 && (
                             <div className="mt-2 flex items-center space-x-2">
                               <AlertCircle className="h-4 w-4 text-red-500" />
                               <span className="text-sm text-red-600">

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { Camera, Upload, X, Crop, RotateCw, Loader2 } from 'lucide-react';
+import { Camera, Upload, X, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { uploadService } from '../services/uploadService';
 import { toast } from 'sonner';

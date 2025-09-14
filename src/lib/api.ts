@@ -114,108 +114,224 @@ export const api = {
 // Auth API functions
 export const authAPI: AuthAPI = {
   register: async (data: any) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
+    // Check if mock auth is enabled
+    const enableMockAuth = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+    
+    if (!enableMockAuth) {
+      // Use real registration
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Registration failed');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Registration failed');
+        }
+
+        const result = await response.json();
+        return {
+          data: {
+            success: true,
+            data: result,
+            message: 'Registration successful. Please check your email for verification.'
+          }
+        };
+      } catch (error: any) {
+        return {
+          data: {
+            success: false,
+            error: error.message,
+            message: 'Registration failed'
+          }
+        };
       }
+    } else {
+      // Use mock implementation for development
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
 
-      const result = await response.json();
-      return {
-        data: {
-          success: true,
-          data: result,
-          message: 'Registration successful. Please check your email for verification.'
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Registration failed');
         }
-      };
-    } catch (error: any) {
-      return {
-        data: {
-          success: false,
-          error: error.message,
-          message: 'Registration failed'
-        }
-      };
+
+        const result = await response.json();
+        return {
+          data: {
+            success: true,
+            data: result,
+            message: 'Registration successful. Please check your email for verification.'
+          }
+        };
+      } catch (error: any) {
+        return {
+          data: {
+            success: false,
+            error: error.message,
+            message: 'Registration failed'
+          }
+        };
+      }
     }
   },
   
   login: async (data: any) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
+    // Check if mock auth is enabled
+    const enableMockAuth = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+    
+    if (!enableMockAuth) {
+      // Use real login
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Login failed');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Login failed');
+        }
+
+        const result = await response.json();
+        return {
+          data: {
+            success: true,
+            data: result,
+            message: 'Login successful'
+          }
+        };
+      } catch (error: any) {
+        return {
+          data: {
+            success: false,
+            error: error.message,
+            message: 'Login failed'
+          }
+        };
       }
+    } else {
+      // Use mock implementation for development
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
 
-      const result = await response.json();
-      return {
-        data: {
-          success: true,
-          data: result,
-          message: 'Login successful'
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Login failed');
         }
-      };
-    } catch (error: any) {
-      return {
-        data: {
-          success: false,
-          error: error.message,
-          message: 'Login failed'
-        }
-      };
+
+        const result = await response.json();
+        return {
+          data: {
+            success: true,
+            data: result,
+            message: 'Login successful'
+          }
+        };
+      } catch (error: any) {
+        return {
+          data: {
+            success: false,
+            error: error.message,
+            message: 'Login failed'
+          }
+        };
+      }
     }
   },
   
   verifyGoogleToken: async (code: string, codeVerifier: string) => {
-    try {
-      // In production, this would call your backend
-      // For now, we'll simulate a successful response
-      console.log('Google OAuth verification would happen here');
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Return mock success response
-      return {
-        data: {
-          success: true,
+    // Check if mock auth is enabled
+    const enableMockAuth = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+    
+    if (!enableMockAuth) {
+      // Use real Google OAuth verification
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/auth/google/callback`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code, codeVerifier })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Google authentication failed');
+        }
+
+        const result = await response.json();
+        return {
           data: {
-            user: {
-              id: 'mock_user_' + Date.now(),
-              email: 'user@example.com',
-              name: 'Test User',
-              provider: 'google',
-              sportSelected: false,
-              created_at: new Date().toISOString()
-            },
-            token: 'mock_auth_token_' + Date.now()
+            success: true,
+            data: result
           }
-        }
-      };
-    } catch (error) {
-      console.error('Google token verification error:', error);
-      return {
-        data: {
-          success: false,
-          message: error instanceof Error ? error.message : 'Google authentication failed',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        }
-      };
+        };
+      } catch (error: any) {
+        return {
+          data: {
+            success: false,
+            message: error.message || 'Google authentication failed',
+            error: error.message || 'Unknown error'
+          }
+        };
+      }
+    } else {
+      // Use mock implementation for development
+      try {
+        // In production, this would call your backend
+        // For now, we'll simulate a successful response
+        console.log('Google OAuth verification would happen here');
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Return mock success response
+        return {
+          data: {
+            success: true,
+            data: {
+              user: {
+                id: 'mock_user_' + Date.now(),
+                email: 'user@example.com',
+                name: 'Test User',
+                provider: 'google',
+                sportSelected: false,
+                created_at: new Date().toISOString()
+              },
+              token: 'mock_auth_token_' + Date.now()
+            }
+          }
+        };
+      } catch (error) {
+        console.error('Google token verification error:', error);
+        return {
+          data: {
+            success: false,
+            message: error instanceof Error ? error.message : 'Google authentication failed',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        };
+      }
     }
   },
   
@@ -243,16 +359,25 @@ export const authAPI: AuthAPI = {
 
   forgotPassword: async (data: { email: string }) => {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real implementation, this would call your backend
-      console.log('Password reset email would be sent to:', data.email);
-      
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to send reset email');
+      }
+
+      const result = await response.json();
       return {
         data: {
           success: true,
-          message: 'If the email exists, a reset link has been sent.'
+          data: result,
+          message: result.message || 'If the email exists, a reset link has been sent.'
         }
       };
     } catch (error: any) {
@@ -267,38 +392,70 @@ export const authAPI: AuthAPI = {
   },
 
   verifyResetCode: async (data: { email: string; code: string }) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // In a real implementation, this would verify with your backend
-    console.log('Reset code verification would happen here');
-    
-    return {
-      data: {
-        success: true,
-        data: { valid: true },
-        message: 'Reset code verified successfully'
-      }
-    };
-  },
-
-  resetPassword: async (data: { email: string; code: string; password: string }) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // In a real implementation, this would call your backend
-    console.log('Password reset would happen here');
-    
     try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/verify-reset-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Invalid reset code');
+      }
+
+      const result = await response.json();
       return {
         data: {
           success: true,
-          message: 'Password reset successful'
+          data: result,
+          message: result.message || 'Reset code verified successfully'
         }
       };
-    } catch (error) {
-      console.error('Password reset error:', error);
-      throw new Error('Failed to reset password. Please try again or contact support.');
+    } catch (error: any) {
+      return {
+        data: {
+          success: false,
+          error: error.message,
+          message: 'Invalid or expired reset code'
+        }
+      };
+    }
+  },
+
+  resetPassword: async (data: { email: string; code: string; password: string }) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to reset password');
+      }
+
+      const result = await response.json();
+      return {
+        data: {
+          success: true,
+          data: result,
+          message: result.message || 'Password reset successful'
+        }
+      };
+    } catch (error: any) {
+      return {
+        data: {
+          success: false,
+          error: error.message,
+          message: 'Failed to reset password. Please try again.'
+        }
+      };
     }
   },
   

@@ -27,6 +27,14 @@ class PayPalService {
 
   async createPayment(paymentData: PayPalPaymentData): Promise<PayPalResponse> {
     try {
+      // Validate required parameters
+      if (!paymentData.userEmail || !paymentData.planId) {
+        return {
+          success: false,
+          error: 'Missing required payment information'
+        };
+      }
+
       // Check if user has already paid for this plan
       const paymentKey = `${paymentData.userEmail}-${paymentData.planId}`;
       if (this.successfulPayments.get(paymentKey)) {
@@ -41,7 +49,7 @@ class PayPalService {
       this.paymentAttempts.set(paymentKey, attempts + 1);
 
       // Create subscription with backend API
-      const response = await fetch(`${api.baseURL}/api/v1/subscriptions/create`, {
+      const response = await fetch(api.subscription.create, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -56,8 +64,16 @@ class PayPalService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create subscription');
+        const errorText = await response.text();
+        let errorMessage = 'Failed to create subscription';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If parsing fails, use the raw text
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -106,14 +122,21 @@ class PayPalService {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         },
         body: JSON.stringify({
-          subscription_id: paymentData.subscriptionId,
           paypal_order_id: paymentId
         })
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to confirm payment');
+        const errorText = await response.text();
+        let errorMessage = 'Failed to confirm payment';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If parsing fails, use the raw text
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -179,12 +202,14 @@ class PayPalService {
 
   // Check if user has active subscription
   hasActiveSubscription(userEmail: string, planId: string): boolean {
+    if (!userEmail || !planId) return false;
     const paymentKey = `${userEmail}-${planId}`;
     return this.successfulPayments.get(paymentKey) || false;
   }
 
   // Get payment attempts for a user
   getPaymentAttempts(userEmail: string, planId: string): number {
+    if (!userEmail || !planId) return 0;
     const paymentKey = `${userEmail}-${planId}`;
     return this.paymentAttempts.get(paymentKey) || 0;
   }

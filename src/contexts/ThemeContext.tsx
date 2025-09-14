@@ -22,24 +22,24 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
 
   useEffect(() => {
-    // Lock theme to midnight (dark blue) to disable theme switching
+    // Lock theme to midnight (white theme) to disable theme switching
     const root = window.document.documentElement;
     
     // Remove all theme classes and force midnight theme
     root.classList.remove('light', 'dark', 'midnight', 'ocean', 'forest', 'high-contrast');
     root.classList.add('midnight');
     
-    // Theme configurations - locked to midnight with HSL values
+    // Theme configurations - locked to midnight with HSL values for proper white theme
     const themeConfigs = {
       midnight: {
         bgPrimary: '0 0% 100%', // White
-        bgSecondary: '0 0% 97%', // Light gray
-        bgTertiary: '0 0% 97%', // Light gray
+        bgSecondary: '0 0% 98%', // Very light gray
+        bgTertiary: '0 0% 95%', // Light gray
         textPrimary: '222.2 84% 4.9%', // Dark text
-        textSecondary: '215 20.2% 65.1%', // Medium text
+        textSecondary: '215 20.2% 40.1%', // Medium text
         textMuted: '215 20.2% 65.1%', // Muted text
-        borderPrimary: '217.2 32.6% 17.5%', // Border color
-        borderSecondary: '217.2 32.6% 17.5%', // Border color
+        borderPrimary: '217.2 32.6% 85.5%', // Light border
+        borderSecondary: '217.2 32.6% 90.5%', // Lighter border
         accentPrimary: '217.2 91.2% 59.8%', // Blue accent
         accentSecondary: '217.2 91.2% 59.8%', // Blue accent
         metaColor: '#ffffff'
@@ -60,10 +60,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     root.style.setProperty('--accent-primary', config.accentPrimary);
     root.style.setProperty('--accent-secondary', config.accentSecondary);
     
-    // Enhanced shadows and gradients
-    root.style.setProperty('--shadow-soft', `0 4px 6px -1px hsl(${config.bgPrimary} / 0.4)`);
-    root.style.setProperty('--shadow-medium', `0 10px 15px -3px hsl(${config.bgPrimary} / 0.6)`);
-    root.style.setProperty('--shadow-strong', `0 25px 50px -12px hsl(${config.bgPrimary} / 0.8)`);
+    // Enhanced shadows and gradients for white theme
+    root.style.setProperty('--shadow-soft', `0 4px 6px -1px hsl(${config.textPrimary} / 0.1)`);
+    root.style.setProperty('--shadow-medium', `0 10px 15px -3px hsl(${config.textPrimary} / 0.15)`);
+    root.style.setProperty('--shadow-strong', `0 25px 50px -12px hsl(${config.textPrimary} / 0.25)`);
     root.style.setProperty('--gradient-primary', `linear-gradient(135deg, hsl(${config.bgPrimary}) 0%, hsl(${config.bgSecondary}) 50%, hsl(${config.bgTertiary}) 100%)`);
     root.style.setProperty('--gradient-accent', `linear-gradient(135deg, hsl(${config.accentPrimary}) 0%, hsl(${config.accentSecondary}) 100%)`);
     root.style.setProperty('--gradient-glow', `radial-gradient(circle at center, hsl(${config.accentPrimary} / 0.2) 0%, transparent 70%)`);

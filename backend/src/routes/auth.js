@@ -196,18 +196,12 @@ const sendVerificationEmail = async (user, token) => {
 
 const sendPasswordResetEmail = async (user, resetCode) => {
   try {
-    await emailService.sendPasswordResetEmail(user.email, {
-      firstName: user.first_name,
-      resetCode: resetCode,
-      resetUrl: `${process.env.FRONTEND_URL}/reset-password`,
-      expirationMinutes: 15,
-      requestTime: new Date().toLocaleString(),
-      ipAddress: 'Hidden for security',
-      userAgent: 'Hidden for security',
-      supportEmail: process.env.SUPPORT_EMAIL || 'support@statsor.com'
-    });
+    const result = await emailService.sendPasswordResetCodeEmail(user, resetCode);
+    console.log('Password reset email sent:', result);
+    return result;
   } catch (error) {
     console.error('Failed to send password reset email:', error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -450,7 +444,10 @@ router.post('/forgot-password',
     });
 
     // Send reset email
-    await sendPasswordResetEmail(user, resetCode);
+    const emailResult = await sendPasswordResetEmail(user, resetCode);
+    
+    // Log email sending result for debugging
+    console.log('Password reset email sending result:', emailResult);
 
     res.json({ message: 'If the email exists, a reset link has been sent.' });
   })

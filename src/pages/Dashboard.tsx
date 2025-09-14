@@ -139,12 +139,37 @@ const Dashboard: React.FC = () => {
 
     loadDashboardData();
     
+    // Subscribe to player updates
+    dataManagementService.setPlayersUpdateCallback((updatedPlayers) => {
+      // Update teams with new player count
+      setTeams(prevTeams => {
+        if (prevTeams.length > 0 && prevTeams[0]) {
+          const updatedTeams = [...prevTeams];
+          updatedTeams[0] = {
+            id: prevTeams[0].id,
+            name: prevTeams[0].name,
+            players: updatedPlayers.length,
+            matches: prevTeams[0].matches,
+            wins: prevTeams[0].wins,
+            losses: prevTeams[0].losses,
+            draws: prevTeams[0].draws
+          };
+          return updatedTeams;
+        }
+        return prevTeams;
+      });
+    });
+    
     if (user?.id) {
       subscriptionService.getSubscriptionSummary(user.id).then(summary => {
         setSubscriptionSummary(summary);
       });
     }
-  }, [user]);
+    
+    return () => {
+      dataManagementService.setPlayersUpdateCallback(null);
+    };
+  }, [user]); // Remove teams from dependency array to prevent infinite loop
 
   const handleCreateTeam = async () => {
     if (!newTeamName.trim()) {

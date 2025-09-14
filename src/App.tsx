@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SportProvider, useSport } from "./contexts/SportContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -28,6 +28,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Training = lazy(() => import("./pages/Training"));
 const ValorantAnalysis = lazy(() => import("./pages/ValorantAnalysis"));
 const Players = lazy(() => import("./pages/Players"));
+const PlayerProfile = lazy(() => import("./pages/PlayerProfile"));
 const Matches = lazy(() => import("./pages/Matches"));
 const GeneralStats = lazy(() => import("./pages/GeneralStats"));
 const Attendance = lazy(() => import("./pages/Attendance"));
@@ -114,238 +115,294 @@ const AppProviders = ({ children }: { children: React.ReactNode }) => (
   </LanguageProvider>
 );
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppProviders>
-          <Toaster />
-          <Sonner />
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/google-callback" element={<GoogleCallback />} />
-              <Route path="/payment/success" element={<PaymentSuccess />} />
-              <Route path="/payment/cancel" element={<PaymentCancel />} />
-              <Route path="/paypal" element={<PayPalPayment />} />
-              
-              {/* Protected Routes */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <Dashboard />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/players" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <PlayerManagement />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/matches" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <Matches />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/match-tracking" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <MatchTracking />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/general-stats" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <GeneralStats />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/attendance" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <Attendance />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/manual-actions" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <ManualActions />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/command-table" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <CommandTable />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/training" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <Training />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/tactical-chat" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <TacticalChat />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/advanced-analytics" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <AdvancedAnalytics />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/community" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <CommunityHub />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/database-status" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <DatabaseStatusPage />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/player-management" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <PlayerManagement />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/analytics" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <GeneralNotepad />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/ai-assistant-direct" 
-                element={
-                  <ProtectedRoute>
-                    <AIAssistantDirect />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/ai-assistant-test" 
-                element={
-                  <ProtectedRoute>
-                    <TestAIAssistant />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/ai-assistant" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <AIAssistant />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/suggestions" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <Suggestions />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/settings" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <Settings />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <ResponsiveLayout>
-                      <Profile />
-                    </ResponsiveLayout>
-                  </ProtectedRoute>
-                } 
-              />
-            </Routes>
-          </Suspense>
-        </AppProviders>
-      </BrowserRouter>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+function App() {
+  // Clear demo data on app initialization if mock auth is disabled
+  useEffect(() => {
+    const enableMockAuth = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+    
+    // If mock auth is disabled, clear any demo authentication data
+    if (!enableMockAuth) {
+      // Check if current user is a demo user
+      const userProfile = localStorage.getItem('statsor_user');
+      if (userProfile) {
+        try {
+          const parsedUser = JSON.parse(userProfile);
+          if (parsedUser.provider === 'demo') {
+            // Clear demo authentication data
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('statsor_user');
+            localStorage.removeItem('statsor_onboarding_completed');
+            localStorage.removeItem('user_type');
+            localStorage.removeItem('demo_account_data');
+            sessionStorage.clear();
+          }
+        } catch (e) {
+          // If there's an error parsing the user profile, clear all auth data
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('statsor_user');
+          localStorage.removeItem('statsor_onboarding_completed');
+          localStorage.removeItem('user_type');
+          localStorage.removeItem('demo_account_data');
+          sessionStorage.clear();
+        }
+      }
+    }
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AppProviders>
+            <Toaster />
+            <Sonner />
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/google-callback" element={<GoogleCallback />} />
+                <Route path="/payment/success" element={<PaymentSuccess />} />
+                <Route path="/payment/cancel" element={<PaymentCancel />} />
+                <Route path="/paypal" element={<PayPalPayment />} />
+                
+                {/* Protected Routes */}
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <Dashboard />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/players" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <PlayerManagement />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/players/:id" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <PlayerProfile />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/matches" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <Matches />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/match-tracking" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <MatchTracking />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/general-stats" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <GeneralStats />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/attendance" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <Attendance />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/manual-actions" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <ManualActions />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/command-table" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <CommandTable />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/data-management" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <DataManagement />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/training" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <Training />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/tactical-chat" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <TacticalChat />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/advanced-analytics" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <AdvancedAnalytics />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/community" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <CommunityHub />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/database-status" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <DatabaseStatusPage />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/player-management" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <PlayerManagement />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/analytics" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <GeneralNotepad />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/ai-assistant-direct" 
+                  element={
+                    <ProtectedRoute>
+                      <AIAssistantDirect />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/ai-assistant-test" 
+                  element={
+                    <ProtectedRoute>
+                      <TestAIAssistant />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/ai-assistant" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <AIAssistant />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/suggestions" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <Suggestions />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/settings" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <Settings />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <Profile />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+              </Routes>
+            </Suspense>
+          </AppProviders>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+}
 
 export default App;

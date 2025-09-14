@@ -17,6 +17,9 @@ const Index = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { scrollYProgress } = useScroll();
   
+  // Check if mock auth is enabled
+  const enableMockAuth = import.meta.env['VITE_ENABLE_MOCK_AUTH'] === 'true';
+  
   useEffect(() => {
     setIsLoaded(true);
   }, []);
@@ -180,8 +183,13 @@ const Index = () => {
                 <a href="#contact" className="hover:text-green-500 transition-colors font-medium">
                   Contact
                 </a>
+                <Link to="/signup">
+                  <Button className="bg-green-600 hover:bg-green-700 text-white border-2 border-green-600 px-4 py-2 rounded-md font-medium transition-all duration-300">
+                    Sign Up
+                  </Button>
+                </Link>
                 <Link to="/signin">
-                  <Button variant="outline" className="border-2">
+                  <Button className="bg-green-600 hover:bg-green-700 text-white border-2 border-green-600 px-4 py-2 rounded-md font-medium transition-all duration-300">
                     Sign In
                   </Button>
                 </Link>
@@ -248,7 +256,7 @@ const Index = () => {
                         ? theme === 'dark'
                           ? 'bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent'
                           : 'bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent'
-                        : theme === 'dark' ? 'text-white' : 'text-black'
+                        : 'text-white'
                     }`}
                     variants={textRevealVariants}
                     initial="hidden"
@@ -293,27 +301,29 @@ const Index = () => {
                 </Link>
               </motion.div>
               
-              <motion.div 
-                variants={magneticVariants}
-                whileHover="hover"
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  variant="ghost"
-                  size="lg"
-                  onClick={() => setShowDemo(true)}
-                  className="px-8 py-4 rounded-lg font-medium text-lg transition-all duration-300 interactive-element group text-gray-3300 hover:text-white hover:bg-gray-800/50 border border-gray-600 hover:border-gray-400"
+              {enableMockAuth && (
+                <motion.div 
+                  variants={magneticVariants}
+                  whileHover="hover"
+                  whileTap={{ scale: 0.95 }}
                 >
-                  Watch Demo
-                  <motion.div
-                    className="ml-2 inline-block"
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                  <Button 
+                    variant="ghost"
+                    size="lg"
+                    onClick={() => setShowDemo(true)}
+                    className="px-8 py-4 rounded-lg font-medium text-lg transition-all duration-300 interactive-element group text-gray-3300 hover:text-white hover:bg-gray-800/50 border border-gray-600 hover:border-gray-400"
                   >
-                    <ArrowRight className="h-5 w-5" />
-                  </motion.div>
-                </Button>
-              </motion.div>
+                    Watch Demo
+                    <motion.div
+                      className="ml-2 inline-block"
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <ArrowRight className="h-5 w-5" />
+                    </motion.div>
+                  </Button>
+                </motion.div>
+              )}
             </motion.div>
 
             {/* Minimal Stats */}
@@ -1263,14 +1273,16 @@ const Index = () => {
                     >
                       Start Free Trial
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="px-8"
-                      onClick={() => setShowDemo(false)}
-                    >
-                      Schedule Demo
-                    </Button>
+                    {enableMockAuth && (
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="px-8"
+                        onClick={() => setShowDemo(false)}
+                      >
+                        Schedule Demo
+                      </Button>
+                    )}
                   </div>
                 </div>
               </motion.div>

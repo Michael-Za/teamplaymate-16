@@ -68,15 +68,27 @@
   scroll-behavior: smooth;
 }
 
-/* Enhanced card styling */
+/* Enhanced card styling for white theme */
 .enhanced-card {
   transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
 }
 
 .enhanced-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.08);
+}
+
+.enhanced-card.dark {
+  background-color: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.enhanced-card.dark:hover {
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.25);
 }
 
 /* Characterization styling for different data types */
@@ -125,4 +137,62 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Improved white theme styling */
+.white-theme {
+  background-color: #ffffff;
+  color: #1f2937;
+}
+
+.white-theme .card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.white-theme .card-header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.white-theme .input {
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #1f2937;
+}
+
+.white-theme .input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.white-theme .button {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.white-theme .button:hover {
+  background-color: #2563eb;
+}
+
+.white-theme .message-user {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.white-theme .message-ai {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
+/* History tab styling */
+.history-card {
+  transition: all 0.2s ease;
+}
+
+.history-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }

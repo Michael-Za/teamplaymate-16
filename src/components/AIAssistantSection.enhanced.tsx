@@ -498,16 +498,6 @@ export const AIAssistantSection: React.FC = () => {
         'Would you like to specify match conditions?',
         'Should I provide alternative predictions?',
         'Need historical data comparison?'
-      ]
-    };
-
-    return suggestions[category] || [];
-  };
-      ],
-      'Prediction': [
-        'Would you like scenario analysis?',
-        'Should I factor in weather conditions?',
-        'Need confidence intervals?'
       ],
       'Health': [
         'Want recovery time estimates?',

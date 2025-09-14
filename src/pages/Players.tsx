@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-// Removed old Layout to avoid nested dashboards
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
@@ -8,26 +8,19 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import AddPlayerForm from '../components/AddPlayerForm';
 import { PlayerPhotoUpload } from '../components/PlayerPhotoUpload';
 import { useLanguage } from '../contexts/LanguageContext';
+import { dataManagementService, Player as DataPlayer } from '../services/dataManagementService';
+import { toast } from 'sonner';
 
-interface Player {
-  id: string;
-  number: number;
-  name: string;
+// Define our Player interface with all needed properties
+interface Player extends DataPlayer {
+  // Extended properties
   nickname?: string;
-  position: string;
-  age: number;
-  nationality: string;
-  height?: number;
-  weight?: number;
   secondaryPositions?: string[];
-  dominantFoot: string;
-  birthDate: Date;
-  goals: number;
-  assists: number;
+  dominantFoot?: string;
+  birthDate?: Date;
   games: number;
   yellowCards: number;
   redCards: number;
-  minutes: number;
   shots: number;
   shotsOnTarget: number;
   passes: number;
@@ -46,6 +39,7 @@ interface Player {
 
 const Players = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isAddPlayerFormOpen, setIsAddPlayerFormOpen] = useState(false);
   const [showMoreStats, setShowMoreStats] = useState(false);
@@ -53,170 +47,145 @@ const Players = () => {
   const [performanceFilter, setPerformanceFilter] = useState<'all' | 'home' | 'away'>('all');
   const [showStatsOverlay, setShowStatsOverlay] = useState(false);
   const [photoUploadPlayer, setPhotoUploadPlayer] = useState<Player | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [players, setPlayers] = useState<Player[]>([
-    {
-      id: '1',
-      number: 9,
-      name: 'Fernando Torres',
-      position: 'DEL',
-      age: 28,
-      nationality: 'España',
-      dominantFoot: 'derecha',
-      birthDate: new Date('1995-03-20'),
-      goals: 5,
-      assists: 3,
-      games: 8,
-      yellowCards: 0,
-      redCards: 0,
-      minutes: 480,
-      shots: 12,
-      shotsOnTarget: 8,
-      passes: 120,
-      passAccuracy: 85,
-      foulsCommitted: 2,
-      foulsReceived: 8,
-      ballsLost: 15,
-      ballsRecovered: 25,
-      duelsWon: 18,
-      duelsLost: 7,
-      crosses: 5,
-      photo: '/placeholder.svg',
-      shotMap: { 'top-left': 2, 'top-center': 1, 'top-right': 0, 'middle-left': 0, 'middle-center': 1, 'middle-right': 1, 'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 }
-    },
-    {
-      id: '2',
-      number: 8,
-      name: 'Pablo Sánchez',
-      position: 'CEN',
-      age: 26,
-      nationality: 'España',
-      dominantFoot: 'izquierda',
-      birthDate: new Date('1997-07-15'),
-      goals: 2,
-      assists: 6,
-      games: 8,
-      yellowCards: 2,
-      redCards: 0,
-      minutes: 465,
-      shots: 8,
-      shotsOnTarget: 5,
-      passes: 180,
-      passAccuracy: 92,
-      foulsCommitted: 4,
-      foulsReceived: 5,
-      ballsLost: 12,
-      ballsRecovered: 28,
-      duelsWon: 22,
-      duelsLost: 9,
-      crosses: 12,
-      photo: '/placeholder.svg',
-      shotMap: { 'top-left': 1, 'top-center': 0, 'top-right': 1, 'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 }
-    },
-    {
-      id: '3',
-      number: 4,
-      name: 'Juan Pérez',
-      position: 'DEL',
-      age: 24,
-      nationality: 'Argentina',
-      dominantFoot: 'derecha',
-      birthDate: new Date('1999-11-10'),
-      goals: 3,
-      assists: 2,
-      games: 7,
-      yellowCards: 1,
-      redCards: 0,
-      minutes: 420,
-      shots: 10,
-      shotsOnTarget: 6,
-      passes: 95,
-      passAccuracy: 78,
-      foulsCommitted: 3,
-      foulsReceived: 6,
-      ballsLost: 18,
-      ballsRecovered: 20,
-      duelsWon: 15,
-      duelsLost: 8,
-      crosses: 3,
-      photo: '/placeholder.svg',
-      shotMap: { 'top-left': 0, 'top-center': 1, 'top-right': 1, 'middle-left': 1, 'middle-center': 0, 'middle-right': 0, 'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 }
-    },
-    {
-      id: '4',
-      number: 1,
-      name: 'Alejandro Martínez',
-      position: 'POR',
-      age: 30,
-      nationality: 'España',
-      dominantFoot: 'derecha',
-      birthDate: new Date('1993-05-12'),
-      goals: 0,
-      assists: 0,
-      games: 8,
-      yellowCards: 0,
-      redCards: 0,
-      minutes: 720,
-      shots: 0,
-      shotsOnTarget: 0,
-      passes: 65,
-      passAccuracy: 88,
-      foulsCommitted: 1,
-      foulsReceived: 2,
-      ballsLost: 5,
-      ballsRecovered: 8,
-      duelsWon: 3,
-      duelsLost: 1,
-      crosses: 0,
-      saves: 15,
-      photo: '/placeholder.svg',
-      shotMap: { 'top-left': 0, 'top-center': 0, 'top-right': 0, 'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 }
-    },
-    {
-      id: '5',
-      number: 2,
-      name: 'David González',
-      position: 'DEF',
-      age: 27,
-      nationality: 'Brasil',
-      dominantFoot: 'izquierda',
-      birthDate: new Date('1996-09-08'),
-      goals: 1,
-      assists: 0,
-      games: 8,
-      yellowCards: 1,
-      redCards: 0,
-      minutes: 480,
-      shots: 3,
-      shotsOnTarget: 1,
-      passes: 150,
-      passAccuracy: 90,
-      foulsCommitted: 8,
-      foulsReceived: 2,
-      ballsLost: 8,
-      ballsRecovered: 35,
-      duelsWon: 25,
-      duelsLost: 6,
-      crosses: 8,
-      photo: '/placeholder.svg',
-      shotMap: { 'top-left': 0, 'top-center': 0, 'top-right': 0, 'middle-left': 0, 'middle-center': 1, 'middle-right': 0, 'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 }
-    }
-  ]);
-
-  const handleAddPlayer = (newPlayerData: Omit<Player, 'id'>) => {
-    const newPlayer: Player = {
-      ...newPlayerData,
-      id: Date.now().toString() // Simple ID generation
+  // Refresh player data when component mounts or when navigating back
+  useEffect(() => {
+    loadPlayers();
+    
+    // Add event listener for when user navigates back to this page
+    const handleBeforeUnload = () => {
+      loadPlayers();
     };
-    setPlayers(prev => [...prev, newPlayer]);
+    
+    // Listen for focus event (when user comes back to this tab)
+    window.addEventListener('focus', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('focus', handleBeforeUnload);
+    };
+  }, []);
+
+  const loadPlayers = async () => {
+    try {
+      setLoading(true);
+      const playersData = await dataManagementService.getPlayers();
+      // Transform the data to match our Player interface
+      const transformedPlayers = playersData.map(player => {
+        // Create a new object with all properties
+        const transformedPlayer: Player = {
+          ...player,
+          number: player.number || Math.floor(Math.random() * 99) + 1,
+          nickname: (player as any).nickname || '',
+          secondaryPositions: (player as any).secondaryPositions || [],
+          dominantFoot: (player as any).dominantFoot || 'Right',
+          birthDate: player.date_of_birth ? new Date(player.date_of_birth) : new Date('1990-01-01'),
+          goals: player.goals || 0,
+          assists: player.assists || 0,
+          games: (player as any).games || 0,
+          yellowCards: (player as any).yellowCards || 0,
+          redCards: (player as any).redCards || 0,
+          minutes: player.minutes || 0,
+          shots: (player as any).shots || 0,
+          shotsOnTarget: (player as any).shotsOnTarget || 0,
+          passes: (player as any).passes || 0,
+          passAccuracy: (player as any).passAccuracy || 0,
+          foulsCommitted: (player as any).foulsCommitted || 0,
+          foulsReceived: (player as any).foulsReceived || 0,
+          ballsLost: (player as any).ballsLost || 0,
+          ballsRecovered: (player as any).ballsRecovered || 0,
+          duelsWon: (player as any).duelsWon || 0,
+          duelsLost: (player as any).duelsLost || 0,
+          crosses: (player as any).crosses || 0,
+          saves: (player as any).saves || 0,
+          photo: (player as any).photo || '/placeholder.svg',
+          shotMap: (player as any).shotMap || { 
+            'top-left': 0, 'top-center': 0, 'top-right': 0, 
+            'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
+            'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
+          }
+        };
+        return transformedPlayer;
+      });
+      setPlayers(transformedPlayers);
+    } catch (error) {
+      console.error('Error loading players:', error);
+      toast.error('Failed to load players');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePhotoSave = (playerId: string, photoUrl: string) => {
-    setPlayers(prev => prev.map(player => 
-      player.id === playerId ? { ...player, photo: photoUrl } : player
-    ));
-    setPhotoUploadPlayer(null);
+  const handleAddPlayer = async (newPlayerData: Omit<Player, 'id'>) => {
+    try {
+      const playerData: Partial<DataPlayer> = {
+        name: newPlayerData.name,
+        position: newPlayerData.position,
+        age: newPlayerData.age ?? 0,
+        nationality: newPlayerData.nationality || ''
+        // Add other fields as needed
+      };
+      
+      const createdPlayer = await dataManagementService.createPlayer(playerData);
+      if (createdPlayer) {
+        // Transform to match our Player interface
+        const transformedPlayer: Player = {
+          ...createdPlayer,
+          number: createdPlayer.number || Math.floor(Math.random() * 99) + 1,
+          nickname: (createdPlayer as any).nickname || '',
+          secondaryPositions: (createdPlayer as any).secondaryPositions || [],
+          dominantFoot: (createdPlayer as any).dominantFoot || 'Right',
+          birthDate: createdPlayer.date_of_birth ? new Date(createdPlayer.date_of_birth) : new Date('1990-01-01'),
+          goals: createdPlayer.goals || 0,
+          assists: createdPlayer.assists || 0,
+          games: (createdPlayer as any).games || 0,
+          yellowCards: (createdPlayer as any).yellowCards || 0,
+          redCards: (createdPlayer as any).redCards || 0,
+          minutes: createdPlayer.minutes || 0,
+          shots: (createdPlayer as any).shots || 0,
+          shotsOnTarget: (createdPlayer as any).shotsOnTarget || 0,
+          passes: (createdPlayer as any).passes || 0,
+          passAccuracy: (createdPlayer as any).passAccuracy || 0,
+          foulsCommitted: (createdPlayer as any).foulsCommitted || 0,
+          foulsReceived: (createdPlayer as any).foulsReceived || 0,
+          ballsLost: (createdPlayer as any).ballsLost || 0,
+          ballsRecovered: (createdPlayer as any).ballsRecovered || 0,
+          duelsWon: (createdPlayer as any).duelsWon || 0,
+          duelsLost: (createdPlayer as any).duelsLost || 0,
+          crosses: (createdPlayer as any).crosses || 0,
+          saves: (createdPlayer as any).saves || 0,
+          photo: (createdPlayer as any).photo || '/placeholder.svg',
+          shotMap: (createdPlayer as any).shotMap || { 
+            'top-left': 0, 'top-center': 0, 'top-right': 0, 
+            'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
+            'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
+          }
+        } as Player;
+        
+        setPlayers(prev => [...prev, transformedPlayer]);
+        toast.success('Player added successfully!');
+      }
+    } catch (error) {
+      console.error('Error adding player:', error);
+      toast.error('Failed to add player');
+    }
   };
+
+  const handlePhotoSave = async (playerId: string, photoUrl: string) => {
+    try {
+      // Note: The backend API doesn't support photo updates directly, so we'll just update locally
+      setPlayers(prev => prev.map(player => 
+        player.id === playerId ? { ...player, photo: photoUrl } : player
+      ));
+      setPhotoUploadPlayer(null);
+      toast.success('Photo updated successfully!');
+    } catch (error) {
+      console.error('Error updating player photo:', error);
+      toast.error('Failed to update photo');
+    }
+  };
+  
   const renderPlayerDetail = () => {
     if (!selectedPlayer) return null;
 
@@ -240,212 +209,167 @@ const Players = () => {
       : allPerformanceData.filter(match => match.location === performanceFilter);
 
     return (
-      <div className="space-y-6">
+      <div className="w-screen h-screen overflow-hidden bg-gray-100">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="bg-white border-b p-4 flex items-center justify-between">
           <Button
             onClick={() => setSelectedPlayer(null)}
             variant="outline"
             className="flex items-center space-x-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{t('players.back')}</span>
+            <span>Back</span>
           </Button>
+          <h1 className="text-xl font-bold">Player Details</h1>
+          <div></div>
         </div>
 
-        {/* Main Layout: Corrected structure as per mockup */}
-        <div className="grid grid-cols-12 gap-6 h-[700px]">
-          
-          {/* LEFT: Player Card (Full height, spans 3 columns) */}
-          <div className="col-span-3 h-full">
-            <Card 
-              className="p-6 bg-white text-gray-900 h-full cursor-pointer hover:shadow-xl transition-all duration-300 group relative flex flex-col"
-              onClick={() => setModalCard('player')}
-            >
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Maximize2 className="w-4 h-4 text-gray-600" />
-              </div>
-              
-              {/* Player Photo */}
-              <div className="relative mx-auto mb-6">
-                {selectedPlayer.photo ? (
-                  <img 
-                    src={selectedPlayer.photo} 
-                    alt={selectedPlayer.name}
-                    className="w-32 h-32 rounded-xl object-cover border-4 border-green-200"
-                  />
-                ) : (
-                  <div className="w-32 h-32 bg-gradient-to-br from-green-600 to-green-800 rounded-xl flex items-center justify-center text-white text-3xl font-bold border-4 border-green-200">
-                    {selectedPlayer.number}
-                  </div>
-                )}
-                <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-600 rounded-full border-2 border-white flex items-center justify-center hover:bg-green-700 shadow-lg transition-colors">
-                  <Camera 
-                    className="w-4 h-4 text-white" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPhotoUploadPlayer(selectedPlayer);
-                    }}
-                  />
-                </button>
-              </div>
-
-              {/* Player Name & Position */}
-              <div className="text-center space-y-3 mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">{selectedPlayer.name}</h1>
-                <div className="flex items-center justify-center space-x-2 text-gray-600">
-                  <span className="text-sm">🏴</span>
-                  <span className="text-sm font-medium">{selectedPlayer.position}</span>
-                </div>
-              </div>
-
-              {/* Key Stats */}
-              <div className="space-y-4 pt-4 border-t border-gray-200 flex-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">{t('players.position')}</span>
-                  <span className="font-bold text-gray-900">{selectedPlayer.position}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">{t('players.games')}</span>
-                  <span className="font-bold text-gray-900">{selectedPlayer.games}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">{t('players.goals')}</span>
-                  <span className="font-bold text-green-600">{selectedPlayer.goals}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">{t('players.assists')}</span>
-                  <span className="font-bold text-blue-600">{selectedPlayer.assists}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">{t('players.minutes')}</span>
-                  <span className="font-bold text-gray-900">{selectedPlayer.minutes}</span>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* RIGHT SIDE: Two rows */}
-          <div className="col-span-9 h-full flex flex-col gap-6">
-            
-            {/* TOP ROW: Performance Chart (full width) */}
-            <div className="h-1/2">
-              <Card 
-                className="p-6 h-full cursor-pointer hover:shadow-xl transition-all duration-300 group relative"
-                onClick={() => setModalCard('performance')}
-              >
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Maximize2 className="w-4 h-4 text-gray-600" />
-                </div>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold">{t('players.performance')}</h3>
-                  <div className="flex space-x-1">
+        {/* Main Content - Full screen without extra padding */}
+        <div className="h-[calc(100vh-70px)] overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 h-full">
+            {/* Player Card */}
+            <div className="lg:col-span-1 h-full bg-white border-r">
+              <Card className="h-full rounded-none border-0 p-6">
+                <div className="text-center">
+                  <div className="relative mx-auto mb-4">
+                    {selectedPlayer.photo ? (
+                      <img 
+                        src={selectedPlayer.photo} 
+                        alt={selectedPlayer.name}
+                        className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 mx-auto"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-white text-4xl font-bold border-4 border-blue-300 mx-auto">
+                        {selectedPlayer.number}
+                      </div>
+                    )}
                     <button 
-                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                        performanceFilter === 'all' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPerformanceFilter('all');
-                      }}
+                      className="absolute bottom-2 right-4 bg-blue-500 rounded-full p-2 hover:bg-blue-600 transition"
+                      onClick={() => setPhotoUploadPlayer(selectedPlayer)}
                     >
-                      All
-                    </button>
-                    <button 
-                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                        performanceFilter === 'home' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPerformanceFilter('home');
-                      }}
-                    >
-                      At home
-                    </button>
-                    <button 
-                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                        performanceFilter === 'away' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPerformanceFilter('away');
-                      }}
-                    >
-                      Away
+                      <Camera className="w-4 h-4 text-white" />
                     </button>
                   </div>
-                </div>
-                
-                <div className="h-[calc(100%-80px)]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={performanceData} margin={{ top: 10, right: 10, left: 10, bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis 
-                        dataKey="date" 
-                        tick={{ fontSize: 10 }}
-                        interval={0}
-                        angle={-45}
-                        textAnchor="end"
-                        height={40}
-                      />
-                      <YAxis 
-                        domain={[0, 10]}
-                        tick={{ fontSize: 10 }}
-                      />
-                      <Tooltip 
-                        formatter={(value) => [`${value}/10`, 'Nota']}
-                        labelFormatter={(label, payload) => {
-                          if (payload && payload[0]) {
-                            const data = payload[0].payload;
-                            return `${data.rival} - ${data.date}`;
-                          }
-                          return label;
-                        }}
-                        contentStyle={{
-                          backgroundColor: '#1f2937',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: 'white'
-                        }}
-                      />
-                      <Bar 
-                        dataKey="score" 
-                        fill="#f97316"
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={15}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  
+                  <h2 className="text-2xl font-bold">{selectedPlayer.name}</h2>
+                  <p className="text-gray-600 mb-4">{selectedPlayer.position}</p>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div className="bg-blue-50 p-3 rounded">
+                      <p className="text-sm text-gray-600">Age</p>
+                      <p className="text-lg font-bold text-blue-600">{selectedPlayer.age}</p>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded">
+                      <p className="text-sm text-gray-600">Games</p>
+                      <p className="text-lg font-bold text-green-600">{selectedPlayer.games}</p>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded">
+                      <p className="text-sm text-gray-600">Goals</p>
+                      <p className="text-lg font-bold text-purple-600">{selectedPlayer.goals}</p>
+                    </div>
+                    <div className="bg-yellow-50 p-3 rounded">
+                      <p className="text-sm text-gray-600">Assists</p>
+                      <p className="text-lg font-bold text-yellow-600">{selectedPlayer.assists}</p>
+                    </div>
+                  </div>
                 </div>
               </Card>
             </div>
-
-            {/* BOTTOM ROW: Shot Map and Statistics side by side */}
-            <div className="h-1/2 grid grid-cols-2 gap-6">
-              
-              {/* Shot Map (left) */}
-              <Card 
-                className="p-6 bg-blue-50 cursor-pointer hover:shadow-xl transition-all duration-300 group relative h-full"
-                onClick={() => setModalCard('shotMap')}
-              >
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Maximize2 className="w-4 h-4 text-blue-600" />
-                </div>
-                <h3 className="text-lg font-bold mb-6 text-blue-900">{t('players.shot.map')}</h3>
+            
+            {/* Performance and Stats Section */}
+            <div className="lg:col-span-2 h-full flex flex-col">
+              {/* Performance Chart */}
+              <div className="flex-1 bg-white border-b">
+                <Card className="h-full rounded-none border-0 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold">Performance Rating</h3>
+                    <div className="flex space-x-1">
+                      <button 
+                        className={`px-3 py-1 rounded text-xs ${
+                          performanceFilter === 'all' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-gray-200 text-gray-700'
+                        }`}
+                        onClick={() => setPerformanceFilter('all')}
+                      >
+                        All
+                      </button>
+                      <button 
+                        className={`px-3 py-1 rounded text-xs ${
+                          performanceFilter === 'home' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-gray-200 text-gray-700'
+                        }`}
+                        onClick={() => setPerformanceFilter('home')}
+                      >
+                        Home
+                      </button>
+                      <button 
+                        className={`px-3 py-1 rounded text-xs ${
+                          performanceFilter === 'away' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-gray-200 text-gray-700'
+                        }`}
+                        onClick={() => setPerformanceFilter('away')}
+                      >
+                        Away
+                      </button>
+                    </div>
+                  </div>
                   
-                <div className="flex justify-center mb-4">
-                  <div className="border border-blue-400 rounded-lg p-4 bg-white">
-                    <div className="grid grid-cols-3 gap-2 w-48 h-32">
+                  <div className="h-[calc(100%-40px)]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={performanceData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 12 }}
+                          interval={0}
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                        />
+                        <YAxis 
+                          domain={[0, 10]}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <Tooltip 
+                          formatter={(value) => [`${value}/10`, 'Rating']}
+                          labelFormatter={(label, payload) => {
+                            if (payload && payload[0]) {
+                              const data = payload[0].payload;
+                              return `${data.rival} - ${data.date}`;
+                            }
+                            return label;
+                          }}
+                          contentStyle={{
+                            backgroundColor: 'white',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '0.5rem',
+                          }}
+                        />
+                        <Bar 
+                          dataKey="score" 
+                          fill="#3b82f6"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              </div>
+              
+              {/* Stats Sections */}
+              <div className="h-1/3 bg-white grid grid-cols-2">
+                {/* Shot Map */}
+                <div className="border-r p-4">
+                  <h3 className="text-md font-bold mb-2">Shot Map</h3>
+                  <div className="flex justify-center h-[calc(100%-30px)] items-center">
+                    <div className="grid grid-cols-3 gap-1 w-32 h-24">
                       {Object.entries(selectedPlayer.shotMap || {}).map(([zone, goals]) => (
                         <div
                           key={zone}
-                          className="bg-white border border-blue-400 rounded flex items-center justify-center text-lg font-bold text-blue-700 hover:bg-blue-50 transition-colors"
+                          className="bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-sm font-bold"
                         >
                           {goals}
                         </div>
@@ -453,152 +377,78 @@ const Players = () => {
                     </div>
                   </div>
                 </div>
-                  
-                <p className="text-center text-xs text-blue-600">
-                  Goles por zona de la portería
-                </p>
-              </Card>
-
-              {/* Statistics (right) */}
-              <Card 
-                className="p-6 cursor-pointer hover:shadow-xl transition-all duration-300 group relative h-full flex flex-col"
-                onClick={() => setModalCard('stats')}
-              >
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Maximize2 className="w-4 h-4 text-gray-600" />
-                </div>
-                <h3 className="text-lg font-bold mb-6">{t('players.general.stats')}</h3>
-                  
-                {/* Only 3 Main Stats */}
-                <div className="space-y-4 flex-1">
-                  <div className="flex justify-between items-center py-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Clock className="w-3 h-3 text-blue-600" />
-                      </div>
-                      <span className="text-gray-600 text-sm">Minutos jugados</span>
+                
+                {/* Key Stats */}
+                <div className="p-4">
+                  <h3 className="text-md font-bold mb-2">Key Stats</h3>
+                  <div className="space-y-2 h-[calc(100%-30px)] flex flex-col justify-center">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Minutes</span>
+                      <span className="font-bold">{selectedPlayer.minutes}</span>
                     </div>
-                    <span className="font-bold text-lg">{selectedPlayer.minutes}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center py-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center">
-                        <Target className="w-3 h-3 text-green-600" />
-                      </div>
-                      <span className="text-gray-600 text-sm">Tiros a portería</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Shots on Target</span>
+                      <span className="font-bold text-green-600">{selectedPlayer.shotsOnTarget}</span>
                     </div>
-                    <span className="font-bold text-lg">{selectedPlayer.shotsOnTarget}</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center py-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 bg-red-100 rounded-lg flex items-center justify-center">
-                        <Target className="w-3 h-3 text-red-600" />
-                      </div>
-                      <span className="text-gray-600 text-sm">Tiros fuera</span>
-                    </div>
-                    <span className="font-bold text-lg">{selectedPlayer.shots - selectedPlayer.shotsOnTarget}</span>
-                  </div>
-                </div>
-
-                {/* Show More Button - Opens Overlay */}
-                <Button
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowStatsOverlay(true);
-                  }}
-                  className="w-full mt-4 border-gray-300 hover:bg-gray-50 text-xs"
-                >
-                  {t('players.more.stats')}
-                </Button>
-              </Card>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Overlay - Large square overlay for all stats */}
-        {showStatsOverlay && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-[80vh] overflow-y-auto relative">
-              <button 
-                onClick={() => setShowStatsOverlay(false)}
-                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              
-              <h2 className="text-3xl font-bold mb-8">Estadísticas Completas - {selectedPlayer.name}</h2>
-              <div className="grid grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-blue-600">Estadísticas Ofensivas</h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Goles</span>
-                      <span className="font-bold text-green-600">{selectedPlayer.goals}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Asistencias</span>
-                      <span className="font-bold text-blue-600">{selectedPlayer.assists}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Tiros</span>
-                      <span className="font-bold">{selectedPlayer.shots}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Tiros a portería</span>
-                      <span className="font-bold">{selectedPlayer.shotsOnTarget}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Centros</span>
-                      <span className="font-bold">{selectedPlayer.crosses}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-purple-600">Estadísticas Defensivas</h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Duelos ganados</span>
-                      <span className="font-bold">{selectedPlayer.duelsWon}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Duelos perdidos</span>
-                      <span className="font-bold">{selectedPlayer.duelsLost}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Balones recuperados</span>
-                      <span className="font-bold">{selectedPlayer.ballsRecovered}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Balones perdidos</span>
-                      <span className="font-bold">{selectedPlayer.ballsLost}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Precisión de pases</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Pass Accuracy</span>
                       <span className="font-bold">{selectedPlayer.passAccuracy}%</span>
                     </div>
                   </div>
                 </div>
-                <div className="col-span-2 space-y-6">
-                  <h3 className="text-xl font-bold text-orange-600">Disciplina</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Tarjetas amarillas</span>
-                      <span className="font-bold text-yellow-600">{selectedPlayer.yellowCards}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Overlay */}
+        {showStatsOverlay && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="p-4 border-b flex justify-between items-center">
+                <h2 className="text-xl font-bold">Complete Statistics for {selectedPlayer.name}</h2>
+                <button 
+                  onClick={() => setShowStatsOverlay(false)}
+                  className="p-2 rounded hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-bold text-blue-600 mb-2">Offensive Stats</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between p-2 bg-blue-50 rounded">
+                        <span>Goals</span>
+                        <span className="font-bold text-blue-600">{selectedPlayer.goals}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-blue-50 rounded">
+                        <span>Assists</span>
+                        <span className="font-bold text-blue-600">{selectedPlayer.assists}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-blue-50 rounded">
+                        <span>Shots</span>
+                        <span className="font-bold">{selectedPlayer.shots}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Tarjetas rojas</span>
-                      <span className="font-bold text-red-600">{selectedPlayer.redCards}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Faltas cometidas</span>
-                      <span className="font-bold">{selectedPlayer.foulsCommitted}</span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                      <span>Faltas recibidas</span>
-                      <span className="font-bold">{selectedPlayer.foulsReceived}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-green-600 mb-2">Defensive Stats</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between p-2 bg-green-50 rounded">
+                        <span>Balls Recovered</span>
+                        <span className="font-bold">{selectedPlayer.ballsRecovered}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-green-50 rounded">
+                        <span>Duels Won</span>
+                        <span className="font-bold">{selectedPlayer.duelsWon}</span>
+                      </div>
+                      <div className="flex justify-between p-2 bg-green-50 rounded">
+                        <span>Fouls Committed</span>
+                        <span className="font-bold">{selectedPlayer.foulsCommitted}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -609,16 +459,16 @@ const Players = () => {
 
         {/* Modals for expanded views */}
         <Dialog open={modalCard !== null} onOpenChange={() => setModalCard(null)}>
-          <DialogContent className="max-w-6xl w-[90vw] h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl w-full h-full p-0">
             <button 
               onClick={() => setModalCard(null)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+              className="absolute top-4 right-4 z-10 p-2 rounded bg-gray-200"
             >
               <X className="w-5 h-5" />
             </button>
             
             {modalCard === 'player' && (
-              <div className="bg-gradient-to-b from-gray-900 to-gray-800 text-white p-8 rounded-lg">
+              <div className="bg-gradient-to-b from-gray-900 to-gray-800 text-white p-8 h-full">
                 <div className="text-center space-y-6">
                   <div className="relative mx-auto w-64 h-64">
                     {selectedPlayer.photo ? (
@@ -638,15 +488,15 @@ const Players = () => {
                   <div className="grid grid-cols-3 gap-8 mt-8 text-center">
                     <div>
                       <div className="text-3xl font-bold">{selectedPlayer.games}</div>
-                      <div className="text-white/70">Partidos</div>
+                      <div className="text-white/70">Games</div>
                     </div>
                     <div>
                       <div className="text-3xl font-bold text-green-400">{selectedPlayer.goals}</div>
-                      <div className="text-white/70">Goles</div>
+                      <div className="text-white/70">Goals</div>
                     </div>
                     <div>
                       <div className="text-3xl font-bold text-blue-400">{selectedPlayer.assists}</div>
-                      <div className="text-white/70">Asistencias</div>
+                      <div className="text-white/70">Assists</div>
                     </div>
                   </div>
                 </div>
@@ -654,12 +504,12 @@ const Players = () => {
             )}
 
             {modalCard === 'performance' && (
-              <div className="p-8">
-                <h2 className="text-3xl font-bold mb-8">Performance Detallado</h2>
-                <div style={{ width: '100%', height: '600px' }}>
+              <div className="p-8 h-full">
+                <h2 className="text-3xl font-bold mb-8">Detailed Performance</h2>
+                <div style={{ width: '100%', height: 'calc(100% - 100px)' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={performanceData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis 
                         dataKey="date" 
                         tick={{ fontSize: 14 }}
@@ -669,11 +519,11 @@ const Players = () => {
                         height={80}
                       />
                       <YAxis 
-                        domain={[0, 100]}
+                        domain={[0, 10]}
                         tick={{ fontSize: 14 }}
                       />
                       <Tooltip 
-                        formatter={(value) => [`${value} pts`, 'Puntuación']}
+                        formatter={(value) => [`${value}/10`, 'Rating']}
                         labelFormatter={(label, payload) => {
                           if (payload && payload[0]) {
                             const data = payload[0].payload;
@@ -682,15 +532,14 @@ const Players = () => {
                           return label;
                         }}
                         contentStyle={{
-                          backgroundColor: '#1f2937',
-                          border: 'none',
-                          borderRadius: '8px',
-                          color: 'white'
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '0.5rem',
                         }}
                       />
                       <Bar 
                         dataKey="score" 
-                        fill="#10b981"
+                        fill="#3b82f6"
                         radius={[4, 4, 0, 0]}
                       />
                     </BarChart>
@@ -700,48 +549,40 @@ const Players = () => {
             )}
 
             {modalCard === 'stats' && (
-              <div className="p-8">
-                <h2 className="text-3xl font-bold mb-8">Estadísticas Completas</h2>
-                <div className="grid grid-cols-2 gap-8">
+              <div className="p-8 h-full">
+                <h2 className="text-3xl font-bold mb-8">Complete Statistics</h2>
+                <div className="grid grid-cols-2 gap-8 h-[calc(100%-100px)]">
                   <div className="space-y-6">
-                    <h3 className="text-xl font-bold text-blue-600">Estadísticas Ofensivas</h3>
+                    <h3 className="text-xl font-bold text-blue-600">Offensive Stats</h3>
                     <div className="space-y-4">
-                      <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                        <span>Goles</span>
+                      <div className="flex justify-between p-4 bg-gray-100 rounded-lg">
+                        <span>Goals</span>
                         <span className="font-bold text-green-600">{selectedPlayer.goals}</span>
                       </div>
-                      <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                        <span>Asistencias</span>
+                      <div className="flex justify-between p-4 bg-gray-100 rounded-lg">
+                        <span>Assists</span>
                         <span className="font-bold text-blue-600">{selectedPlayer.assists}</span>
                       </div>
-                      <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                        <span>Tiros</span>
+                      <div className="flex justify-between p-4 bg-gray-100 rounded-lg">
+                        <span>Shots</span>
                         <span className="font-bold">{selectedPlayer.shots}</span>
-                      </div>
-                      <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                        <span>Tiros a portería</span>
-                        <span className="font-bold">{selectedPlayer.shotsOnTarget}</span>
                       </div>
                     </div>
                   </div>
                   <div className="space-y-6">
-                    <h3 className="text-xl font-bold text-purple-600">Estadísticas Defensivas</h3>
+                    <h3 className="text-xl font-bold text-green-600">Defensive Stats</h3>
                     <div className="space-y-4">
-                      <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                        <span>Duelos ganados</span>
+                      <div className="flex justify-between p-4 bg-gray-100 rounded-lg">
+                        <span>Duels Won</span>
                         <span className="font-bold">{selectedPlayer.duelsWon}</span>
                       </div>
-                      <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                        <span>Balones recuperados</span>
+                      <div className="flex justify-between p-4 bg-gray-100 rounded-lg">
+                        <span>Balls Recovered</span>
                         <span className="font-bold">{selectedPlayer.ballsRecovered}</span>
                       </div>
-                      <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                        <span>Precisión de pases</span>
+                      <div className="flex justify-between p-4 bg-gray-100 rounded-lg">
+                        <span>Pass Accuracy</span>
                         <span className="font-bold">{selectedPlayer.passAccuracy}%</span>
-                      </div>
-                      <div className="flex justify-between p-4 bg-gray-50 rounded-lg">
-                        <span>Faltas cometidas</span>
-                        <span className="font-bold">{selectedPlayer.foulsCommitted}</span>
                       </div>
                     </div>
                   </div>
@@ -750,23 +591,23 @@ const Players = () => {
             )}
 
             {modalCard === 'shotMap' && (
-              <div className="p-8 bg-blue-50">
-                <h2 className="text-3xl font-bold mb-8 text-blue-900">Mapa de Disparos Detallado</h2>
-                <div className="flex justify-center">
+              <div className="p-8 h-full bg-blue-50">
+                <h2 className="text-3xl font-bold mb-8">Detailed Shot Map</h2>
+                <div className="flex justify-center h-[calc(100%-150px)] items-center">
                   <div className="grid grid-cols-3 gap-4 w-96 h-64">
                     {Object.entries(selectedPlayer.shotMap || {}).map(([zone, goals]) => (
                       <div
                         key={zone}
-                        className="border-4 border-blue-400 bg-blue-200 rounded-lg flex flex-col items-center justify-center text-2xl font-bold text-blue-800 hover:bg-blue-300 transition-colors"
+                        className="border-4 border-blue-400 bg-blue-200 rounded-lg flex flex-col items-center justify-center text-2xl font-bold"
                       >
                         <div className="text-4xl">{goals}</div>
-                        <div className="text-sm text-blue-600 capitalize">{zone.replace('-', ' ')}</div>
+                        <div className="text-sm capitalize">{zone.replace('-', ' ')}</div>
                       </div>
                     ))}
                   </div>
                 </div>
-                <p className="text-center text-lg text-blue-700 mt-8">
-                  Distribución de goles por zona de la portería
+                <p className="text-center text-lg mt-8">
+                  Goals distribution across goal areas
                 </p>
               </div>
             )}
@@ -774,14 +615,14 @@ const Players = () => {
         </Dialog>
 
         {/* Photo Upload Modal */}
-        {photoUploadPlayer && (
+        {photoUploadPlayer && photoUploadPlayer.id && (
           <PlayerPhotoUpload
             isOpen={true}
             onClose={() => setPhotoUploadPlayer(null)}
-            onPhotoSave={(photoUrl) => handlePhotoSave(photoUploadPlayer.id, photoUrl)}
-            currentPhoto={photoUploadPlayer.photo}
+            onPhotoSave={(photoUrl) => handlePhotoSave(photoUploadPlayer.id!, photoUrl)}
             playerName={photoUploadPlayer.name}
             playerId={photoUploadPlayer.id}
+            {...(photoUploadPlayer.photo ? { currentPhoto: photoUploadPlayer.photo } : {})}
           />
         )}
       </div>
@@ -789,77 +630,70 @@ const Players = () => {
   };
 
   const renderPlayersList = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t('players.title')}</h1>
+    <div className="w-screen h-screen overflow-hidden bg-gray-100">
+      {/* Header */}
+      <div className="bg-white border-b p-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold">Players</h1>
         <Button
           onClick={() => setIsAddPlayerFormOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-2"
+          className="bg-blue-500 hover:bg-blue-600 text-white flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
-          <span>{t('players.add')}</span>
+          <span>Add Player</span>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {players.map((player) => (
-          <Card 
-            key={player.id} 
-            className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => setSelectedPlayer(player)}
-          >
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                {player.photo ? (
-                  <img 
-                    src={player.photo} 
-                    alt={player.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
-                  />
-                ) : (
-                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                    {player.number}
+      {/* Players Grid - Full screen without extra padding */}
+      <div className="h-[calc(100vh-70px)] overflow-y-auto p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {players.map((player) => (
+            <Card 
+              key={player.id} 
+              className="p-4 bg-white rounded cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate(`/players/${player.id}`)}
+            >
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  {player.photo ? (
+                    <img 
+                      src={player.photo} 
+                      alt={player.name}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                      {player.number}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold">{player.name}</h3>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                      {player.position}
+                    </span>
+                    <span className="text-sm text-gray-600">{player.age} yrs</span>
                   </div>
-                )}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">{player.name}</h3>
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPhotoUploadPlayer(player);
-                  }}
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Camera className="w-4 h-4" />
-                </Button>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                    {player.position}
-                  </span>
-                  <span className="text-sm text-gray-600">{player.age} años</span>
                 </div>
               </div>
-            </div>
-            
-            <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-lg font-bold text-green-600">{player.goals}</div>
-                <div className="text-xs text-gray-600">{t('players.goals')}</div>
+              
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                <div className="bg-green-50 p-2 rounded">
+                  <div className="text-lg font-bold text-green-600">{player.goals}</div>
+                  <div className="text-xs text-gray-600">Goals</div>
+                </div>
+                <div className="bg-blue-50 p-2 rounded">
+                  <div className="text-lg font-bold text-blue-600">{player.assists}</div>
+                  <div className="text-xs text-gray-600">Assists</div>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <div className="text-lg font-bold">{player.games}</div>
+                  <div className="text-xs text-gray-600">Games</div>
+                </div>
               </div>
-              <div>
-                <div className="text-lg font-bold text-blue-600">{player.assists}</div>
-                <div className="text-xs text-gray-600">{t('players.assists')}</div>
-              </div>
-              <div>
-                <div className="text-lg font-bold text-gray-600">{player.games}</div>
-                <div className="text-xs text-gray-600">{t('players.games')}</div>
-              </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))}
+        </div>
       </div>
 
       <AddPlayerForm
@@ -871,8 +705,8 @@ const Players = () => {
   );
 
   return (
-    // Use only the main app layout (ResponsiveLayout wraps this route in App.tsx)
-    <div className="p-6">
+    // Full screen without any extra margins or padding
+    <div className="w-screen h-screen overflow-hidden">
       {selectedPlayer ? renderPlayerDetail() : renderPlayersList()}
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -15,7 +16,6 @@ import {
   User,
   Bell,
   Shield,
-  Palette,
   Database,
   Download,
   Upload,
@@ -100,7 +100,7 @@ const Settings: React.FC = () => {
     timezone: 'UTC',
     dateFormat: 'MM/DD/YYYY',
     autoSave: true,
-    darkMode: theme === 'dark'
+    darkMode: false // Always false since theme is locked to midnight (white theme)
   });
 
   useEffect(() => {
@@ -112,19 +112,15 @@ const Settings: React.FC = () => {
   }, [user, theme]);
 
   const getCardClassName = (): string => {
-    return theme === 'dark' 
-      ? 'bg-gray-800 border-gray-700' 
-      : 'bg-white border-gray-300';
+    return 'bg-white border-gray-300'; // Always use white theme
   };
 
   const getInputClassName = (): string => {
-    return theme === 'dark'
-      ? 'bg-gray-700 border-gray-600'
-      : 'bg-white border-gray-300';
+    return 'bg-white border-gray-300'; // Always use white theme
   };
 
   const getSeparatorClassName = (): string => {
-    return theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300';
+    return 'bg-gray-300'; // Always use white theme
   };
 
   const handleSaveChanges = async (
@@ -152,7 +148,8 @@ const Settings: React.FC = () => {
           setSystem(data as SystemSettings);
           const systemData = data as SystemSettings;
           if (systemData.darkMode !== undefined) {
-            setTheme(systemData.darkMode ? 'dark' : 'midnight');
+            // Theme is locked to 'midnight', so we just update the state without changing theme
+            setTheme('midnight');
           }
           break;
       }
@@ -280,316 +277,280 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <div className={`container mx-auto p-6 max-w-4xl ${
-      theme === 'dark' ? 'text-white' : 'text-gray-900'
-    }`}>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          Settings
-        </h1>
-        <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
-          Manage your account preferences and application settings
-        </p>
+    <>
+      <div className={`min-h-screen transition-all duration-500 bg-white text-gray-900`}>
+        <div className="max-w-7xl mx-auto p-4 md:p-6">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 md:mb-8"
+          >
+            <h1 className={`text-2xl md:text-3xl font-bold mb-2 text-gray-900`}>
+              Settings
+            </h1>
+            <p className="text-gray-600">
+              Manage your account preferences and application settings
+            </p>
+          </motion.div>
+
+          <Tabs defaultValue="profile" className="space-y-6">
+            <TabsList className={`grid w-full grid-cols-4 bg-gray-100`}>
+              <TabsTrigger value="profile" className="flex items-center gap-2">
+                <User size={16} />
+                Profile
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="flex items-center gap-2">
+                <Bell size={16} />
+                Notifications
+              </TabsTrigger>
+              <TabsTrigger value="privacy" className="flex items-center gap-2">
+                <Shield size={16} />
+                Privacy
+              </TabsTrigger>
+              <TabsTrigger value="data" className="flex items-center gap-2">
+                <Database size={16} />
+                Data
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Profile Settings */}
+            <TabsContent value="profile" className="space-y-6">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <Card className={getCardClassName()}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Profile Information
+                    </CardTitle>
+                    <CardDescription>
+                      Update your personal information and profile details
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input
+                          id="name"
+                          value={profileData.name}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
+                          className={getInputClassName()}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileData.email}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
+                          className={getInputClassName()}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          value={profileData.phone}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                          className={getInputClassName()}
+                          placeholder="+1 (555) 123-4567"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="location">Location</Label>
+                        <Input
+                          id="location"
+                          value={profileData.location}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
+                          className={getInputClassName()}
+                          placeholder="City, Country"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bio">Bio</Label>
+                      <Textarea
+                        id="bio"
+                        value={profileData.bio}
+                        onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
+                        className={getInputClassName()}
+                        placeholder="Tell us about yourself..."
+                        rows={3}
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      onClick={() => handleSaveChanges('profile', profileData)} 
+                      disabled={loading} 
+                      className="w-full md:w-auto"
+                    >
+                      {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                      Save Profile
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            {/* Notification Settings */}
+            <TabsContent value="notifications" className="space-y-6">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <Card className={getCardClassName()}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Bell className="h-5 w-5" />
+                      Notification Preferences
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Email Notifications</Label>
+                          <p className="text-sm text-gray-400">Receive notifications via email</p>
+                        </div>
+                        <Switch
+                          checked={notifications.emailNotifications}
+                          onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, emailNotifications: checked }))}
+                        />
+                      </div>
+                      <Separator className={getSeparatorClassName()} />
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Push Notifications</Label>
+                          <p className="text-sm text-gray-400">Receive push notifications in browser</p>
+                        </div>
+                        <Switch
+                          checked={notifications.pushNotifications}
+                          onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, pushNotifications: checked }))}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      onClick={() => handleSaveChanges('notifications', notifications)} 
+                      disabled={loading} 
+                      className="w-full md:w-auto"
+                    >
+                      {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                      Save Notifications
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            {/* Privacy Settings */}
+            <TabsContent value="privacy" className="space-y-6">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <Card className={getCardClassName()}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Privacy & Security
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Profile Visibility</Label>
+                        <Select
+                          value={privacy.profileVisibility}
+                          onValueChange={(value) => setPrivacy(prev => ({ ...prev, profileVisibility: value }))}
+                        >
+                          <SelectTrigger className={getInputClassName()}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="public">Public - Everyone can see</SelectItem>
+                            <SelectItem value="team">Team Only - Team members only</SelectItem>
+                            <SelectItem value="private">Private - Only you</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      onClick={() => handleSaveChanges('privacy', privacy)} 
+                      disabled={loading} 
+                      className="w-full md:w-auto"
+                    >
+                      {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                      Save Privacy Settings
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            {/* Data Management */}
+            <TabsContent value="data" className="space-y-6">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <Card className={getCardClassName()}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Database className="h-5 w-5" />
+                      Data Management
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button onClick={handleExportData} variant="outline" className="flex items-center gap-2">
+                        <Download size={16} />
+                        Export Settings
+                      </Button>
+                      <div>
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={handleImportData}
+                          className="hidden"
+                          id="import-settings"
+                        />
+                        <Button
+                          onClick={() => document.getElementById('import-settings')?.click()}
+                          variant="outline"
+                          className="flex items-center gap-2 w-full"
+                        >
+                          <Upload size={16} />
+                          Import Settings
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+                      <h3 className="text-lg font-semibold mb-2 text-red-600">
+                        Danger Zone
+                      </h3>
+                      <p className="text-sm mb-4 text-gray-700">
+                        Reset all settings to their default values. This action cannot be undone.
+                      </p>
+                      <Button onClick={handleResetSettings} variant="destructive" className="flex items-center gap-2">
+                        <Trash2 size={16} />
+                        Reset All Settings
+                      </Button>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      onClick={() => handleSaveChanges('system', system)} 
+                      disabled={loading} 
+                      className="w-full md:w-auto"
+                    >
+                      {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                      Save Data Settings
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className={`grid w-full grid-cols-5 ${
-          theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'
-        }`}>
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User size={16} />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell size={16} />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="privacy" className="flex items-center gap-2">
-            <Shield size={16} />
-            Privacy
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
-            <Palette size={16} />
-            Appearance
-          </TabsTrigger>
-          <TabsTrigger value="data" className="flex items-center gap-2">
-            <Database size={16} />
-            Data
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Profile Settings */}
-        <TabsContent value="profile" className="space-y-6">
-          <Card className={getCardClassName()}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile Information
-              </CardTitle>
-              <CardDescription>
-                Update your personal information and profile details
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={profileData.name}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-                    className={getInputClassName()}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                    className={getInputClassName()}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={profileData.phone}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                    className={getInputClassName()}
-                    placeholder="+1 (555) 123-4567"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={profileData.location}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-                    className={getInputClassName()}
-                    placeholder="City, Country"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  value={profileData.bio}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
-                  className={getInputClassName()}
-                  placeholder="Tell us about yourself..."
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={() => handleSaveChanges('profile', profileData)} 
-                disabled={loading} 
-                className="w-full md:w-auto"
-              >
-                {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save Profile
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        {/* Notification Settings */}
-        <TabsContent value="notifications" className="space-y-6">
-          <Card className={getCardClassName()}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notification Preferences
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Email Notifications</Label>
-                    <p className="text-sm text-gray-400">Receive notifications via email</p>
-                  </div>
-                  <Switch
-                    checked={notifications.emailNotifications}
-                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, emailNotifications: checked }))}
-                  />
-                </div>
-                <Separator className={getSeparatorClassName()} />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Push Notifications</Label>
-                    <p className="text-sm text-gray-400">Receive push notifications in browser</p>
-                  </div>
-                  <Switch
-                    checked={notifications.pushNotifications}
-                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, pushNotifications: checked }))}
-                  />
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={() => handleSaveChanges('notifications', notifications)} 
-                disabled={loading} 
-                className="w-full md:w-auto"
-              >
-                {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save Notifications
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        {/* Privacy Settings */}
-        <TabsContent value="privacy" className="space-y-6">
-          <Card className={getCardClassName()}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Privacy & Security
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Profile Visibility</Label>
-                  <Select
-                    value={privacy.profileVisibility}
-                    onValueChange={(value) => setPrivacy(prev => ({ ...prev, profileVisibility: value }))}
-                  >
-                    <SelectTrigger className={getInputClassName()}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="public">Public - Everyone can see</SelectItem>
-                      <SelectItem value="team">Team Only - Team members only</SelectItem>
-                      <SelectItem value="private">Private - Only you</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={() => handleSaveChanges('privacy', privacy)} 
-                disabled={loading} 
-                className="w-full md:w-auto"
-              >
-                {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save Privacy Settings
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        {/* Appearance Settings */}
-        <TabsContent value="appearance" className="space-y-6">
-          <Card className={getCardClassName()}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Appearance & Display
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Theme</Label>
-                  <Select value={theme} onValueChange={setTheme}>
-                    <SelectTrigger className={getInputClassName()}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="midnight">Midnight</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="ocean">Ocean</SelectItem>
-                      <SelectItem value="forest">Forest</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={() => handleSaveChanges('system', system)} 
-                disabled={loading} 
-                className="w-full md:w-auto"
-              >
-                {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save Appearance Settings
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        {/* Data Management */}
-        <TabsContent value="data" className="space-y-6">
-          <Card className={getCardClassName()}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Data Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button onClick={handleExportData} variant="outline" className="flex items-center gap-2">
-                  <Download size={16} />
-                  Export Settings
-                </Button>
-                <div>
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportData}
-                    className="hidden"
-                    id="import-settings"
-                  />
-                  <Button
-                    onClick={() => document.getElementById('import-settings')?.click()}
-                    variant="outline"
-                    className="flex items-center gap-2 w-full"
-                  >
-                    <Upload size={16} />
-                    Import Settings
-                  </Button>
-                </div>
-              </div>
-              <div className={`p-4 rounded-lg ${
-                theme === 'dark' ? 'bg-red-900/20 border border-red-800' : 'bg-red-50 border border-red-200'
-              }`}>
-                <h3 className={`text-lg font-semibold mb-2 ${
-                  theme === 'dark' ? 'text-red-400' : 'text-red-600'
-                }`}>Danger Zone</h3>
-                <p className={`text-sm mb-4 ${
-                  theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                }`}>
-                  Reset all settings to their default values. This action cannot be undone.
-                </p>
-                <Button onClick={handleResetSettings} variant="destructive" className="flex items-center gap-2">
-                  <Trash2 size={16} />
-                  Reset All Settings
-                </Button>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={() => handleSaveChanges('system', system)} 
-                disabled={loading} 
-                className="w-full md:w-auto"
-              >
-                {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save Data Settings
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+    </>
   );
 };
 

@@ -141,6 +141,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // Check if mock auth is enabled
+        const enableMockAuth = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+        
+        // If mock auth is disabled, clear any demo authentication data
+        if (!enableMockAuth) {
+          // Check if current user is a demo user
+          const userProfile = localStorage.getItem('statsor_user');
+          if (userProfile) {
+            const parsedUser = JSON.parse(userProfile);
+            if (parsedUser.provider === 'demo') {
+              // Clear demo authentication data
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('statsor_user');
+              localStorage.removeItem('statsor_onboarding_completed');
+              localStorage.removeItem('user_type');
+              localStorage.removeItem('demo_account_data');
+              sessionStorage.clear();
+              csrfToken.clear();
+            }
+          }
+        }
+        
         const token = secureStorage.getItem('auth_token');
         const userProfile = secureStorage.getItem('statsor_user');
         const onboardingStatus = localStorage.getItem('statsor_onboarding_completed');
@@ -182,6 +204,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('auth_token');
         localStorage.removeItem('statsor_user');
         localStorage.removeItem('statsor_onboarding_completed');
+        localStorage.removeItem('user_type');
+        localStorage.removeItem('demo_account_data');
         csrfToken.clear();
         setIsInitialized(true);
       } finally {
