@@ -253,9 +253,7 @@ const Index = () => {
                     key={i}
                     className={`block ${
                       word.gradient
-                        ? theme === 'dark'
-                          ? 'bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent'
-                          : 'bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent'
+                        ? 'bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent'
                         : 'text-white'
                     }`}
                     variants={textRevealVariants}
@@ -301,29 +299,28 @@ const Index = () => {
                 </Link>
               </motion.div>
               
-              {enableMockAuth && (
-                <motion.div 
-                  variants={magneticVariants}
-                  whileHover="hover"
-                  whileTap={{ scale: 0.95 }}
+              {/* Removed the enableMockAuth condition to always show Watch Demo button */}
+              <motion.div 
+                variants={magneticVariants}
+                whileHover="hover"
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button 
+                  variant="ghost"
+                  size="lg"
+                  onClick={() => setShowDemo(true)}
+                  className="px-8 py-4 rounded-lg font-medium text-lg transition-all duration-300 interactive-element group text-gray-3300 hover:text-white hover:bg-gray-800/50 border border-gray-600 hover:border-gray-400"
                 >
-                  <Button 
-                    variant="ghost"
-                    size="lg"
-                    onClick={() => setShowDemo(true)}
-                    className="px-8 py-4 rounded-lg font-medium text-lg transition-all duration-300 interactive-element group text-gray-3300 hover:text-white hover:bg-gray-800/50 border border-gray-600 hover:border-gray-400"
+                  Watch Demo
+                  <motion.div
+                    className="ml-2 inline-block"
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
                   >
-                    Watch Demo
-                    <motion.div
-                      className="ml-2 inline-block"
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <ArrowRight className="h-5 w-5" />
-                    </motion.div>
-                  </Button>
-                </motion.div>
-              )}
+                    <ArrowRight className="h-5 w-5" />
+                  </motion.div>
+                </Button>
+              </motion.div>
             </motion.div>
 
             {/* Minimal Stats */}
@@ -499,7 +496,7 @@ const Index = () => {
                   </motion.div>
                   
                   <motion.h3 
-                    className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}
+                    className="text-xl font-bold mb-4 text-white"
                     animate={{
                       x: isHovered ? 5 : 0,
                       z: isHovered ? 20 : 0
@@ -511,7 +508,7 @@ const Index = () => {
                   </motion.h3>
                   
                   <motion.p 
-                    className={`leading-relaxed ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}
+                    className="leading-relaxed text-gray-400"
                     animate={{
                       x: isHovered ? 5 : 0,
                       z: isHovered ? 15 : 0
@@ -536,7 +533,7 @@ const Index = () => {
                     }}
                     style={{ transformStyle: 'preserve-3d' }}
                   >
-                    <ArrowRight className={`h-5 w-5 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} drop-shadow-lg`} />
+                    <ArrowRight className="h-5 w-5 text-gray-400 drop-shadow-lg" />
                   </motion.div>
 
                   {/* 3D Floating Particles */}
@@ -652,9 +649,7 @@ const Index = () => {
               <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-blue-300 to-slate-300 bg-clip-text text-transparent">
                 Loved by coaches
               </h2>
-              <p className={`text-xl max-w-2xl mx-auto ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <p className="text-xl max-w-2xl mx-auto text-gray-400">
                 See what coaches around the world are saying about Statsor
               </p>
             </motion.div>
@@ -815,9 +810,7 @@ const Index = () => {
                     
                     {/* Floating quote decoration */}
                     <motion.div
-                      className={`absolute top-4 right-4 text-6xl opacity-10 ${
-                        theme === 'dark' ? 'text-white' : 'text-black'
-                      }`}
+                      className="absolute top-4 right-4 text-6xl opacity-10 text-white"
                       animate={{ 
                         rotate: [0, 5, -5, 0],
                         scale: [1, 1.1, 1]
@@ -847,9 +840,7 @@ const Index = () => {
             {[...Array(8)].map((_, i) => (
               <motion.div
                 key={i}
-                className={`absolute w-1 h-1 rounded-full ${
-                  theme === 'dark' ? 'bg-green-400' : 'bg-blue-400'
-                } opacity-40`}
+                className="absolute w-1 h-1 rounded-full bg-green-400 opacity-40"
                 style={{
                   left: `${10 + i * 12}%`,
                   top: `${20 + i * 8}%`,
@@ -867,11 +858,7 @@ const Index = () => {
             
             {/* Central Gradient Orb */}
             <motion.div
-              className={`absolute top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl opacity-20 ${
-                theme === 'dark' 
-                  ? 'bg-gradient-to-r from-green-500 via-blue-500 to-purple-500' 
-                  : 'bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400'
-              }`}
+              className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full blur-3xl opacity-20 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500"
               style={{
                 transform: 'translate(-50%, -50%)'
               }}
@@ -907,9 +894,7 @@ const Index = () => {
               </div>
               
               <motion.p 
-                className={`text-xl md:text-2xl max-w-2xl mx-auto mb-12 ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}
+                className="text-xl md:text-2xl max-w-2xl mx-auto mb-12 text-gray-400"
                 variants={textRevealVariants}
                 initial="hidden"
                 whileInView="visible"
@@ -932,11 +917,7 @@ const Index = () => {
                   >
                     <Button 
                       size="lg"
-                      className={`px-8 py-4 rounded-lg font-medium text-lg transition-all duration-300 interactive-element relative overflow-hidden ${
-                        theme === 'dark' 
-                          ? 'bg-white text-black hover:bg-gray-100' 
-                          : 'bg-black text-white hover:bg-gray-900'
-                      }`}
+                      className="px-8 py-4 rounded-lg font-medium text-lg transition-all duration-300 interactive-element relative overflow-hidden bg-white text-black hover:bg-gray-100"
                     >
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-green-500 to-blue-500 opacity-0 hover:opacity-20 transition-opacity duration-300"
@@ -958,11 +939,7 @@ const Index = () => {
                     variant="ghost"
                     size="lg"
                     onClick={() => setShowDemo(true)}
-                    className={`px-8 py-4 rounded-lg font-medium text-lg transition-all duration-300 interactive-element group ${
-                      theme === 'dark' 
-                        ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
-                        : 'text-gray-600 hover:text-black hover:bg-gray-100'
-                    }`}
+                    className="px-8 py-4 rounded-lg font-medium text-lg transition-all duration-300 interactive-element group text-gray-400 hover:text-white hover:bg-gray-800"
                   >
                     Book a demo
                     <motion.div

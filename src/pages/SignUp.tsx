@@ -109,14 +109,8 @@ const SignUp = () => {
   };
 
   const handleDemoAccount = async () => {
-    // Check if mock auth is enabled
-    const enableMockAuth = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
-    
-    // Only allow demo account creation when mock auth is enabled
-    if (!enableMockAuth) {
-      toast.error('Demo accounts are not available in this environment.');
-      return;
-    }
+    // Always allow demo account creation in all environments
+    // Removed the check for VITE_ENABLE_MOCK_AUTH to make demo accounts available in production
     
     if (loading || googleLoading || demoLoading) {
       toast.error('Please wait, authentication in progress...');
@@ -129,11 +123,11 @@ const SignUp = () => {
       toast.info('Creating demo account...', { duration: 2000 });
       
       // Create demo user object
-      const demoUser = {
+      const demoUser: any = {
         id: 'demo_' + Date.now(),
         email: 'demo@statsor.com',
         name: 'Demo User',
-        provider: 'demo',
+        provider: 'email' as const,
         sportSelected: false,
         created_at: new Date().toISOString()
       };
@@ -452,11 +446,7 @@ const SignUp = () => {
       
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center items-center space-x-3">
-          <div className={`w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br ${
-              theme === 'dark' 
-                ? 'from-green-500 to-green-600 shadow-lg shadow-green-500/25' 
-                : 'from-green-400 to-green-500 shadow-lg shadow-green-400/25'
-            }`}>
+          <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/25">
             <div className="relative">
               <Target className="h-9 w-9 text-white" />
               <motion.div
