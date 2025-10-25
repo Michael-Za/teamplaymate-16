@@ -1,0 +1,44 @@
+# Node modules
+node_modules/
+coach/node_modules/
+
+# Build outputs
+dist/
+coach/dist/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# Docker
+docker-compose.yml
+docker-compose.production.yml
+Dockerfile.frontend
+Dockerfile
+nginx.conf
+
+# Backup files
+*.backup
+*.bak
+
+# Coach backend source (if you're deploying only frontend to Vercel)
+coach/src/
+coach/postman/
+coach/package.json
+coach/package-lock.json

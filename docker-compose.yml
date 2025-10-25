@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Frontend (React App)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3009:80"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://backend:3008
+
+  # Coach Backend (Node.js Express App)
+  backend:
+    build:
+      context: ./coach
+      dockerfile: Dockerfile
+    ports:
+      - "3008:3008"
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongo:27017/statsor
+      - PORT=3008
+    depends_on:
+      - mongo
+    volumes:
+      - ./coach:/app
+      - /app/node_modules
+
+  # MongoDB Database
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+  # Redis Cache (optional)
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mongo_data:
+  redis_data:
