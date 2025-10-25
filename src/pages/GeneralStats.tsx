@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+<<<<<<< HEAD
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
@@ -88,6 +89,20 @@ const GeneralStats: React.FC = () => {
   // Remove useTranslation since it's not imported
   const { user } = useAuth();
   const { refreshData } = useDataSync();
+=======
+import { 
+  TrendingUp, Target, Shield, Users, ChevronRight, Trophy, Activity, 
+  Clock, AlertTriangle, Zap, Footprints, Crosshair, Medal, 
+  Calendar, MapPin, User, CheckCircle, XCircle, X
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { realAnalyticsService, RealTeamStats, RealPlayerPerformance, RealMatchPerformance, RealPositionStats } from '../services/realAnalyticsService';
+import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
+
+const GeneralStats: React.FC = () => {
+  const { t } = useTranslation();
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const [loading, setLoading] = useState(true);
   const [teamStats, setTeamStats] = useState<RealTeamStats | null>(null);
   const [performanceData, setPerformanceData] = useState<RealMatchPerformance[]>([]);
@@ -96,6 +111,7 @@ const GeneralStats: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string | null>(null);
 
   useEffect(() => {
+<<<<<<< HEAD
     const loadAnalytics = async () => {
       if (!user) return;
       
@@ -171,6 +187,41 @@ const GeneralStats: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [user]);
+=======
+    loadRealAnalytics();
+  }, []);
+
+  const loadRealAnalytics = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('Please log in to view analytics');
+        setLoading(false);
+        return;
+      }
+
+      // Load all analytics data
+      const [teamStatsData, monthlyData, positionData, playerData] = await Promise.all([
+        realAnalyticsService.getTeamStats(user.id),
+        realAnalyticsService.getMonthlyPerformance(user.id),
+        realAnalyticsService.getPositionStats(user.id),
+        realAnalyticsService.getPlayerPerformance(user.id)
+      ]);
+
+      setTeamStats(teamStatsData);
+      setPerformanceData(monthlyData);
+      setPositionStats(positionData);
+      setPlayerPerformance(playerData);
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+      toast.error('Failed to load analytics data');
+    } finally {
+      setLoading(false);
+    }
+  };
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   // Fallback data when no real data is available
   const fallbackTeamStats = {
@@ -205,6 +256,7 @@ const GeneralStats: React.FC = () => {
     mvpIndex: Math.round(((currentTeamStats.goalsFor || 0) + (currentTeamStats.totalAssists || 0)) * 2)
   };
 
+<<<<<<< HEAD
   // Calculate performance overview metrics
   const performanceOverview = {
     form: currentTeamStats.winPercentage >= 70 ? 'Excellent' : 
@@ -248,6 +300,8 @@ const GeneralStats: React.FC = () => {
                 currentPlayerPerformance.reduce((sum, player) => sum + (Math.random() * 10 + 5), 0).toFixed(1) : '0.0'
   };
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const attackStats = {
     shotsOnTarget: Math.round((currentTeamStats.goalsFor || 0) * 1.8),
     shotsOffTarget: Math.round((currentTeamStats.goalsFor || 0) * 1.2),
@@ -386,6 +440,7 @@ const GeneralStats: React.FC = () => {
             </button>
           </div>
 
+<<<<<<< HEAD
           {/* Performance Overview Section */}
           {activeSection === 'performance' && (
             <div className="mb-6">
@@ -488,6 +543,8 @@ const GeneralStats: React.FC = () => {
             </div>
           )}
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {details.map((item, index) => (
               <Card key={index} className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -572,6 +629,7 @@ const GeneralStats: React.FC = () => {
           <div className="text-sm text-gray-500">Season 2024/25</div>
         </div>
 
+<<<<<<< HEAD
         {/* Performance Overview Section */}
         <Card className="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
           <CardHeader className="pb-3">
@@ -666,6 +724,8 @@ const GeneralStats: React.FC = () => {
           </CardContent>
         </Card>
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         {/* 4 Statistics Blocks - Simplified to match dashboard style */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Performance Block */}
@@ -744,7 +804,11 @@ const GeneralStats: React.FC = () => {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Activity className="h-4 w-4 text-blue-600" />
+<<<<<<< HEAD
                 <span>Performance Trends</span>
+=======
+                <span>Performance Overview</span>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -757,19 +821,33 @@ const GeneralStats: React.FC = () => {
             </CardContent>
           </Card>
 
+<<<<<<< HEAD
           {/* Player Efficiency */}
           <Card className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <User className="h-4 w-4 text-purple-600" />
                 <span>Player Efficiency</span>
+=======
+          {/* Team Stats Summary */}
+          <Card className="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Trophy className="h-4 w-4 text-yellow-600" />
+                <span>Team Summary</span>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="h-48 w-full flex items-center justify-center">
                 <div className="text-center">
+<<<<<<< HEAD
                   <User className="mx-auto h-10 w-10 text-gray-300 mb-2" />
                   <p className="text-gray-500 text-sm">Player efficiency visualization</p>
+=======
+                  <Trophy className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                  <p className="text-gray-500 text-sm">Team statistics summary</p>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                 </div>
               </div>
             </CardContent>

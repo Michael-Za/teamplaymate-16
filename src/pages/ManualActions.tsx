@@ -1,9 +1,16 @@
+<<<<<<< HEAD
 import React, { useState, useRef, useEffect } from 'react';
+=======
+import React, { useState, useRef } from 'react';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Plus, Minus, Download, Save, Edit3 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext'; // Add DataSyncContext import
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { toast } from 'sonner';
 // Add jsPDF import
 import jsPDF from 'jspdf';
@@ -42,6 +49,7 @@ interface PlayerStats {
 
 const ManualActions = () => {
   const { t } = useLanguage();
+<<<<<<< HEAD
   const { players: dataSyncPlayers } = useDataSync(); // Use players from DataSyncContext
   
   // Use players from DataSyncContext instead of mock data
@@ -51,14 +59,35 @@ const ManualActions = () => {
     number: player.jersey_number || player.number || 0,
     position: player.position || ''
   }));
+=======
+  
+  // Mock players data
+  const players = [
+    { id: 1, name: 'Carlos Rodríguez', number: 7, position: t('position.forward') },
+    { id: 2, name: 'Miguel Ángel Torres', number: 10, position: t('position.midfielder') },
+    { id: 3, name: 'David López', number: 4, position: t('position.defender') },
+    { id: 4, name: 'Juan Martínez', number: 9, position: t('position.forward') },
+    { id: 5, name: 'Roberto García', number: 6, position: t('position.midfielder') },
+    { id: 6, name: 'Luis Sánchez', number: 3, position: t('position.defender') },
+    { id: 7, name: 'Antonio Pérez', number: 2, position: t('position.defender') },
+    { id: 8, name: 'Fernando Ruiz', number: 11, position: t('position.forward') },
+    { id: 9, name: 'Pablo Díaz', number: 8, position: t('position.midfielder') },
+    { id: 10, name: 'Javier Moreno', number: 1, position: t('position.goalkeeper') },
+  ];
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   // State for player statistics
   const [playerStats, setPlayerStats] = useState<PlayerStats>(() => {
     const initialStats: PlayerStats = {};
+<<<<<<< HEAD
     // Initialize with default stats for all players
     dataSyncPlayers.forEach((player: any) => {
       const playerId = parseInt(player.id) || 0;
       initialStats[playerId] = {
+=======
+    players.forEach(player => {
+      initialStats[player.id] = {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         goal: 0,
         goalAgainst: 0,
         cornerFor: 0,
@@ -80,17 +109,33 @@ const ManualActions = () => {
   });
 
   // State for player notes
+<<<<<<< HEAD
   const [playerNotes, setPlayerNotes] = useState<PlayerNotes>({});
+=======
+  const [playerNotes, setPlayerNotes] = useState<PlayerNotes>(() => {
+    const savedNotes = localStorage.getItem('manual_actions_player_notes');
+    return savedNotes ? JSON.parse(savedNotes) : {};
+  });
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   // State for goal scoring map visibility
   const [showGoalMap, setShowGoalMap] = useState<number | null>(null);
   // State for goal map data
+<<<<<<< HEAD
   const [goalMapData, setGoalMapData] = useState<PlayerShotMapData>({});
+=======
+  const [goalMapData, setGoalMapData] = useState<PlayerShotMapData>(() => {
+    // Load from localStorage
+    const savedData = localStorage.getItem('manual_actions_shot_maps');
+    return savedData ? JSON.parse(savedData) : {};
+  });
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   // State for notes editing
   const [editingNote, setEditingNote] = useState<number | null>(null);
   const [noteText, setNoteText] = useState('');
 
+<<<<<<< HEAD
   // Load data from localStorage on component mount (for backward compatibility)
   useEffect(() => {
     const savedNotes = localStorage.getItem('manual_actions_player_notes');
@@ -112,6 +157,8 @@ const ManualActions = () => {
     }
   }, []);
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const updateStat = (playerId: number, stat: keyof PlayerStats[number], increment: boolean) => {
     setPlayerStats((prev: PlayerStats) => {
       const playerStatsCopy = { ...prev };
@@ -145,7 +192,11 @@ const ManualActions = () => {
     });
   };
 
+<<<<<<< HEAD
   // Save data to localStorage for backward compatibility
+=======
+  // Save data to localStorage
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const saveData = () => {
     try {
       localStorage.setItem('statsor_manual_actions', JSON.stringify(playerStats));
@@ -412,7 +463,11 @@ const ManualActions = () => {
       }
       newData[playerId][zone] = (newData[playerId][zone] || 0) + 1;
       
+<<<<<<< HEAD
       // Save to localStorage for backward compatibility
+=======
+      // Save to localStorage
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       localStorage.setItem('manual_actions_shot_maps', JSON.stringify(newData));
       
       return newData;
@@ -577,7 +632,11 @@ const ManualActions = () => {
       const newNotes = { ...prev };
       newNotes[playerId] = noteText;
       
+<<<<<<< HEAD
       // Save to localStorage for backward compatibility
+=======
+      // Save to localStorage
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       localStorage.setItem('manual_actions_player_notes', JSON.stringify(newNotes));
       
       return newNotes;
@@ -906,4 +965,8 @@ const ManualActions = () => {
   );
 };
 
+<<<<<<< HEAD
 export default ManualActions;
+=======
+export default ManualActions;
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721

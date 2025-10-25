@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 import { supabase, isDemoMode } from '../lib/supabase';
 import { toast } from 'sonner';
 import { mockPlayers, mockTeam, mockMatches, mockClubData, getMockPlayersForTeam, getMockPlayerById } from './mockDataService';
+=======
+import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
 export interface Player {
   id?: string;
@@ -88,11 +93,14 @@ class DataManagementService {
   }
 
   async getPlayers(teamId?: string): Promise<Player[]> {
+<<<<<<< HEAD
     // Use mock data in demo mode
     if (isDemoMode) {
       return getMockPlayersForTeam(teamId);
     }
     
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     try {
       const cacheKey = `players_${teamId || 'all'}`;
       const cached = this.getCachedData(cacheKey);
@@ -129,11 +137,14 @@ class DataManagementService {
   }
 
   async getPlayer(id: string): Promise<Player | null> {
+<<<<<<< HEAD
     // Use mock data in demo mode
     if (isDemoMode) {
       return getMockPlayerById(id) || null;
     }
     
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     try {
       const { data: player, error } = await supabase
         .from('players')
@@ -283,11 +294,14 @@ class DataManagementService {
   }
 
   async getTeams(): Promise<Team[]> {
+<<<<<<< HEAD
     // Use mock data in demo mode
     if (isDemoMode) {
       return [mockTeam];
     }
     
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -310,11 +324,14 @@ class DataManagementService {
   }
 
   async getTeam(id: string): Promise<Team | null> {
+<<<<<<< HEAD
     // Use mock data in demo mode
     if (isDemoMode) {
       return mockTeam.id === id ? mockTeam : null;
     }
     
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     try {
       const { data: team, error } = await supabase
         .from('teams')
@@ -369,12 +386,15 @@ class DataManagementService {
   }
 
   async getMatches(teamId?: string): Promise<Match[]> {
+<<<<<<< HEAD
     // Use mock data in demo mode
     if (isDemoMode) {
       if (!teamId) return mockMatches;
       return mockMatches.filter(match => match.team_id === teamId);
     }
     
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -464,11 +484,14 @@ class DataManagementService {
   }
 
   async getClubData(): Promise<ClubData | null> {
+<<<<<<< HEAD
     // Use mock data in demo mode
     if (isDemoMode) {
       return mockClubData;
     }
     
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;

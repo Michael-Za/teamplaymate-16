@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import AddPlayerForm from '../components/AddPlayerForm';
 import { PlayerPhotoUpload } from '../components/PlayerPhotoUpload';
 import { useLanguage } from '../contexts/LanguageContext';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext';
 import { toast } from 'sonner';
 
@@ -24,6 +25,13 @@ interface Player {
   goals?: number;
   assists?: number;
   date_of_birth?: string;
+=======
+import { dataManagementService, Player as DataPlayer } from '../services/dataManagementService';
+import { toast } from 'sonner';
+
+// Define our Player interface with all needed properties
+interface Player extends DataPlayer {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   // Extended properties
   nickname?: string;
   secondaryPositions?: string[];
@@ -51,7 +59,10 @@ interface Player {
 const Players = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
+<<<<<<< HEAD
   const { players: dataSyncPlayers, loading: dataLoading, addPlayer: addPlayerToContext } = useDataSync();
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isAddPlayerFormOpen, setIsAddPlayerFormOpen] = useState(false);
   const [showMoreStats, setShowMoreStats] = useState(false);
@@ -79,6 +90,7 @@ const Players = () => {
     };
   }, []);
 
+<<<<<<< HEAD
   // Sync players with DataSyncContext
   useEffect(() => {
     if (dataSyncPlayers && dataSyncPlayers.length > 0) {
@@ -98,13 +110,34 @@ const Players = () => {
           assists: player.assists || 0,
           date_of_birth: player.date_of_birth || '',
           // Extended properties
+=======
+  const loadPlayers = async () => {
+    try {
+      setLoading(true);
+      const playersData = await dataManagementService.getPlayers();
+      // Transform the data to match our Player interface
+      const transformedPlayers = playersData.map(player => {
+        // Create a new object with all properties
+        const transformedPlayer: Player = {
+          ...player,
+          number: player.number || Math.floor(Math.random() * 99) + 1,
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
           nickname: (player as any).nickname || '',
           secondaryPositions: (player as any).secondaryPositions || [],
           dominantFoot: (player as any).dominantFoot || 'Right',
           birthDate: player.date_of_birth ? new Date(player.date_of_birth) : new Date('1990-01-01'),
+<<<<<<< HEAD
           games: (player as any).games || 0,
           yellowCards: (player as any).yellowCards || 0,
           redCards: (player as any).redCards || 0,
+=======
+          goals: player.goals || 0,
+          assists: player.assists || 0,
+          games: (player as any).games || 0,
+          yellowCards: (player as any).yellowCards || 0,
+          redCards: (player as any).redCards || 0,
+          minutes: player.minutes || 0,
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
           shots: (player as any).shots || 0,
           shotsOnTarget: (player as any).shotsOnTarget || 0,
           passes: (player as any).passes || 0,
@@ -127,6 +160,7 @@ const Players = () => {
         return transformedPlayer;
       });
       setPlayers(transformedPlayers);
+<<<<<<< HEAD
       setLoading(dataLoading);
     }
   }, [dataSyncPlayers, dataLoading]);
@@ -149,6 +183,65 @@ const Players = () => {
         });
       }
       toast.success('Player added successfully!');
+=======
+    } catch (error) {
+      console.error('Error loading players:', error);
+      toast.error('Failed to load players');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddPlayer = async (newPlayerData: Omit<Player, 'id'>) => {
+    try {
+      const playerData: Partial<DataPlayer> = {
+        name: newPlayerData.name,
+        position: newPlayerData.position,
+        age: newPlayerData.age ?? 0,
+        nationality: newPlayerData.nationality || ''
+        // Add other fields as needed
+      };
+      
+      const createdPlayer = await dataManagementService.createPlayer(playerData);
+      if (createdPlayer) {
+        // Transform to match our Player interface
+        const transformedPlayer: Player = {
+          ...createdPlayer,
+          number: createdPlayer.number || Math.floor(Math.random() * 99) + 1,
+          nickname: (createdPlayer as any).nickname || '',
+          secondaryPositions: (createdPlayer as any).secondaryPositions || [],
+          dominantFoot: (createdPlayer as any).dominantFoot || 'Right',
+          birthDate: createdPlayer.date_of_birth ? new Date(createdPlayer.date_of_birth) : new Date('1990-01-01'),
+          goals: createdPlayer.goals || 0,
+          assists: createdPlayer.assists || 0,
+          games: (createdPlayer as any).games || 0,
+          yellowCards: (createdPlayer as any).yellowCards || 0,
+          redCards: (createdPlayer as any).redCards || 0,
+          minutes: createdPlayer.minutes || 0,
+          shots: (createdPlayer as any).shots || 0,
+          shotsOnTarget: (createdPlayer as any).shotsOnTarget || 0,
+          passes: (createdPlayer as any).passes || 0,
+          passAccuracy: (createdPlayer as any).passAccuracy || 0,
+          foulsCommitted: (createdPlayer as any).foulsCommitted || 0,
+          foulsReceived: (createdPlayer as any).foulsReceived || 0,
+          ballsLost: (createdPlayer as any).ballsLost || 0,
+          ballsRecovered: (createdPlayer as any).ballsRecovered || 0,
+          duelsWon: (createdPlayer as any).duelsWon || 0,
+          duelsLost: (createdPlayer as any).duelsLost || 0,
+          crosses: (createdPlayer as any).crosses || 0,
+          saves: (createdPlayer as any).saves || 0,
+          photo: (createdPlayer as any).photo || '/placeholder.svg',
+          shotMap: (createdPlayer as any).shotMap || { 
+            'top-left': 0, 'top-center': 0, 'top-right': 0, 
+            'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
+            'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
+          }
+        } as Player;
+        
+        setPlayers(prev => [...prev, transformedPlayer]);
+        toast.success('Player added successfully!');
+      }
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     } catch (error) {
       console.error('Error adding player:', error);
       toast.error('Failed to add player');

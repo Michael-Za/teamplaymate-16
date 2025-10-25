@@ -46,7 +46,11 @@ export interface RealPositionStats {
 
 class RealAnalyticsService {
   private cache = new Map<string, { data: any; timestamp: number }>();
+<<<<<<< HEAD
   private cacheTimeout = 30 * 1000; // Reduce cache timeout to 30 seconds for fresher data
+=======
+  private cacheTimeout = 5 * 60 * 1000;
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   async getTeamStats(userId: string): Promise<RealTeamStats> {
     const cacheKey = `team_stats_${userId}`;
@@ -54,18 +58,24 @@ class RealAnalyticsService {
     if (cached) return cached;
 
     try {
+<<<<<<< HEAD
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       const { data: userTeam, error: teamError } = await supabase
         .from('teams')
         .select('id')
         .eq('owner_id', userId)
         .maybeSingle();
 
+<<<<<<< HEAD
       clearTimeout(timeoutId);
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       if (teamError || !userTeam) {
         console.log('Team not found, using fallback data');
         return this.getFallbackTeamStats();
@@ -85,12 +95,17 @@ class RealAnalyticsService {
       const stats = this.calculateTeamStats(matches, userTeam.id);
       this.setCachedData(cacheKey, stats);
       return stats;
+<<<<<<< HEAD
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.warn('Team stats request timed out');
       } else {
         console.error('Error fetching team stats:', error);
       }
+=======
+    } catch (error) {
+      console.error('Error fetching team stats:', error);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       return this.getFallbackTeamStats();
     }
   }
@@ -101,18 +116,24 @@ class RealAnalyticsService {
     if (cached) return cached;
 
     try {
+<<<<<<< HEAD
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       const { data: userTeam, error: teamError } = await supabase
         .from('teams')
         .select('id')
         .eq('owner_id', userId)
         .maybeSingle();
 
+<<<<<<< HEAD
       clearTimeout(timeoutId);
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       if (teamError || !userTeam) {
         console.log('Team not found for player performance, using fallback data');
         return this.getFallbackPlayerPerformance();
@@ -131,6 +152,7 @@ class RealAnalyticsService {
       const { data: playerStats, error: statsError } = await supabase
         .from('player_stats')
         .select('*')
+<<<<<<< HEAD
         .in('player_id', players.map((p: any) => p.id));
 
       const performance = players.map((player: any) => {
@@ -141,6 +163,18 @@ class RealAnalyticsService {
         const avgRating = stats.length > 0 ? stats.reduce((sum: number, s: any) => sum + (s.rating || 0), 0) / stats.length : 0;
         const totalPasses = stats.reduce((sum: number, s: any) => sum + (s.passes_attempted || 0), 0);
         const totalPassesCompleted = stats.reduce((sum: number, s: any) => sum + (s.passes_completed || 0), 0);
+=======
+        .in('player_id', players.map(p => p.id));
+
+      const performance = players.map((player) => {
+        const stats = (playerStats || []).filter(s => s.player_id === player.id);
+        const totalGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
+        const totalAssists = stats.reduce((sum, s) => sum + (s.assists || 0), 0);
+        const totalMinutes = stats.reduce((sum, s) => sum + (s.minutes_played || 0), 0);
+        const avgRating = stats.length > 0 ? stats.reduce((sum, s) => sum + (s.rating || 0), 0) / stats.length : 0;
+        const totalPasses = stats.reduce((sum, s) => sum + (s.passes_attempted || 0), 0);
+        const totalPassesCompleted = stats.reduce((sum, s) => sum + (s.passes_completed || 0), 0);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
         return {
           playerId: player.id,
@@ -158,12 +192,17 @@ class RealAnalyticsService {
 
       this.setCachedData(cacheKey, performance);
       return performance;
+<<<<<<< HEAD
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.warn('Player performance request timed out');
       } else {
         console.error('Error fetching player performance:', error);
       }
+=======
+    } catch (error) {
+      console.error('Error fetching player performance:', error);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       return this.getFallbackPlayerPerformance();
     }
   }
@@ -174,18 +213,24 @@ class RealAnalyticsService {
     if (cached) return cached;
 
     try {
+<<<<<<< HEAD
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       const { data: userTeam, error: teamError } = await supabase
         .from('teams')
         .select('id')
         .eq('owner_id', userId)
         .maybeSingle();
 
+<<<<<<< HEAD
       clearTimeout(timeoutId);
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       if (teamError || !userTeam) {
         console.log('Team not found for monthly performance, using fallback data');
         return this.getFallbackMonthlyPerformance();
@@ -206,12 +251,17 @@ class RealAnalyticsService {
       const monthlyData = this.groupMatchesByMonth(matches, userTeam.id);
       this.setCachedData(cacheKey, monthlyData);
       return monthlyData;
+<<<<<<< HEAD
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.warn('Monthly performance request timed out');
       } else {
         console.error('Error fetching monthly performance:', error);
       }
+=======
+    } catch (error) {
+      console.error('Error fetching monthly performance:', error);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       return this.getFallbackMonthlyPerformance();
     }
   }
@@ -222,18 +272,24 @@ class RealAnalyticsService {
     if (cached) return cached;
 
     try {
+<<<<<<< HEAD
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       const { data: userTeam, error: teamError } = await supabase
         .from('teams')
         .select('id')
         .eq('owner_id', userId)
         .maybeSingle();
 
+<<<<<<< HEAD
       clearTimeout(timeoutId);
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       if (teamError || !userTeam) {
         console.log('Team not found for position stats, using fallback data');
         return this.getFallbackPositionStats();
@@ -252,17 +308,26 @@ class RealAnalyticsService {
       const { data: playerStats, error: statsError } = await supabase
         .from('player_stats')
         .select('*')
+<<<<<<< HEAD
         .in('player_id', players.map((p: any) => p.id));
+=======
+        .in('player_id', players.map(p => p.id));
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
       const positionData = this.calculatePositionStats(players, playerStats || []);
       this.setCachedData(cacheKey, positionData);
       return positionData;
+<<<<<<< HEAD
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.warn('Position stats request timed out');
       } else {
         console.error('Error fetching position stats:', error);
       }
+=======
+    } catch (error) {
+      console.error('Error fetching position stats:', error);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       return this.getFallbackPositionStats();
     }
   }
@@ -384,6 +449,7 @@ class RealAnalyticsService {
 
   private getFallbackTeamStats(): RealTeamStats {
     return {
+<<<<<<< HEAD
       totalMatches: 42,
       wins: 28,
       draws: 8,
@@ -394,10 +460,23 @@ class RealAnalyticsService {
       totalAssists: 78,
       foulsCommitted: 342,
       foulsReceived: 298
+=======
+      totalMatches: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      winPercentage: 0,
+      totalAssists: 0,
+      foulsCommitted: 0,
+      foulsReceived: 0
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     };
   }
 
   private getFallbackPlayerPerformance(): RealPlayerPerformance[] {
+<<<<<<< HEAD
     // Return more realistic player performance data for demo
     return [
       {
@@ -569,6 +648,17 @@ class RealAnalyticsService {
       { position: 'CB', playerCount: 2, totalGoals: 8, totalAssists: 5, averageRating: 8.35 },
       { position: 'GK', playerCount: 1, totalGoals: 0, totalAssists: 1, averageRating: 8.6 }
     ];
+=======
+    return [];
+  }
+
+  private getFallbackMonthlyPerformance(): RealMatchPerformance[] {
+    return [];
+  }
+
+  private getFallbackPositionStats(): RealPositionStats[] {
+    return [];
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   }
 
   clearCache(): void {

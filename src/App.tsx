@@ -14,8 +14,11 @@ import { ChatbotProvider } from "./components/ChatbotBackend";
 import { SportSelectionModal } from "./components/SportSelectionModal";
 import ResponsiveLayout from "./components/ResponsiveLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
+<<<<<<< HEAD
 import { DataSyncProvider } from "./contexts/DataSyncContext";
 import { UserDataProvider } from "./contexts/UserDataContext";
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -105,6 +108,7 @@ const AppProviders = ({ children }: { children: React.ReactNode }) => (
           <DatabaseProvider>
             <SubscriptionProvider>
               <ChatbotProvider>
+<<<<<<< HEAD
                 <UserDataProvider>
                   <DataSyncProvider>
                     <TooltipProvider>
@@ -112,6 +116,11 @@ const AppProviders = ({ children }: { children: React.ReactNode }) => (
                     </TooltipProvider>
                   </DataSyncProvider>
                 </UserDataProvider>
+=======
+                <TooltipProvider>
+                  {children}
+                </TooltipProvider>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
               </ChatbotProvider>
             </SubscriptionProvider>
           </DatabaseProvider>
@@ -402,10 +411,13 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
+<<<<<<< HEAD
                 <Route 
                   path="/test" 
                   element={<TestPage />} 
                 />
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
               </Routes>
             </Suspense>
           </AppProviders>

@@ -7,7 +7,11 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://demo-project.s
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
 
 // Determine configuration status
+<<<<<<< HEAD
 export const isDemoMode = supabaseUrl.includes('demo-project.supabase.co');
+=======
+const isDemoMode = supabaseUrl.includes('demo-project.supabase.co');
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 const hasValidCredentials = supabaseUrl && supabaseKey && supabaseUrl.startsWith('http');
 const isRealSupabase = hasValidCredentials && !isDemoMode && 
   supabaseUrl !== 'your-supabase-url' && 
@@ -27,8 +31,12 @@ export const supabase = (isRealSupabase || isDemoMode) ? createClient(supabaseUr
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+<<<<<<< HEAD
     storage: localStorage,
     flowType: 'implicit'
+=======
+    storage: localStorage
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   },
   global: {
     headers: {
@@ -159,6 +167,7 @@ export interface Database {
           updated_at?: string;
         };
       };
+<<<<<<< HEAD
       user_datasets: {
         Row: {
           id: string;
@@ -181,6 +190,8 @@ export interface Database {
           updated_at?: string;
         };
       };
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       players: {
         Row: {
           id: string;

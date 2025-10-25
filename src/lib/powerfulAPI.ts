@@ -62,7 +62,11 @@ class PowerfulAPIClient {
   private readonly baseURL: string;
 
   constructor() {
+<<<<<<< HEAD
     this.baseURL = import.meta.env?.['VITE_API_URL'] || 'http://localhost:3000';
+=======
+    this.baseURL = import.meta.env?.['VITE_API_URL'] || 'http://localhost:3001';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     
     this.client = axios.create({
       baseURL: `${this.baseURL}/api/v1`,

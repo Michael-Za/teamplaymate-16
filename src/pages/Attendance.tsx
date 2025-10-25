@@ -6,7 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge';
 import { Users, Calendar, Plus, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext'; // Add this import
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
 interface Player {
   id: string;
@@ -25,9 +28,21 @@ interface AttendanceRecord {
 }
 
 const Attendance: React.FC = () => {
+<<<<<<< HEAD
   const { players, attendance, addAttendanceRecord, updateAttendanceRecord, deleteAttendanceRecord } = useDataSync(); // Use data from DataSyncContext
   const [localPlayers, setLocalPlayers] = useState<Player[]>([]);
   const [localAttendanceRecords, setLocalAttendanceRecords] = useState<AttendanceRecord[]>([]);
+=======
+  const [players, setPlayers] = useState<Player[]>([
+    { id: '1', name: 'Fernando Torres', number: 9, position: 'DEL' },
+    { id: '2', name: 'Pablo Sánchez', number: 8, position: 'CEN' },
+    { id: '3', name: 'Juan Pérez', number: 4, position: 'DEL' },
+    { id: '4', name: 'Alejandro Martínez', number: 1, position: 'POR' },
+    { id: '5', name: 'David González', number: 2, position: 'DEF' }
+  ]);
+  
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0] || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'absent' | 'late'>('all');
@@ -37,6 +52,7 @@ const Attendance: React.FC = () => {
     notes: ''
   });
 
+<<<<<<< HEAD
   // Transform players from DataSyncContext to local format
   useEffect(() => {
     const transformedPlayers = players.map((player: any) => ({
@@ -54,19 +70,48 @@ const Attendance: React.FC = () => {
   }, [attendance]);
 
   const handleAddRecord = async () => {
+=======
+  // Load attendance records from localStorage
+  useEffect(() => {
+    const savedRecords = localStorage.getItem('statsor_attendance');
+    if (savedRecords) {
+      try {
+        setAttendanceRecords(JSON.parse(savedRecords));
+      } catch (error) {
+        console.error('Error parsing attendance records:', error);
+        setAttendanceRecords([]);
+      }
+    }
+  }, []);
+
+  // Save attendance records to localStorage
+  useEffect(() => {
+    localStorage.setItem('statsor_attendance', JSON.stringify(attendanceRecords));
+  }, [attendanceRecords]);
+
+  const handleAddRecord = () => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     if (!newRecord.playerId) {
       toast.error('Please select a player');
       return;
     }
 
+<<<<<<< HEAD
     const player = localPlayers.find(p => p.id === newRecord.playerId);
+=======
+    const player = players.find(p => p.id === newRecord.playerId);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     if (!player) {
       toast.error('Player not found');
       return;
     }
 
     // Check if record already exists for this player and date
+<<<<<<< HEAD
     const existingRecord = localAttendanceRecords.find(
+=======
+    const existingRecord = attendanceRecords.find(
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       record => record.playerId === newRecord.playerId && record.date === selectedDate
     );
 
@@ -84,6 +129,7 @@ const Attendance: React.FC = () => {
       notes: newRecord.notes
     };
 
+<<<<<<< HEAD
     try {
       // Add record through DataSyncContext
       if (addAttendanceRecord) {
@@ -126,6 +172,20 @@ const Attendance: React.FC = () => {
 
   // Filter records based on date, search, and status
   const filteredRecords = localAttendanceRecords
+=======
+    setAttendanceRecords(prev => [...prev, record]);
+    setNewRecord({ playerId: '', status: 'present', notes: '' });
+    toast.success('Attendance record added successfully!');
+  };
+
+  const handleDeleteRecord = (id: string) => {
+    setAttendanceRecords(prev => prev.filter(record => record.id !== id));
+    toast.success('Attendance record deleted successfully!');
+  };
+
+  // Filter records based on date, search, and status
+  const filteredRecords = attendanceRecords
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     .filter(record => record.date === selectedDate)
     .filter(record => 
       record.playerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -210,9 +270,15 @@ const Attendance: React.FC = () => {
                 <SelectValue placeholder="Select player" />
               </SelectTrigger>
               <SelectContent>
+<<<<<<< HEAD
                 {localPlayers
                   .filter(player => 
                     !localAttendanceRecords.some(record => 
+=======
+                {players
+                  .filter(player => 
+                    !attendanceRecords.some(record => 
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                       record.playerId === player.id && record.date === selectedDate
                     )
                   )
@@ -309,7 +375,11 @@ const Attendance: React.FC = () => {
                 </thead>
                 <tbody>
                   {filteredRecords.map(record => {
+<<<<<<< HEAD
                     const player = localPlayers.find(p => p.id === record.playerId);
+=======
+                    const player = players.find(p => p.id === record.playerId);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                     return (
                       <tr key={record.id} className="border-b hover:bg-gray-50">
                         <td className="py-2">
@@ -361,4 +431,8 @@ const Attendance: React.FC = () => {
   );
 };
 
+<<<<<<< HEAD
 export default Attendance;
+=======
+export default Attendance;
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721

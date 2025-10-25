@@ -1,5 +1,22 @@
+<<<<<<< HEAD
 import { Pool } from 'pg';
 
+=======
+// Database optimization utilities for TeamPlaymate platform
+
+import Redis from 'ioredis';
+import { Pool } from 'pg';
+
+// Redis client configuration
+const redis = new Redis({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
+  enableReadyCheck: false,
+  maxRetriesPerRequest: null,
+});
+
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 // PostgreSQL connection pool
 const pool = new Pool({
   user: process.env.DB_USER,

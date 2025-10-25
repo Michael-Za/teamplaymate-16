@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+<<<<<<< HEAD
 import { supabase } from '../lib/supabase';
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { toast } from 'sonner';
 import { Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -20,6 +23,7 @@ const GoogleCallback: React.FC = () => {
         setLoading(true);
         setError(null);
         
+<<<<<<< HEAD
         // Handle URL fragment parameters for implicit flow
         const hash = window.location.hash.substring(1);
         const params = new URLSearchParams(hash);
@@ -68,6 +72,45 @@ const GoogleCallback: React.FC = () => {
         if (session) {
           // Use the handleGoogleCallback function from AuthContext
           const result = await handleGoogleCallback();
+=======
+        // Get tokens from URL query parameters (direct from backend)
+        const searchParams = new URLSearchParams(location.search);
+        const token = searchParams.get('token');
+        const refreshToken = searchParams.get('refresh');
+        const error = searchParams.get('error');
+        const code = searchParams.get('code');
+
+        // Check for OAuth errors
+        if (error) {
+          throw new Error(`Google OAuth error: ${error}`);
+        }
+
+        // Handle direct token approach (from backend redirect)
+        if (token && refreshToken) {
+          toast.info('Processing Google authentication...');
+          
+          // Store tokens directly
+          localStorage.setItem('token', token);
+          localStorage.setItem('refreshToken', refreshToken);
+          
+          // Update auth context
+          const result = { success: true };
+          
+          setSuccess(true);
+          toast.success('Authentication successful! Redirecting...');
+          
+          // Small delay before redirect to show success state
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1500);
+          return;
+        }
+
+        // Handle authorization code approach (fallback)
+        if (code) {
+          toast.info('Processing Google authentication...');
+          const result = await handleGoogleCallback(code);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
           
           if (result.error) {
             throw new Error(result.error);
@@ -83,6 +126,7 @@ const GoogleCallback: React.FC = () => {
           return;
         }
 
+<<<<<<< HEAD
         // Check if there's an error in the URL
         const urlParams = new URLSearchParams(window.location.search);
         const errorParam = urlParams.get('error');
@@ -91,6 +135,9 @@ const GoogleCallback: React.FC = () => {
         }
 
         throw new Error('No authentication data found. Please try signing in again.');
+=======
+        throw new Error('No authentication tokens or code found in the callback URL');
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         
       } catch (err: any) {
         console.error('Google callback error:', err);
@@ -103,7 +150,11 @@ const GoogleCallback: React.FC = () => {
     };
 
     processCallback();
+<<<<<<< HEAD
   }, [handleGoogleCallback, navigate]);
+=======
+  }, [handleGoogleCallback, location.search, navigate]);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   if (loading) {
     return (

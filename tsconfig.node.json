@@ -11,6 +11,10 @@
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
+<<<<<<< HEAD
+=======
+    "noEmit": false,
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
     /* Linting */
     "strict": true,

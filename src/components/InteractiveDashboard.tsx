@@ -7,7 +7,10 @@ import { Badge } from './ui/badge';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext';
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { toast } from 'sonner';
 import { 
   Trophy, 
@@ -430,6 +433,7 @@ const ActionButtons: React.FC = () => {
 const PlayerField: React.FC = () => {
   const { theme, isHighContrast } = useTheme();
   const { language } = useLanguage();
+<<<<<<< HEAD
   const { players: contextPlayers } = useDataSync();
   
   const players = contextPlayers && contextPlayers.length > 0 
@@ -448,6 +452,19 @@ const PlayerField: React.FC = () => {
         { name: 'Roberto', position: 'FWD', jersey: '7' },
         { name: 'Pol', position: 'SUB', jersey: '8' }
       ];
+=======
+  
+  const players = [
+    { name: 'Pablo', position: 'GK', jersey: '1' },
+    { name: 'Lean', position: 'DEF', jersey: '2' },
+    { name: 'Adrián', position: 'DEF', jersey: '3' },
+    { name: 'Julio', position: 'MID', jersey: '4' },
+    { name: 'Luis', position: 'MID', jersey: '5' },
+    { name: 'Nil', position: 'FWD', jersey: '6' },
+    { name: 'Roberto', position: 'FWD', jersey: '7' },
+    { name: 'Pol', position: 'SUB', jersey: '8' }
+  ];
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   return (
     <Card className={`${
@@ -506,6 +523,7 @@ export const InteractiveDashboard: React.FC = () => {
   const { theme, isHighContrast } = useTheme();
   const { t } = useLanguage();
   const { user } = useAuth();
+<<<<<<< HEAD
   const { players, matches } = useDataSync();
   
   // Calculate team evolution data from matches
@@ -565,6 +583,24 @@ export const InteractiveDashboard: React.FC = () => {
         { name: 'Miguel Rodríguez', position: 'CEN', minutes: 390, goals: 1, assists: 4, fitness: 3, shots: 6, cards: 3, fitCom: 5 },
         { name: 'David González', position: 'DEF', minutes: 480, goals: 1, assists: 0, fitness: 2, shots: 3, cards: 1, fitCom: 8 }
       ];
+=======
+  const [evolutionData, setEvolutionData] = useState([
+    { partido: 1, victories: 0, points: 0, goalsFor: 0, goalsAgainst: 0 },
+    { partido: 2, victories: 50, points: 1, goalsFor: 2, goalsAgainst: 3 },
+    { partido: 3, victories: 100, points: 3, goalsFor: 3, goalsAgainst: 0 },
+    { partido: 4, victories: 25, points: 1, goalsFor: 1, goalsAgainst: 3 },
+    { partido: 5, victories: 100, points: 3, goalsFor: 4, goalsAgainst: 1 },
+    { partido: 6, victories: 100, points: 3, goalsFor: 3, goalsAgainst: 0 }
+  ]);
+
+  const playersData = [
+    { name: 'Fernando Torres', position: 'DEL', minutes: 480, goals: 5, assists: 3, fitness: 8, shots: 12, cards: 2, fitCom: 2 },
+    { name: 'Pablo Sánchez', position: 'CEN', minutes: 465, goals: 2, assists: 6, fitness: 6, shots: 8, cards: 2, fitCom: 4 },
+    { name: 'Juan Pérez', position: 'DEL', minutes: 420, goals: 3, assists: 2, fitness: 6, shots: 10, cards: 1, fitCom: 3 },
+    { name: 'Miguel Rodríguez', position: 'CEN', minutes: 390, goals: 1, assists: 4, fitness: 3, shots: 6, cards: 3, fitCom: 5 },
+    { name: 'David González', position: 'DEF', minutes: 480, goals: 1, assists: 0, fitness: 2, shots: 3, cards: 1, fitCom: 8 }
+  ];
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   // Calculate cumulative points for the line chart
   const cumulativePoints = evolutionData.map((item, index) => {
@@ -601,6 +637,7 @@ export const InteractiveDashboard: React.FC = () => {
                 <div className="flex items-center justify-between flex-grow">
                   <div>
                     <p className="text-blue-100 text-sm font-medium">Points</p>
+<<<<<<< HEAD
                     <p className="text-3xl font-bold mt-1">
                       {matches && matches.length > 0 
                         ? matches.reduce((total, match) => {
@@ -617,6 +654,9 @@ export const InteractiveDashboard: React.FC = () => {
                           }, 0)
                         : 24}
                     </p>
+=======
+                    <p className="text-3xl font-bold mt-1">24</p>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                     <p className="text-blue-100 text-xs mt-1">Current Season</p>
                   </div>
                   <Trophy className="h-12 w-12 text-blue-200" />
@@ -631,6 +671,7 @@ export const InteractiveDashboard: React.FC = () => {
                 <div className="flex items-center justify-between flex-grow">
                   <div>
                     <p className="text-green-100 text-sm font-medium">Last Result</p>
+<<<<<<< HEAD
                     {matches && matches.length > 0 ? (
                       (() => {
                         // Find the most recent completed match
@@ -674,6 +715,10 @@ export const InteractiveDashboard: React.FC = () => {
                         <p className="text-green-100 text-xs mt-1">3 days ago</p>
                       </>
                     )}
+=======
+                    <p className="text-lg font-bold mt-1">CD Statsor 5-3 Jaén</p>
+                    <p className="text-green-100 text-xs mt-1">3 days ago</p>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                   </div>
                   <Target className="h-12 w-12 text-green-200" />
                 </div>
@@ -687,6 +732,7 @@ export const InteractiveDashboard: React.FC = () => {
                 <div className="flex items-center justify-between flex-grow">
                   <div>
                     <p className="text-purple-100 text-sm font-medium">% Victories</p>
+<<<<<<< HEAD
                     <p className="text-3xl font-bold mt-1">
                       {matches && matches.length > 0 
                         ? (() => {
@@ -724,6 +770,10 @@ export const InteractiveDashboard: React.FC = () => {
                           })()
                         : '6 of 12 matches'}
                     </p>
+=======
+                    <p className="text-3xl font-bold mt-1">66.7%</p>
+                    <p className="text-purple-100 text-xs mt-1">6 of 12 matches</p>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                   </div>
                   <TrendingUp className="h-12 w-12 text-purple-200" />
                 </div>
@@ -900,6 +950,7 @@ export const InteractiveDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+<<<<<<< HEAD
                 {matches && matches.length > 0 ? (
                   matches
                     .filter(match => {
@@ -988,6 +1039,53 @@ export const InteractiveDashboard: React.FC = () => {
                     </div>
                   </>
                 )}
+=======
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-base">July 25, 2025</p>
+                    <p className="text-sm text-gray-600 text-contained">CD Statsor vs Jaén FS</p>
+                    <p className="text-xs text-gray-500 text-contained">Pabellón Municipal</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/matches')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
+                  >
+                    {t('manual.actions.details')}
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-base">August 1, 2025</p>
+                    <p className="text-sm text-gray-600 text-contained">CD Statsor vs Granada CF</p>
+                    <p className="text-xs text-gray-500 text-contained">Estadio Nuevo Los Cármenes</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/matches')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
+                  >
+                    {t('manual.actions.details')}
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-base">August 8, 2025</p>
+                    <p className="text-sm text-gray-600 text-contained">CD Statsor vs Real Madrid</p>
+                    <p className="text-xs text-gray-500 text-contained">Santiago Bernabéu</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/matches')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
+                  >
+                    {t('manual.actions.details')}
+                  </Button>
+                </div>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
               </div>
             </CardContent>
           </Card>

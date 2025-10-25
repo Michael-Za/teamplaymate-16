@@ -3,7 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext';
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { NotificationProvider, useNotifications } from '../contexts/NotificationContext';
 import { toast } from 'sonner';
 import NotificationPanel from './NotificationPanel';
@@ -62,7 +65,10 @@ const ResponsiveLayoutContent: React.FC<ResponsiveLayoutProps> = ({ children }) 
   const { t, currentLanguage, setLanguage } = useLanguage();
   const { theme } = useTheme();
   const { unreadCount } = useNotifications();
+<<<<<<< HEAD
   const { players: contextPlayers } = useDataSync();
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   const handleLogout = async () => {
     try {
@@ -125,6 +131,7 @@ const ResponsiveLayoutContent: React.FC<ResponsiveLayoutProps> = ({ children }) 
     return () => clearInterval(interval);
   }, []);
 
+<<<<<<< HEAD
   // Use player data from context
   const players = contextPlayers.map(player => ({
     id: player.id || '',
@@ -132,6 +139,15 @@ const ResponsiveLayoutContent: React.FC<ResponsiveLayoutProps> = ({ children }) 
     position: player.position,
     number: player.jersey_number || Math.floor(Math.random() * 99) + 1,
   }));
+=======
+  // Mock player data - in a real app, this would come from an API
+  const [players] = useState([
+    { id: '1', name: 'Fernando Torres', position: 'DEL', number: 9 },
+    { id: '2', name: 'Pablo Sánchez', position: 'CEN', number: 8 },
+    { id: '3', name: 'Juan Pérez', position: 'DEF', number: 4 },
+    { id: '4', name: 'Alejandro Martínez', position: 'POR', number: 1 },
+  ]);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   // Show player dropdown when on players page
   // const showPlayerDropdown = location.pathname.startsWith('/players') && !sidebarCollapsed;

@@ -28,9 +28,12 @@ import {
   Cell,
   ResponsiveContainer
 } from 'recharts';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext';
 import { demoAnalyticsService } from '../services/demoAnalyticsService';
 import { isDemoMode } from '../lib/supabase';
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
 // Color palette for charts
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1', '#d084d0'];
@@ -95,9 +98,12 @@ interface AnalyticsDashboardProps {
 }
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ className = '' }) => {
+<<<<<<< HEAD
   // Use the data sync context
   const { players } = useDataSync();
   
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   // State management
   const [playerData, setPlayerData] = useState<any[]>([]);
   const [isLive, setIsLive] = useState(false);
@@ -157,6 +163,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
           return;
         }
 
+<<<<<<< HEAD
         // Transform player data from context to match expected format
         // Use useMemo or useCallback for expensive operations
         const transformedData = players.map(player => ({
@@ -180,11 +187,39 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
           mentalState: player.mentalState || ['Focused', 'Determined', 'Creative', 'Energetic', 'Strategic'][Math.floor(Math.random() * 5)],
           trainingLoad: player.trainingLoad || Math.floor(Math.random() * 30) + 70,
           personalizedTips: [`Focus on ${player.name}'s development`, `Improve ${player.position} skills`, `Work on fitness`][Math.floor(Math.random() * 3)]
+=======
+        // Load real player performance data
+        const playerPerformanceData = await realAnalyticsService.getPlayerPerformance(user.id);
+        
+        // Transform to match expected format
+        const transformedData = playerPerformanceData.map(player => ({
+          id: parseInt(player.playerId),
+          name: player.name,
+          goals: player.goals,
+          assists: player.assists,
+          minutes: player.totalMinutes,
+          passes: 0, // Not available in current schema
+          accuracy: player.passAccuracy,
+          rating: player.averageRating.toString(),
+          form: player.form,
+          position: player.position,
+          nationality: 'International',
+          age: 25, // Default value
+          height: 175, // Default value
+          weight: 70, // Default value
+          fitnessLevel: 80, // Default value
+          injuryRisk: 20, // Default value
+          potentialGrowth: 15, // Default value
+          mentalState: 'Focused',
+          trainingLoad: 75, // Default value
+          personalizedTips: [`Focus on ${player.name}'s development`]
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         }));
         
         setPlayerData(transformedData);
         setIsLive(false); // Default to false without real-time data
         
+<<<<<<< HEAD
         // Load saved goal actions and match stats from localStorage
         // Add try-catch for localStorage operations
         try {
@@ -203,6 +238,17 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
           }
         } catch (e) {
           console.warn('Failed to load saved match stats:', e);
+=======
+        // Load saved goal actions and match stats
+        const savedGoalActions = localStorage.getItem('playerGoalActions');
+        if (savedGoalActions) {
+          setPlayerGoalActions(JSON.parse(savedGoalActions));
+        }
+        
+        const savedMatchStats = localStorage.getItem('matchStats');
+        if (savedMatchStats) {
+          setMatchStats(JSON.parse(savedMatchStats));
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         }
       } catch (error) {
         console.error('Failed to load analytics data:', error);
@@ -215,7 +261,11 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
     };
 
     loadData();
+<<<<<<< HEAD
   }, [players]);
+=======
+  }, []);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   
   // Save goal actions to localStorage
   useEffect(() => {
@@ -312,6 +362,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
         return;
       }
 
+<<<<<<< HEAD
       // Use demo analytics service for demo mode or real analytics service for real users
       let playerPerformanceData;
       if (isDemoMode) {
@@ -333,6 +384,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
         // Use real analytics service for real users
         playerPerformanceData = await realAnalyticsService.getPlayerPerformance(user.id);
       }
+=======
+      const playerPerformanceData = await realAnalyticsService.getPlayerPerformance(user.id);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       
       const transformedData = playerPerformanceData.map(player => ({
         id: parseInt(player.playerId),
@@ -340,12 +394,17 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
         goals: player.goals,
         assists: player.assists,
         minutes: player.totalMinutes,
+<<<<<<< HEAD
         passes: Math.floor(Math.random() * 2000),
+=======
+        passes: 0,
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         accuracy: player.passAccuracy,
         rating: player.averageRating.toString(),
         form: player.form,
         position: player.position,
         nationality: 'International',
+<<<<<<< HEAD
         age: Math.floor(Math.random() * 15) + 20,
         height: Math.floor(Math.random() * 30) + 170,
         weight: Math.floor(Math.random() * 20) + 70,
@@ -355,6 +414,17 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
         mentalState: ['Focused', 'Determined', 'Creative', 'Energetic', 'Strategic'][Math.floor(Math.random() * 5)],
         trainingLoad: Math.floor(Math.random() * 30) + 70,
         personalizedTips: [`Focus on ${player.name}'s development`, `Improve ${player.position} skills`][Math.floor(Math.random() * 2)]
+=======
+        age: 25,
+        height: 175,
+        weight: 70,
+        fitnessLevel: 80,
+        injuryRisk: 20,
+        potentialGrowth: 15,
+        mentalState: 'Focused',
+        trainingLoad: 75,
+        personalizedTips: [`Focus on ${player.name}'s development`]
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       }));
       
       setPlayerData(transformedData);

@@ -3,7 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+<<<<<<< HEAD
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/tabel';
+=======
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { Badge } from '../components/ui/badge';
 import { Target, Plus, Search, Filter, Play, Pause, Square, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';

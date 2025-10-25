@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { api } from '../lib/api';
 
 export const emailClient = {
@@ -17,6 +18,8 @@ export const emailClient = {
   }
 };
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 // Client-side email service wrapper
 // This provides a safe interface for client components to interact with email functionality
 

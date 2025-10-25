@@ -27,12 +27,17 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext'; // Add this import
+=======
+import { dataManagementService, Player } from '../services/dataManagementService';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { toast } from 'sonner';
 
 export const PlayerManagementSection: React.FC = () => {
   const navigate = useNavigate();
   const { theme, isHighContrast } = useTheme();
+<<<<<<< HEAD
   const { players, loading, error, addPlayer, updatePlayer, deletePlayer } = useDataSync(); // Use data from DataSyncContext
   const [activeTab, setActiveTab] = useState('roster');
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
@@ -45,6 +50,41 @@ export const PlayerManagementSection: React.FC = () => {
   }, [players]);
 
   const [newPlayer, setNewPlayer] = useState<Partial<any>>({
+=======
+  const [activeTab, setActiveTab] = useState('roster');
+  const [isAddingPlayer, setIsAddingPlayer] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<string | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPlayers();
+    
+    // Subscribe to player updates
+    dataManagementService.setPlayersUpdateCallback((updatedPlayers) => {
+      setPlayers(updatedPlayers);
+    });
+    
+    return () => {
+      dataManagementService.setPlayersUpdateCallback(null);
+    };
+  }, []);
+
+  const loadPlayers = async () => {
+    try {
+      setLoading(true);
+      const playersData = await dataManagementService.getPlayers();
+      setPlayers(playersData);
+    } catch (error) {
+      console.error('Error loading players:', error);
+      toast.error('Failed to load players');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [newPlayer, setNewPlayer] = useState<Partial<Player>>({
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     name: '',
     position: '',
     age: 0,
@@ -64,7 +104,11 @@ export const PlayerManagementSection: React.FC = () => {
   const handleAddPlayer = async () => {
     if (newPlayer.name && newPlayer.position) {
       try {
+<<<<<<< HEAD
         const playerData: Partial<any> = {
+=======
+        const playerData: Partial<Player> = {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
           name: newPlayer.name || '',
           position: newPlayer.position || '',
           age: newPlayer.age || 0,
@@ -79,6 +123,7 @@ export const PlayerManagementSection: React.FC = () => {
           notes: newPlayer.notes || ''
         };
 
+<<<<<<< HEAD
         // Add player through DataSyncContext
         await addPlayer(playerData);
         
@@ -98,6 +143,28 @@ export const PlayerManagementSection: React.FC = () => {
         });
         setIsAddingPlayer(false);
         toast.success('Player added successfully!');
+=======
+        const createdPlayer = await dataManagementService.createPlayer(playerData);
+        if (createdPlayer) {
+          setPlayers([...players, createdPlayer]);
+          setNewPlayer({
+            name: '',
+            position: '',
+            age: 0,
+            height: 0,
+            weight: 0,
+            fitness: 0,
+            goals: 0,
+            assists: 0,
+            minutes: 0,
+            cards: 0,
+            injuries: [],
+            notes: ''
+          });
+          setIsAddingPlayer(false);
+          toast.success('Player added successfully!');
+        }
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       } catch (error) {
         console.error('Error adding player:', error);
         toast.error('Failed to add player');
@@ -303,7 +370,11 @@ export const PlayerManagementSection: React.FC = () => {
 
                 {/* Players List */}
                 <div className="grid gap-4">
+<<<<<<< HEAD
                   {localPlayers.map((player: any) => (
+=======
+                  {players.map((player) => (
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                     <Card key={player.id} className="border-gray-200 cursor-pointer hover:shadow-md transition-shadow" 
                           onClick={() => navigate(`/players/${player.id}`)}>
                       <CardContent className="p-4">
@@ -352,7 +423,11 @@ export const PlayerManagementSection: React.FC = () => {
                         {player.injuries && player.injuries.length > 0 && (
                           <div className="mt-2">
                             <div className="flex flex-wrap gap-1">
+<<<<<<< HEAD
                               {player.injuries.map((injury: string, index: number) => (
+=======
+                              {player.injuries.map((injury, index) => (
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                                 <Badge key={index} className="bg-red-100 text-red-800 text-xs">
                                   {injury}
                                 </Badge>
@@ -376,15 +451,26 @@ export const PlayerManagementSection: React.FC = () => {
                         <div>
                           <p className="text-sm text-blue-600">Top Scorer</p>
                           <p className="text-lg font-bold text-blue-900">
+<<<<<<< HEAD
                             {localPlayers.length > 0 
                               ? localPlayers.reduce((top: any, player: any) => 
                                   (player.goals || 0) > (top.goals || 0) ? player : top, localPlayers[0]
+=======
+                            {players.length > 0 
+                              ? players.reduce((top, player) => 
+                                  (player.goals || 0) > (top.goals || 0) ? player : top, players[0]
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                                 ).name 
                               : 'N/A'}
                           </p>
                           <p className="text-sm text-blue-600">
+<<<<<<< HEAD
                             {localPlayers.length > 0 
                               ? `${Math.max(...localPlayers.map((p: any) => p.goals || 0))} goals` 
+=======
+                            {players.length > 0 
+                              ? `${Math.max(...players.map(p => p.goals || 0))} goals` 
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                               : '0 goals'}
                           </p>
                         </div>
@@ -399,15 +485,26 @@ export const PlayerManagementSection: React.FC = () => {
                         <div>
                           <p className="text-sm text-green-600">Most Assists</p>
                           <p className="text-lg font-bold text-green-900">
+<<<<<<< HEAD
                             {localPlayers.length > 0 
                               ? localPlayers.reduce((top: any, player: any) => 
                                   (player.assists || 0) > (top.assists || 0) ? player : top, localPlayers[0]
+=======
+                            {players.length > 0 
+                              ? players.reduce((top, player) => 
+                                  (player.assists || 0) > (top.assists || 0) ? player : top, players[0]
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                                 ).name 
                               : 'N/A'}
                           </p>
                           <p className="text-sm text-green-600">
+<<<<<<< HEAD
                             {localPlayers.length > 0 
                               ? `${Math.max(...localPlayers.map((p: any) => p.assists || 0))} assists` 
+=======
+                            {players.length > 0 
+                              ? `${Math.max(...players.map(p => p.assists || 0))} assists` 
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                               : '0 assists'}
                           </p>
                         </div>
@@ -422,15 +519,26 @@ export const PlayerManagementSection: React.FC = () => {
                         <div>
                           <p className="text-sm text-purple-600">Most Minutes</p>
                           <p className="text-lg font-bold text-purple-900">
+<<<<<<< HEAD
                             {localPlayers.length > 0 
                               ? localPlayers.reduce((top: any, player: any) => 
                                   (player.minutes || 0) > (top.minutes || 0) ? player : top, localPlayers[0]
+=======
+                            {players.length > 0 
+                              ? players.reduce((top, player) => 
+                                  (player.minutes || 0) > (top.minutes || 0) ? player : top, players[0]
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                                 ).name 
                               : 'N/A'}
                           </p>
                           <p className="text-sm text-purple-600">
+<<<<<<< HEAD
                             {localPlayers.length > 0 
                               ? `${Math.max(...localPlayers.map((p: any) => p.minutes || 0))} min` 
+=======
+                            {players.length > 0 
+                              ? `${Math.max(...players.map(p => p.minutes || 0))} min` 
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                               : '0 min'}
                           </p>
                         </div>
@@ -445,15 +553,26 @@ export const PlayerManagementSection: React.FC = () => {
                         <div>
                           <p className="text-sm text-yellow-600">Best Fitness</p>
                           <p className="text-lg font-bold text-yellow-900">
+<<<<<<< HEAD
                             {localPlayers.length > 0 
                               ? localPlayers.reduce((top: any, player: any) => 
                                   (player.fitness || 0) > (top.fitness || 0) ? player : top, localPlayers[0]
+=======
+                            {players.length > 0 
+                              ? players.reduce((top, player) => 
+                                  (player.fitness || 0) > (top.fitness || 0) ? player : top, players[0]
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                                 ).name 
                               : 'N/A'}
                           </p>
                           <p className="text-sm text-yellow-600">
+<<<<<<< HEAD
                             {localPlayers.length > 0 
                               ? `${Math.max(...localPlayers.map((p: any) => p.fitness || 0))}%` 
+=======
+                            {players.length > 0 
+                              ? `${Math.max(...players.map(p => p.fitness || 0))}%` 
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                               : '0%'}
                           </p>
                         </div>
@@ -469,7 +588,11 @@ export const PlayerManagementSection: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
+<<<<<<< HEAD
                       {localPlayers.map((player: any) => (
+=======
+                      {players.map((player) => (
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                         <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
@@ -519,8 +642,13 @@ export const PlayerManagementSection: React.FC = () => {
                         <Heart className="h-8 w-8 text-green-500 mx-auto mb-2" />
                         <p className="text-sm text-green-600">Average Fitness</p>
                         <p className="text-2xl font-bold text-green-900">
+<<<<<<< HEAD
                           {localPlayers.length > 0 
                             ? Math.round(localPlayers.reduce((sum: number, p: any) => sum + (p.fitness || 0), 0) / localPlayers.length) 
+=======
+                          {players.length > 0 
+                            ? Math.round(players.reduce((sum, p) => sum + (p.fitness || 0), 0) / players.length) 
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                             : 0}%
                         </p>
                       </div>
@@ -533,7 +661,11 @@ export const PlayerManagementSection: React.FC = () => {
                         <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
                         <p className="text-sm text-red-600">Injured Players</p>
                         <p className="text-2xl font-bold text-red-900">
+<<<<<<< HEAD
                           {localPlayers.filter((p: any) => p.injuries && p.injuries.length > 0).length}
+=======
+                          {players.filter(p => p.injuries && p.injuries.length > 0).length}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                         </p>
                       </div>
                     </CardContent>
@@ -545,7 +677,11 @@ export const PlayerManagementSection: React.FC = () => {
                         <Activity className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                         <p className="text-sm text-blue-600">Ready to Play</p>
                         <p className="text-2xl font-bold text-blue-900">
+<<<<<<< HEAD
                           {localPlayers.filter((p: any) => (p.fitness || 0) >= 70 && (!p.injuries || p.injuries.length === 0)).length}
+=======
+                          {players.filter(p => (p.fitness || 0) >= 70 && (!p.injuries || p.injuries.length === 0)).length}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                         </p>
                       </div>
                     </CardContent>
@@ -558,7 +694,11 @@ export const PlayerManagementSection: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
+<<<<<<< HEAD
                       {localPlayers.map((player: any) => (
+=======
+                      {players.map((player) => (
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                         <div key={player.id} className="p-4 border border-gray-200 rounded-lg">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center space-x-3">

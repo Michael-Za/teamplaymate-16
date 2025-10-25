@@ -37,7 +37,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext'; // Add DataSyncContext import
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
 interface Player {
   id: string;
@@ -56,7 +59,29 @@ interface Player {
   createdAt: Date;
 }
 
+<<<<<<< HEAD
 // Remove local PlayerAction interface to use the one from DataSyncContext
+=======
+// Add this new interface for player actions
+interface PlayerAction {
+  id: string;
+  playerId: string;
+  playerName: string;
+  actionType: 'goal' | 'assist' | 'yellowCard' | 'redCard' | 'foul' | 'save' | 'substitution' | 'corner' | 'offside' | 'penalty';
+  matchId: string;
+  matchName: string;
+  timestamp: string;
+  minute: number;
+  second: number; // Add seconds for more precise timing
+  position?: {
+    x: number; // Field position X coordinate (0-100)
+    y: number; // Field position Y coordinate (0-100)
+    area: string; // e.g, "Penalty Area", "Midfield", "Right Wing"
+  };
+  details: string; // Additional details about the action
+  created_at: string;
+}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
 interface Formation {
   id: string;
@@ -67,6 +92,7 @@ interface Formation {
 
 const CommandTable: React.FC = () => {
   const { t } = useLanguage();
+<<<<<<< HEAD
   const { 
     players: dataSyncPlayers, 
     playerActions: dataSyncPlayerActions, 
@@ -121,6 +147,75 @@ const CommandTable: React.FC = () => {
       players: [] 
     }
   ]);
+=======
+  const [players, setPlayers] = useState<Player[]>(() => {
+    const savedPlayers = localStorage.getItem('statsor_command_players');
+    if (savedPlayers) {
+      try {
+        const parsed = JSON.parse(savedPlayers);
+        return parsed.map((player: any) => ({
+          ...player,
+          createdAt: new Date(player.createdAt)
+        }));
+      } catch (error) {
+        console.error('Error parsing players:', error);
+        return [];
+      }
+    }
+    return [];
+  });
+  
+  const [formations, setFormations] = useState<Formation[]>(() => {
+    const savedFormations = localStorage.getItem('statsor_command_formations');
+    if (savedFormations) {
+      try {
+        return JSON.parse(savedFormations);
+      } catch (error) {
+        console.error('Error parsing formations:', error);
+        return [
+          { 
+            id: '1', 
+            name: '4-3-3', 
+            description: 'Balanced attacking formation', 
+            players: [] 
+          },
+          { 
+            id: '2', 
+            name: '4-4-2', 
+            description: 'Classic formation with two strikers', 
+            players: [] 
+          },
+          { 
+            id: '3', 
+            name: '3-5-2', 
+            description: 'Midfield-dominant formation', 
+            players: [] 
+          }
+        ];
+      }
+    }
+    return [
+      { 
+        id: '1', 
+        name: '4-3-3', 
+        description: 'Balanced attacking formation', 
+        players: [] 
+      },
+      { 
+        id: '2', 
+        name: '4-4-2', 
+        description: 'Classic formation with two strikers', 
+        players: [] 
+      },
+      { 
+        id: '3', 
+        name: '3-5-2', 
+        description: 'Midfield-dominant formation', 
+        players: [] 
+      }
+    ];
+  });
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   
   const [selectedFormation, setSelectedFormation] = useState<string>('1');
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,11 +259,46 @@ const CommandTable: React.FC = () => {
     matchesPlayed: 0
   });
 
+<<<<<<< HEAD
   // Player actions are managed through DataSyncContext
 
   // Add state for showing the football field visualization
   const [showFieldVisualization, setShowFieldVisualization] = useState(false);
   const [selectedPlayerAction, setSelectedPlayerAction] = useState<any | null>(null);
+=======
+  // Add new state for player actions
+  const [playerActions, setPlayerActions] = useState<PlayerAction[]>(() => {
+    const savedActions = localStorage.getItem('statsor_player_actions');
+    if (savedActions) {
+      try {
+        const parsedActions = JSON.parse(savedActions);
+        // Ensure each action has all required properties
+        return parsedActions.map((action: any) => ({
+          id: action.id || Date.now().toString() + Math.random(),
+          playerId: action.playerId || '',
+          playerName: action.playerName || 'Unknown Player',
+          actionType: action.actionType || 'goal',
+          matchId: action.matchId || 'current_match',
+          matchName: action.matchName || 'Current Match',
+          timestamp: action.timestamp || new Date().toISOString(),
+          minute: action.minute || 0,
+          second: action.second || 0,
+          position: action.position || { x: 50, y: 50, area: 'Midfield' },
+          details: action.details || '',
+          created_at: action.created_at || new Date().toISOString()
+        })).filter((action: any) => action.id); // Filter out actions without IDs
+      } catch (error) {
+        console.error('Error parsing player actions:', error);
+        return [];
+      }
+    }
+    return [];
+  });
+
+  // Add state for showing the football field visualization
+  const [showFieldVisualization, setShowFieldVisualization] = useState(false);
+  const [selectedPlayerAction, setSelectedPlayerAction] = useState<PlayerAction | null>(null);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   // State for swipeable tabs
   const [activeTab, setActiveTab] = useState<'players' | 'formation' | 'actions'>('players');
@@ -184,7 +314,11 @@ const CommandTable: React.FC = () => {
   const [showEventModal, setShowEventModal] = useState(false);
   const [eventModalData, setEventModalData] = useState({
     playerId: '',
+<<<<<<< HEAD
     actionType: 'goal',
+=======
+    actionType: 'goal' as PlayerAction['actionType'],
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     minute: 0,
     second: 0,
     x: 50,
@@ -213,6 +347,7 @@ const CommandTable: React.FC = () => {
     };
   }, []);
 
+<<<<<<< HEAD
   // Sync players with DataSyncContext
   useEffect(() => {
     const transformedPlayers = dataSyncPlayers.map((player: any) => ({
@@ -235,11 +370,26 @@ const CommandTable: React.FC = () => {
   }, [dataSyncPlayers]);
 
   const handleAddPlayer = async () => {
+=======
+  // Save data to localStorage
+  useEffect(() => {
+    localStorage.setItem('statsor_command_players', JSON.stringify(players));
+    localStorage.setItem('statsor_command_formations', JSON.stringify(formations));
+  }, [players, formations]);
+
+  // Save player actions to localStorage
+  useEffect(() => {
+    localStorage.setItem('statsor_player_actions', JSON.stringify(playerActions));
+  }, [playerActions]);
+
+  const handleAddPlayer = () => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     if (!newPlayer.name.trim() || newPlayer.number <= 0) {
       toast.error('Please enter player name and number');
       return;
     }
 
+<<<<<<< HEAD
     try {
       // Add player through DataSyncContext
       await addPlayer({
@@ -270,6 +420,42 @@ const CommandTable: React.FC = () => {
       console.error('Error adding player:', error);
       toast.error('Failed to add player');
     }
+=======
+    const player: Player = {
+      id: Date.now().toString(),
+      name: newPlayer.name,
+      number: newPlayer.number,
+      position: newPlayer.position,
+      role: newPlayer.role,
+      notes: newPlayer.notes,
+      rating: newPlayer.rating,
+      status: newPlayer.status,
+      goals: newPlayer.goals,
+      assists: newPlayer.assists,
+      yellowCards: newPlayer.yellowCards,
+      redCards: newPlayer.redCards,
+      matchesPlayed: newPlayer.matchesPlayed,
+      createdAt: new Date()
+    };
+
+    setPlayers(prev => [...prev, player]);
+    setNewPlayer({ 
+      name: '', 
+      number: 0, 
+      position: 'DEL', 
+      role: '', 
+      notes: '',
+      rating: 3.0,
+      status: 'available',
+      goals: 0,
+      assists: 0,
+      yellowCards: 0,
+      redCards: 0,
+      matchesPlayed: 0
+    });
+    setIsAddingPlayer(false);
+    toast.success('Player added successfully!');
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   };
 
   const startEditingPlayer = (player: Player) => {
@@ -290,12 +476,17 @@ const CommandTable: React.FC = () => {
     });
   };
 
+<<<<<<< HEAD
   const saveEditingPlayer = async () => {
+=======
+  const saveEditingPlayer = () => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     if (!editPlayer.name.trim() || editPlayer.number <= 0) {
       toast.error('Please enter player name and number');
       return;
     }
 
+<<<<<<< HEAD
     if (!editingPlayerId) {
       toast.error('No player selected for editing');
       return;
@@ -321,6 +512,22 @@ const CommandTable: React.FC = () => {
 
   // Add new function to add player actions
   const handleAddPlayerAction = async (playerId: string, actionType: string, details: string = '') => {
+=======
+    setPlayers(prev => 
+      prev.map(player => 
+        player.id === editingPlayerId 
+          ? { ...player, ...editPlayer } 
+          : player
+      )
+    );
+    
+    setEditingPlayerId(null);
+    toast.success('Player updated successfully!');
+  };
+
+  // Add new function to add player actions
+  const addPlayerAction = (playerId: string, actionType: PlayerAction['actionType'], details: string = '') => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     // Add safety checks
     if (!actionType) {
       toast.error('Action type is required');
@@ -332,7 +539,11 @@ const CommandTable: React.FC = () => {
     
     // Create action
     const now = new Date();
+<<<<<<< HEAD
     const action = {
+=======
+    const action: PlayerAction = {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       id: Date.now().toString(),
       playerId: playerId || '',
       playerName: player ? player.name : 'Unknown Player',
@@ -351,6 +562,7 @@ const CommandTable: React.FC = () => {
       created_at: now.toISOString()
     };
 
+<<<<<<< HEAD
     // Add action through DataSyncContext
     if (contextAddPlayerAction) {
       await contextAddPlayerAction({
@@ -429,18 +641,60 @@ const CommandTable: React.FC = () => {
 
   // Add function to delete player actions
   const handleDeletePlayerAction = async (actionId: string) => {
+=======
+    // Add action to the list
+    setPlayerActions(prev => [...prev, action]);
+
+    // Update player stats (only for player-specific actions)
+    if (player && ['goal', 'assist', 'yellowCard', 'redCard'].includes(actionType)) {
+      setPlayers(prev => 
+        prev.map(p => {
+          if (p && p.id === playerId) {
+            const updatedPlayer = { ...p };
+            switch (actionType) {
+              case 'goal':
+                updatedPlayer.goals += 1;
+                break;
+              case 'assist':
+                updatedPlayer.assists += 1;
+                break;
+              case 'yellowCard':
+                updatedPlayer.yellowCards += 1;
+                break;
+              case 'redCard':
+                updatedPlayer.redCards += 1;
+                break;
+            }
+            return updatedPlayer;
+          }
+          return p;
+        })
+      );
+    }
+
+    toast.success(`${actionType} recorded for ${player ? player.name : 'Unknown Player'} at ${action.minute}:${action.second.toString().padStart(2, '0')}!`);
+  };
+
+  // Add function to delete player actions
+  const deletePlayerAction = (actionId: string) => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     // Add safety check
     if (!actionId) {
       toast.error('Invalid action ID');
       return;
     }
     
+<<<<<<< HEAD
     const action = dataSyncPlayerActions.find(a => a && a.id === actionId);
+=======
+    const action = playerActions.find(a => a && a.id === actionId);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     if (!action) {
       toast.error('Action not found');
       return;
     }
 
+<<<<<<< HEAD
     // Delete action through DataSyncContext
     if (contextDeletePlayerAction) {
       await contextDeletePlayerAction(actionId);
@@ -461,6 +715,13 @@ const CommandTable: React.FC = () => {
     // Revert player stats if needed
     setPlayers((prev: Player[]) => 
       prev.map((p: Player) => {
+=======
+    setPlayerActions(prev => prev.filter(a => a && a.id !== actionId));
+
+    // Revert player stats if needed
+    setPlayers(prev => 
+      prev.map(p => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         if (p && action && p.id === action.playerId) {
           const updatedPlayer = { ...p };
           switch (action.actionType) {
@@ -483,11 +744,19 @@ const CommandTable: React.FC = () => {
       })
     );
 
+<<<<<<< HEAD
     toast.success(`${action.actionType} removed for ${action.playerName} at ${action.minute}:${(action.second || 0).toString().padStart(2, '0')}!`);
   };
 
   // Function to open event modal
   const openEventModal = (playerId: string, actionType: string) => {
+=======
+    toast.success(`${action.actionType} removed for ${action.playerName} at ${action.minute}:${action.second.toString().padStart(2, '0')}!`);
+  };
+
+  // Function to open event modal
+  const openEventModal = (playerId: string, actionType: PlayerAction['actionType']) => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     const now = new Date();
     setEventModalData({
       playerId,
@@ -502,7 +771,11 @@ const CommandTable: React.FC = () => {
   };
 
   // Function to record event from modal
+<<<<<<< HEAD
   const recordEventFromModal = async () => {
+=======
+  const recordEventFromModal = () => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     try {
       // Validate time inputs
       if (eventModalData.minute < 0 || eventModalData.minute > 120) {
@@ -525,7 +798,11 @@ const CommandTable: React.FC = () => {
       
       // Create action object
       const now = new Date();
+<<<<<<< HEAD
       const action = {
+=======
+      const action: PlayerAction = {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         id: Date.now().toString(),
         playerId: eventModalData.playerId || '',
         playerName: playerName,
@@ -544,6 +821,7 @@ const CommandTable: React.FC = () => {
         created_at: now.toISOString()
       };
 
+<<<<<<< HEAD
       // Add action through DataSyncContext
       if (contextAddPlayerAction) {
         await contextAddPlayerAction({
@@ -586,6 +864,15 @@ const CommandTable: React.FC = () => {
       if (player && ['goal', 'assist', 'yellowCard', 'redCard'].includes(eventModalData.actionType)) {
         setPlayers((prev: Player[]) => 
           prev.map((p: Player) => {
+=======
+      // Add action to the list
+      setPlayerActions(prev => [...prev, action]);
+
+      // Update player stats only if a player is selected and the action affects stats
+      if (player && ['goal', 'assist', 'yellowCard', 'redCard'].includes(eventModalData.actionType)) {
+        setPlayers(prev => 
+          prev.map(p => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
             if (p && p.id === player.id) {
               const updatedPlayer = { ...p };
               switch (eventModalData.actionType) {
@@ -622,6 +909,7 @@ const CommandTable: React.FC = () => {
     setEditingPlayerId(null);
   };
 
+<<<<<<< HEAD
   const handleDeletePlayer = async (id: string) => {
     try {
       // Delete player through DataSyncContext
@@ -639,6 +927,19 @@ const CommandTable: React.FC = () => {
       console.error('Error deleting player:', error);
       toast.error('Failed to delete player');
     }
+=======
+  const handleDeletePlayer = (id: string) => {
+    setPlayers(prev => prev.filter(player => player.id !== id));
+    
+    // Remove player from all formations
+    setFormations(prev => 
+      prev.map(formation => ({
+        ...formation,
+        players: formation.players.filter(playerId => playerId !== id)
+      }))
+    );
+    toast.success('Player deleted successfully!');
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   };
 
   // Add player to formation
@@ -824,7 +1125,11 @@ const CommandTable: React.FC = () => {
   };
 
   // Helper function to get action color class
+<<<<<<< HEAD
   const getActionColorClass = (actionType: string) => {
+=======
+  const getActionColorClass = (actionType: PlayerAction['actionType']) => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     try {
       switch (actionType) {
         case 'goal': return 'bg-green-100';
@@ -846,7 +1151,11 @@ const CommandTable: React.FC = () => {
   };
 
   // Helper function to get action color
+<<<<<<< HEAD
   const getActionColor = (actionType: string) => {
+=======
+  const getActionColor = (actionType: PlayerAction['actionType']) => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     switch (actionType) {
       case 'goal': return 'green';
       case 'assist': return 'blue';
@@ -863,7 +1172,11 @@ const CommandTable: React.FC = () => {
   };
 
   // Helper function to get action icon
+<<<<<<< HEAD
   const getActionIcon = (actionType: string) => {
+=======
+  const getActionIcon = (actionType: PlayerAction['actionType']) => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     switch (actionType) {
       case 'goal': return <Trophy className="w-4 h-4" />;
       case 'assist': return <Award className="w-4 h-4" />;
@@ -967,7 +1280,11 @@ const CommandTable: React.FC = () => {
                   <label className="block text-sm md:text-base font-medium mb-1">Action Type</label>
                   <select
                     value={eventModalData.actionType}
+<<<<<<< HEAD
                     onChange={(e) => setEventModalData(prev => ({ ...prev, actionType: e.target.value }))}
+=======
+                    onChange={(e) => setEventModalData(prev => ({ ...prev, actionType: e.target.value as PlayerAction['actionType'] }))}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                     className="w-full p-2 border rounded text-sm md:text-base"
                   >
                     <option value="goal">Goal</option>
@@ -1683,8 +2000,13 @@ const CommandTable: React.FC = () => {
                 ref={actionsContainerRef}
                 className="space-y-3 max-h-80 overflow-y-auto"
               >
+<<<<<<< HEAD
                 {dataSyncPlayerActions && dataSyncPlayerActions.length > 0 ? (
                   [...dataSyncPlayerActions].reverse().map((action) => {
+=======
+                {playerActions && playerActions.length > 0 ? (
+                  [...playerActions].reverse().map(action => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                     // Add safety checks for action properties
                     if (!action) return null;
                     
@@ -1697,8 +2019,13 @@ const CommandTable: React.FC = () => {
                           setShowFieldVisualization(true);
                         }}
                       >
+<<<<<<< HEAD
                         <div className={`p-2 rounded mr-3 ${getActionColorClass(action.actionType)}`}>
                           {getActionIcon(action.actionType)}
+=======
+                        <div className={`p-2 rounded mr-3 ${getActionColorClass(action.actionType || 'goal')}`}>
+                          {getActionIcon(action.actionType || 'goal')}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
@@ -1724,7 +2051,11 @@ const CommandTable: React.FC = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (action.id) {
+<<<<<<< HEAD
                               handleDeletePlayerAction(action.id);
+=======
+                              deletePlayerAction(action.id);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                             }
                           }}
                           className="p-1 h-5 w-5 ml-2"
@@ -1879,5 +2210,9 @@ const CommandTable: React.FC = () => {
   );
 };
 
+<<<<<<< HEAD
 export default CommandTable;
 
+=======
+export default CommandTable;
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721

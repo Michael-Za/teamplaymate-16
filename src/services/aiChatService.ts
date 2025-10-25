@@ -37,8 +37,13 @@ class AIChatService {
   private apiBaseUrl: string;
 
   constructor() {
+<<<<<<< HEAD
   // Use the backend API URL - defaulting to the coach backend on localhost:3000
   this.apiBaseUrl = import.meta.env['VITE_API_URL'] || 'http://localhost:3000';
+=======
+    // Use the backend API URL - defaulting to localhost:3001
+    this.apiBaseUrl = import.meta.env['VITE_API_URL'] || 'http://localhost:3001';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   }
 
   async processMessage(message: string, userContext: UserContext): Promise<AIResponse> {

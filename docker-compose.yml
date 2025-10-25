@@ -1,12 +1,16 @@
 version: '3.8'
 
 services:
+<<<<<<< HEAD
   # Frontend (React App)
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     ports:
+<<<<<<< HEAD
       - "3009:80"
     depends_on:
       - backend
@@ -52,3 +56,19 @@ services:
 volumes:
   mongo_data:
   redis_data:
+=======
+      - "3006:80"
+    depends_on:
+      - backend
+    environment:
+      - VITE_BACKEND_URL=http://backend:5000
+
+  backend:
+    build:
+      context: ./chatbot
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721

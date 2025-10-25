@@ -21,9 +21,15 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "noImplicitOverride": true,
+<<<<<<< HEAD
     "noPropertyAccessFromIndexSignature": false,
     "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": false,
+=======
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
     /* Path mapping */
     "baseUrl": ".",
@@ -32,7 +38,11 @@
     },
 
     /* Testing */
+<<<<<<< HEAD
     "types": ["vitest/globals"]
+=======
+    "types": ["vitest/globals", "@testing-library/jest-dom"]
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   },
   "include": [
     "src",
@@ -43,10 +53,14 @@
     "node_modules",
     "dist",
     "build",
+<<<<<<< HEAD
     "coverage",
     "src/test",
     "**/*.test.tsx",
     "**/*.test.ts"
+=======
+    "coverage"
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   ],
   "references": [
     { "path": "./tsconfig.node.json" }

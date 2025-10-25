@@ -26,7 +26,10 @@ import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext';
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { toast } from 'sonner';
 
 interface Note {
@@ -39,7 +42,26 @@ interface Note {
   pinned: boolean;
 }
 
+<<<<<<< HEAD
 // Removed local PlayerAction interface to use the one from DataSyncContext
+=======
+interface PlayerAction {
+  id: string;
+  playerId: string;
+  playerName: string;
+  actionType: 'goal' | 'assist' | 'target' | 'save' | 'foul' | 'card' | 'substitution';
+  matchId: string;
+  matchName: string;
+  timestamp: string;
+  position: {
+    x: number; // Field position X coordinate
+    y: number; // Field position Y coordinate
+    area: string; // e.g., "Penalty Area", "Midfield", "Right Wing"
+  };
+  details: string; // Additional details about the action
+  created_at: string;
+}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
 interface PlayerStats {
   playerId: string;
@@ -57,7 +79,10 @@ interface PlayerStats {
 export const GeneralNotepad: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
+<<<<<<< HEAD
   const { playerActions, addPlayerAction, deletePlayerAction } = useDataSync();
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   
   // Refs for auto-focus
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -75,11 +100,19 @@ export const GeneralNotepad: React.FC = () => {
   
   // Player Performance state
   const [activeTab, setActiveTab] = useState<'notes' | 'analytics'>('notes');
+<<<<<<< HEAD
+=======
+  const [playerActions, setPlayerActions] = useState<PlayerAction[]>([]);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
   const [isAddingAction, setIsAddingAction] = useState(false);
   const [actionForm, setActionForm] = useState({
     playerName: '',
+<<<<<<< HEAD
     actionType: 'goal',
+=======
+    actionType: 'goal' as PlayerAction['actionType'],
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     matchName: '',
     positionX: 50,
     positionY: 50,
@@ -90,6 +123,10 @@ export const GeneralNotepad: React.FC = () => {
   // Apply full-screen and white theme as requested
   const isDark = false;
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   // Load notes from localStorage on component mount
   useEffect(() => {
     const savedNotes = localStorage.getItem(`notes_${user?.id || 'guest'}`);
@@ -97,6 +134,14 @@ export const GeneralNotepad: React.FC = () => {
       setNotes(JSON.parse(savedNotes));
     }
     
+<<<<<<< HEAD
+=======
+    const savedActions = localStorage.getItem(`player_actions_${user?.id || 'guest'}`);
+    if (savedActions) {
+      setPlayerActions(JSON.parse(savedActions));
+    }
+    
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     const savedStats = localStorage.getItem(`player_stats_${user?.id || 'guest'}`);
     if (savedStats) {
       setPlayerStats(JSON.parse(savedStats));
@@ -108,6 +153,14 @@ export const GeneralNotepad: React.FC = () => {
     localStorage.setItem(`notes_${user?.id || 'guest'}`, JSON.stringify(notes));
   }, [notes, user]);
   
+<<<<<<< HEAD
+=======
+  // Save player actions to localStorage
+  useEffect(() => {
+    localStorage.setItem(`player_actions_${user?.id || 'guest'}`, JSON.stringify(playerActions));
+  }, [playerActions, user]);
+  
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   // Save player stats to localStorage
   useEffect(() => {
     localStorage.setItem(`player_stats_${user?.id || 'guest'}`, JSON.stringify(playerStats));
@@ -223,7 +276,11 @@ export const GeneralNotepad: React.FC = () => {
   
   // Player Performance Functions
   
+<<<<<<< HEAD
   const updatePlayerStats = (playerId: string, playerName: string, actionType: string) => {
+=======
+  const updatePlayerStats = (playerId: string, playerName: string, actionType: PlayerAction['actionType']) => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     setPlayerStats(prev => {
       const existingPlayer = prev.find(p => p.playerId === playerId);
       
@@ -274,6 +331,7 @@ export const GeneralNotepad: React.FC = () => {
     });
   };
   
+<<<<<<< HEAD
   const handleAddPlayerAction = () => {
     if (!actionForm.playerName.trim() || !actionForm.matchName.trim()) {
       toast.error('Please provide player name and match name');
@@ -321,6 +379,10 @@ export const GeneralNotepad: React.FC = () => {
     deletePlayerAction && deletePlayerAction(id);
     toast.success('Player action deleted successfully');
   };
+=======
+  
+  
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   const filteredNotes = notes
     .filter(note => 

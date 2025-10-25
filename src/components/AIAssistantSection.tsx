@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+<<<<<<< HEAD
 import { motion } from 'framer-motion';
+=======
+import { motion, AnimatePresence } from 'framer-motion';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import './AIAssistantSection.css';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { toast } from 'sonner';
+<<<<<<< HEAD
+=======
+import { Textarea } from './ui/textarea';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { 
@@ -16,6 +24,7 @@ import {
   TrendingUp, 
   Users, 
   Zap, 
+<<<<<<< HEAD
   Bot, 
   BarChart3, 
   ArrowLeft, 
@@ -33,6 +42,76 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { dataManagementService, Player, ClubData } from '../services/dataManagementService';
 import { isDemoMode } from '../lib/supabase';
+=======
+  Shield, 
+  Sparkles, 
+  Bot, 
+  AlertTriangle, 
+  CheckCircle, 
+  BarChart3, 
+  Download, 
+  ArrowLeft, 
+  ArrowUp, 
+  Minus, 
+  RefreshCw,
+  Calendar,
+  Clock,
+  Trophy,
+  Heart,
+  Footprints,
+  Star,
+  User,
+  Settings,
+  FileText,
+  Mail,
+  Bell,
+  Play,
+  Pause,
+  Square,
+  RotateCcw,
+  Maximize,
+  Minimize,
+  X,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Copy,
+  ThumbsUp,
+  ThumbsDown,
+  MoreHorizontal,
+  Eye,
+  EyeOff,
+  Lightbulb,
+  Activity,
+  PieChart,
+  LineChart,
+  BarChart2
+} from 'lucide-react';
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart as RechartsLineChart,
+  Line,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area
+} from 'recharts';
+import { useTheme } from '../contexts/ThemeContext';
+import { dataManagementService, Player } from '../services/dataManagementService';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { aiChatService, AIResponse } from '../services/aiChatService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -42,7 +121,11 @@ interface ChatMessage {
   sender: 'user' | 'ai';
   timestamp: Date;
   type?: 'text' | 'chart' | 'prediction' | 'analysis';
+<<<<<<< HEAD
   data?: ChartData | PredictionData | null;
+=======
+  data?: any;
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   confidence?: number;
   suggestions?: string[];
   isTyping?: boolean;
@@ -82,6 +165,7 @@ interface PredictionData {
   recommendations?: string[];
 }
 
+<<<<<<< HEAD
 // Mock data for demonstration in demo mode
 const mockPlayers: Player[] = [
   { id: '1', name: 'Torres', position: 'ST', jersey_number: 9, age: 24, nationality: 'Spain' } as Player,
@@ -105,6 +189,8 @@ const mockClubData = {
   notes: 'Demo club data'
 };
 
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 export const AIAssistantSection: React.FC = () => {
   const { theme, isHighContrast } = useTheme();
   const { user } = useAuth();
@@ -126,8 +212,13 @@ export const AIAssistantSection: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
   const [backendStatus, setBackendStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
+<<<<<<< HEAD
   const [players, setPlayers] = useState<Player[]>(isDemoMode ? mockPlayers : []);
   const [clubData, setClubData] = useState<ClubData | null>(isDemoMode ? mockClubData : null);
+=======
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [clubData, setClubData] = useState<any>(null);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const [selectedChart, setSelectedChart] = useState<ChartData | null>(null);
   const [currentPrediction, setCurrentPrediction] = useState<PredictionData | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
@@ -147,6 +238,7 @@ export const AIAssistantSection: React.FC = () => {
   const maxRetries = 3;
   const retryDelay = 2000;
 
+<<<<<<< HEAD
   // Check connection status on component mount
   useEffect(() => {
     const initializeServices = async () => {
@@ -166,6 +258,55 @@ export const AIAssistantSection: React.FC = () => {
   }, [isDemoMode]);
 
   const updateServiceHealth = useCallback((serviceName: string, status: 'connected' | 'disconnected' | 'connecting') => {
+=======
+  // Check connection status on component mount with enhanced monitoring
+  useEffect(() => {
+    initializeServices();
+    startHealthMonitoring();
+    
+    return () => {
+      if (healthCheckInterval.current) {
+        clearInterval(healthCheckInterval.current);
+      }
+    };
+  }, []);
+
+  const initializeServices = async () => {
+    setIsRecovering(true);
+    await Promise.allSettled([
+      checkDataServiceHealth(),
+      checkBackendConnection(),
+      checkSubscriptionService(),
+      checkUsageStatsService(),
+      loadTeamDataWithRetry()
+    ]);
+    setIsRecovering(false);
+  };
+
+  const startHealthMonitoring = () => {
+    healthCheckInterval.current = setInterval(async () => {
+      await performHealthChecks();
+    }, 30000); // Check every 30 seconds
+  };
+
+  const performHealthChecks = async () => {
+    const checks = [
+      { name: 'data', check: checkDataServiceHealth },
+      { name: 'aiBackend', check: checkBackendConnection },
+      { name: 'subscription', check: checkSubscriptionService },
+      { name: 'usageStats', check: checkUsageStatsService }
+    ];
+
+    for (const { name, check } of checks) {
+      const service = serviceHealth[name as keyof typeof serviceHealth];
+      if (service === 'disconnected') {
+        await check();
+      }
+    }
+  };
+
+  const updateServiceHealth = (serviceName: string, status: 'connected' | 'disconnected' | 'connecting') => {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     setServiceHealth(prev => ({
       ...prev,
       [serviceName]: status
@@ -177,8 +318,122 @@ export const AIAssistantSection: React.FC = () => {
     } else if (serviceName === 'aiBackend') {
       setBackendStatus(status);
     }
+<<<<<<< HEAD
   }, []);
 
+=======
+  };
+
+  const checkDataServiceHealth = async () => {
+    try {
+      updateServiceHealth('data', 'connecting');
+      await dataManagementService.getPlayers();
+      updateServiceHealth('data', 'connected');
+      return true;
+    } catch (error) {
+      console.error('Data service health check failed:', error);
+      updateServiceHealth('data', 'disconnected');
+      
+      if (serviceHealth.data === 'connecting') {
+        addSystemMessage('Data services are temporarily unavailable. I can still provide general assistance using cached data.');
+      }
+      return false;
+    }
+  };
+
+  const checkBackendConnection = async () => {
+    try {
+      updateServiceHealth('aiBackend', 'connecting');
+      const aiAssistantUrl = import.meta.env['VITE_AI_ASSISTANT_BACKEND_URL'] || 'http://localhost:8080';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${aiAssistantUrl}/api/v1/ai/status`, {
+        method: 'GET',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        updateServiceHealth('aiBackend', 'connected');
+        return true;
+      } else {
+        throw new Error(`AI backend returned ${response.status}`);
+      }
+    } catch (error) {
+      console.error('AI backend connection failed:', error);
+      updateServiceHealth('aiBackend', 'disconnected');
+      
+      if (serviceHealth.aiBackend === 'connecting') {
+        addSystemMessage('AI processing engine is temporarily offline. I\'ll use my local knowledge base for responses.');
+      }
+      return false;
+    }
+  };
+
+  const checkSubscriptionService = async () => {
+    try {
+      updateServiceHealth('subscription', 'connecting');
+      const apiUrl = import.meta.env['VITE_API_URL'] || 'http://localhost:3001';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${apiUrl}/api/subscription/status`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        updateServiceHealth('subscription', 'connected');
+        return true;
+      } else {
+        throw new Error(`Subscription service returned ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Subscription service check failed:', error);
+      updateServiceHealth('subscription', 'disconnected');
+      return false;
+    }
+  };
+
+  const checkUsageStatsService = async () => {
+    try {
+      updateServiceHealth('usageStats', 'connecting');
+      const apiUrl = import.meta.env['VITE_API_URL'] || 'http://localhost:3001';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${apiUrl}/api/usage/stats`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        updateServiceHealth('usageStats', 'connected');
+        return true;
+      } else {
+        throw new Error(`Usage stats service returned ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Usage stats service check failed:', error);
+      updateServiceHealth('usageStats', 'disconnected');
+      return false;
+    }
+  };
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   const loadTeamDataWithRetry = async (retryCount = 0) => {
     try {
@@ -217,6 +472,7 @@ export const AIAssistantSection: React.FC = () => {
     setIsRecovering(true);
     toast.info('Attempting to reconnect services...');
     
+<<<<<<< HEAD
     // In demo mode, no need to reconnect services
     if (isDemoMode) {
       setIsRecovering(false);
@@ -225,6 +481,40 @@ export const AIAssistantSection: React.FC = () => {
     
     // Try to reload data
     await loadTeamDataWithRetry();
+=======
+    const failedServices = Object.entries(serviceHealth)
+      .filter(([_, service]) => service === 'disconnected')
+      .map(([name]) => name);
+    
+    const results = await Promise.allSettled(
+      failedServices.map(async (serviceName) => {
+        switch (serviceName) {
+          case 'dataService':
+            return checkDataServiceHealth();
+          case 'aiBackend':
+            return checkBackendConnection();
+          case 'subscription':
+            return checkSubscriptionService();
+          case 'usageStats':
+            return checkUsageStatsService();
+          default:
+            return false;
+        }
+      })
+    );
+    
+    const reconnectedCount = results.filter(result => 
+      result.status === 'fulfilled' && result.value === true
+    ).length;
+    
+    if (reconnectedCount > 0) {
+      toast.success(`Reconnected ${reconnectedCount} service(s)`);
+      addSystemMessage(`Successfully reconnected ${reconnectedCount} service(s). Full functionality restored.`);
+    } else {
+      toast.error('Unable to reconnect services. Please check your internet connection.');
+    }
+    
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     setIsRecovering(false);
   };
 
@@ -355,6 +645,7 @@ export const AIAssistantSection: React.FC = () => {
     setIsTyping(false);
   }, []);
 
+<<<<<<< HEAD
   const generateChartData = useCallback((query: string, data: Record<string, unknown>): ChartData | null => {
     const lowerQuery = query.toLowerCase();
     
@@ -373,12 +664,30 @@ export const AIAssistantSection: React.FC = () => {
           minutes: Math.floor(Math.random() * 3000) + 500,
           passes: Math.floor(Math.random() * 2000) + 300,
           accuracy: Math.floor(Math.random() * 30) + 70
+=======
+  const generateChartData = useCallback((query: string, data: any): ChartData | null => {
+    const lowerQuery = query.toLowerCase();
+    
+    if (lowerQuery.includes('performance') || lowerQuery.includes('stats')) {
+      return {
+        type: 'bar',
+        title: 'Player Performance Analysis',
+        data: players.slice(0, 10).map(player => ({
+          name: player.name,
+          goals: Math.floor(Math.random() * 20),
+          assists: Math.floor(Math.random() * 15),
+          rating: (Math.random() * 2 + 7).toFixed(1)
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         })),
         insights: [
           'Top performers show consistent goal-scoring ability',
           'Assist distribution indicates good team chemistry',
+<<<<<<< HEAD
           'Average team rating has improved by 12% this season',
           'Passing accuracy has increased by 8% compared to last season'
+=======
+          'Average team rating has improved by 12% this season'
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         ]
       };
     }
@@ -388,16 +697,26 @@ export const AIAssistantSection: React.FC = () => {
         type: 'radar',
         title: 'Tactical Analysis',
         data: [
+<<<<<<< HEAD
           { metric: 'Attack', value: Math.floor(Math.random() * 20) + 80, fullMark: 100 },
           { metric: 'Defense', value: Math.floor(Math.random() * 20) + 75, fullMark: 100 },
           { metric: 'Midfield', value: Math.floor(Math.random() * 20) + 80, fullMark: 100 },
           { metric: 'Pressing', value: Math.floor(Math.random() * 25) + 70, fullMark: 100 },
           { metric: 'Possession', value: Math.floor(Math.random() * 15) + 85, fullMark: 100 },
           { metric: 'Counter', value: Math.floor(Math.random() * 30) + 65, fullMark: 100 }
+=======
+          { metric: 'Attack', value: 85, fullMark: 100 },
+          { metric: 'Defense', value: 78, fullMark: 100 },
+          { metric: 'Midfield', value: 82, fullMark: 100 },
+          { metric: 'Pressing', value: 75, fullMark: 100 },
+          { metric: 'Possession', value: 88, fullMark: 100 },
+          { metric: 'Counter', value: 70, fullMark: 100 }
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         ],
         insights: [
           'Strong possession-based play style',
           'Defensive stability needs improvement',
+<<<<<<< HEAD
           'Counter-attacking could be more effective',
           'Midfield control is a key strength'
         ]
@@ -442,12 +761,19 @@ export const AIAssistantSection: React.FC = () => {
           'Injury prevention program showing results',
           'Training load optimization recommended',
           'Recovery protocols effective'
+=======
+          'Counter-attacking could be more effective'
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         ]
       };
     }
     
     return null;
+<<<<<<< HEAD
   }, []);
+=======
+  }, [players]);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   const generatePrediction = useCallback((query: string): PredictionData | null => {
     const lowerQuery = query.toLowerCase();
@@ -704,10 +1030,17 @@ export const AIAssistantSection: React.FC = () => {
 
   const playerStatsData = players.map(player => ({
     name: player.name,
+<<<<<<< HEAD
     goals: 0,
     assists: 0,
     rating: 75,
     fitness: 80
+=======
+    goals: player.goals || 0,
+    assists: player.assists || 0,
+    rating: player.skills ? Math.round((player.skills.technical + player.skills.physical + player.skills.tactical + player.skills.mental) / 4) : 75,
+    fitness: player.fitness || 80
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   }));
 
   const matchPredictions = [
@@ -756,10 +1089,17 @@ export const AIAssistantSection: React.FC = () => {
   const playerAnalytics = players.length > 0 ? players.map(player => ({
     name: player.name,
     position: player.position,
+<<<<<<< HEAD
     goals: 0,
     assists: 0,
     rating: 7.5,
     form: 'good'
+=======
+    goals: player.goals || 0,
+    assists: player.assists || 0,
+    rating: player.skills ? Math.round((player.skills.technical + player.skills.physical + player.skills.tactical + player.skills.mental) / 4) / 10 : 7.5,
+    form: player.fitness && player.fitness > 85 ? 'excellent' : player.fitness && player.fitness > 75 ? 'good' : 'average'
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   })) : [
     { name: 'Torres', position: 'ST', goals: 18, assists: 7, rating: 8.4, form: 'excellent' },
     { name: 'Silva', position: 'CM', goals: 5, assists: 12, rating: 8.1, form: 'good' },

@@ -23,14 +23,26 @@
     "deploy:docker": "docker-compose -f docker-compose.production.yml up --build -d",
     "deploy:stop": "docker-compose -f docker-compose.production.yml down",
     "deploy:logs": "docker-compose -f docker-compose.production.yml logs -f",
+<<<<<<< HEAD
+=======
+    "backend:install": "cd chatbot && pip install -r requirements.txt",
+    "backend:run": "cd chatbot && python app.py",
+    "backend:setup": "cd chatbot && pip install -r requirements.txt && python -m spacy download en_core_web_sm",
+    "backend:test": "cd chatbot && python test_backend.py",
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     "check-services": "node check-services.js",
     "check-docker": "node check-docker-services.js",
     "start:docker": "docker-compose up -d",
     "stop:docker": "docker-compose down",
+<<<<<<< HEAD
     "test:ai-connection": "",
     "fix:ai-assistant": "",
     "vercel-build": "npm run build",
     "deploy:vercel": "node deploy-vercel.js"
+=======
+    "test:ai-connection": "node test-ai-connection.js",
+    "fix:ai-assistant": "node implement-all-fixes.js"
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -80,7 +92,10 @@
     "framer-motion": "^11.16.0",
     "handlebars": "^4.7.8",
     "html2canvas": "^1.4.1",
+<<<<<<< HEAD
     "http-proxy-middleware": "^3.0.0",
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     "i18next": "^25.4.1",
     "input-otp": "^1.2.4",
     "jspdf": "^3.0.1",
@@ -89,7 +104,10 @@
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "node-cron": "^3.0.3",
+<<<<<<< HEAD
     "passport": "^0.7.0",
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     "react": "^18.2.0",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.2.0",
@@ -122,7 +140,10 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/uuid": "^9.0.7",
+<<<<<<< HEAD
     "@vercel/node": "^3.0.0",
+=======
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/coverage-v8": "^1.0.0",
     "@vitest/ui": "^1.0.0",
@@ -159,4 +180,8 @@
       "prettier --write"
     ]
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721

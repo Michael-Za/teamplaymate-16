@@ -39,11 +39,16 @@ import {
   X
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext';
+=======
+import { dataManagementService, Player, ClubData } from '../services/dataManagementService';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { analyticsExportService } from '../services/analyticsExportService';
 import { toast } from 'sonner';
 import AddPlayerForm from './AddPlayerForm';
 
+<<<<<<< HEAD
 // Extend the Player interface with additional properties
 interface ExtendedPlayer {
   id?: string;
@@ -104,33 +109,94 @@ interface ExtendedPlayer {
   updated_at?: string;
   // Index signature to allow additional properties
   [key: string]: any;
+=======
+// Extend ClubData with analytics fields
+interface AnalyticsData extends ClubData {
+  revenue?: number;
+  expenses?: number;
+  profit?: number;
+  playerValue?: number;
+  marketValue?: number;
+  fanbase?: number;
+  mediaCoverage?: number;
+  sponsorships?: number;
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 }
 
 export const DataManagementSection: React.FC = () => {
   const { theme, isHighContrast } = useTheme();
+<<<<<<< HEAD
   const { players, clubData, loading, error, addPlayer, updatePlayer, deletePlayer } = useDataSync();
   const [activeTab, setActiveTab] = useState('players');
+=======
+  const [activeTab, setActiveTab] = useState('players');
+  const [loading, setLoading] = useState(true);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const [saving, setSaving] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('connected');
   const [lastSync, setLastSync] = useState(new Date());
   
+<<<<<<< HEAD
   const [filteredPlayers, setFilteredPlayers] = useState<ExtendedPlayer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<ExtendedPlayer | null>(null);
+=======
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  
+  const [clubData, setClubData] = useState<ClubData | null>(null);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   
   // Data for other tabs
   const [matches, setMatches] = useState<any[]>([]);
   const [trainingSessions, setTrainingSessions] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   
+<<<<<<< HEAD
   // Export history state
   const [exportHistory, setExportHistory] = useState<{ id: string, type: string, format: string, timestamp: Date, fileName: string }[]>([]);
 
   // State for export/import menus
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
+=======
+  // Analytics data state
+  const [analyticsData, setAnalyticsData] = useState<Partial<AnalyticsData> | null>(null);
+  
+  // State for export/import menus
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showImportMenu, setShowImportMenu] = useState(false);
+  const [showClubExportMenu, setShowClubExportMenu] = useState(false);
+  const [showClubImportMenu, setShowClubImportMenu] = useState(false);
+  const [showMatchesExportMenu, setShowMatchesExportMenu] = useState(false);
+  const [showTrainingExportMenu, setShowTrainingExportMenu] = useState(false);
+  const [showEventsExportMenu, setShowEventsExportMenu] = useState(false);
+
+  // Export history state
+  const [exportHistory, setExportHistory] = useState<{ id: string, type: string, format: string, timestamp: Date, fileName: string }[]>([]);
+
+  // Initialize data - remove auto-sync interval
+  useEffect(() => {
+    loadData();
+    
+    // Subscribe to player updates
+    dataManagementService.setPlayersUpdateCallback((updatedPlayers) => {
+      setPlayers(updatedPlayers);
+      setFilteredPlayers(updatedPlayers);
+    });
+    
+    // Return cleanup function that only clears the player update callback
+    return () => {
+      dataManagementService.setPlayersUpdateCallback(null);
+    };
+  }, []);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   // Filter players based on search term
   useEffect(() => {
@@ -143,6 +209,7 @@ export const DataManagementSection: React.FC = () => {
         )
       );
     } else {
+<<<<<<< HEAD
       setFilteredPlayers(players as unknown as ExtendedPlayer[]);
     }
   }, [searchTerm, players]);
@@ -157,6 +224,47 @@ export const DataManagementSection: React.FC = () => {
         // Add new player through DataSyncContext
         await addPlayer(playerData);
         toast.success('Player added successfully!');
+=======
+      setFilteredPlayers(players);
+    }
+  }, [searchTerm, players]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch data from the service
+      const fetchedPlayers = await dataManagementService.getPlayers();
+      const fetchedClubData = await dataManagementService.getClubData();
+      
+      setPlayers(fetchedPlayers);
+      setFilteredPlayers(fetchedPlayers);
+      setClubData(fetchedClubData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSavePlayer = async (playerData: Partial<Player>) => {
+    try {
+      if (selectedPlayer && isEditing) {
+        // Update existing player
+        const updatedPlayer = await dataManagementService.updatePlayer(selectedPlayer.id!, playerData);
+        if (updatedPlayer) {
+          setPlayers(players.map(p => p.id === updatedPlayer.id ? updatedPlayer : p));
+          toast.success('Player updated successfully!');
+        }
+      } else {
+        // Add new player
+        const newPlayer = await dataManagementService.createPlayer(playerData);
+        if (newPlayer) {
+          setPlayers([...players, newPlayer]);
+          toast.success('Player added successfully!');
+        }
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       }
       setShowAddForm(false);
       setIsEditing(false);
@@ -169,9 +277,18 @@ export const DataManagementSection: React.FC = () => {
 
   const handleDeletePlayer = async (playerId: string) => {
     try {
+<<<<<<< HEAD
       // Delete player through DataSyncContext
       await deletePlayer(playerId);
       toast.success('Player deleted successfully!');
+=======
+      const success = await dataManagementService.deletePlayer(playerId);
+      if (success) {
+        setPlayers(players.filter(p => p.id !== playerId));
+        // Note: filteredPlayers will be updated automatically by the useEffect when players change
+        toast.success('Player deleted successfully!');
+      }
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     } catch (error) {
       console.error('Error deleting player:', error);
       toast.error('Failed to delete player');
@@ -196,17 +313,30 @@ export const DataManagementSection: React.FC = () => {
 
   const handleExportPlayers = async (format: 'csv' | 'json') => {
     try {
+<<<<<<< HEAD
       // Use players from DataSyncContext
       if (format === 'csv') {
         // Convert to CSV format with available properties
         const headers = [
           'ID', 'Name', 'Position', 'Age', 'Nationality', 'Jersey Number',
           'Height', 'Weight', 'Preferred Foot', 'Status'
+=======
+      const players = await dataManagementService.getPlayers();
+      
+      if (format === 'csv') {
+        // Convert to CSV format
+        const headers = [
+          'ID', 'Name', 'Position', 'Age', 'Nationality', 'Goals', 
+          'Assists', 'Minutes', 'Fitness', 'Technical Skills', 
+          'Physical Skills', 'Tactical Skills', 'Mental Skills',
+          'Medical Clearance', 'Notes'
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         ];
         
         const csvContent = [
           headers.join(','),
           ...players.map(player => [
+<<<<<<< HEAD
             player.id || '',
             `"${player.name}"`,
             player.position,
@@ -217,6 +347,23 @@ export const DataManagementSection: React.FC = () => {
             player.weight || '',
             `"${player.preferred_foot || ''}"`,
             `"${player.status || ''}"`
+=======
+            player.id,
+            `"${player.name}"`,
+            player.position,
+            player.age,
+            `"${player.nationality || ''}"`,
+            player.goals,
+            player.assists,
+            player.minutes,
+            player.fitness,
+            player.skills?.technical || 0,
+            player.skills?.physical || 0,
+            player.skills?.tactical || 0,
+            player.skills?.mental || 0,
+            player.medicalClearance ? 'Yes' : 'No',
+            `"${player.notes || ''}"`
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
           ].join(','))
         ].join('\n');
         
@@ -276,14 +423,22 @@ export const DataManagementSection: React.FC = () => {
         }
       
         const headers = firstLine.split(',').map(h => h.trim().replace(/"/g, ''));
+<<<<<<< HEAD
         const playerData: Partial<ExtendedPlayer>[] = [];
+=======
+        const playerData: Partial<Player>[] = [];
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i];
           if (!line || line.trim() === '') continue;
         
           const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+<<<<<<< HEAD
           const player: Partial<ExtendedPlayer> = {};
+=======
+          const player: Partial<Player> = {};
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         
           headers.forEach((header, index) => {
             const rawValue = index < values.length ? values[index] : '';
@@ -302,6 +457,7 @@ export const DataManagementSection: React.FC = () => {
                 player.age = isNaN(ageValue) ? 0 : ageValue;
               } else if (headerLower === 'nationality') {
                 if (value) player.nationality = value;
+<<<<<<< HEAD
               } else if (headerLower === 'jersey number') {
                 const jerseyValue = value ? parseInt(value, 10) : 0;
                 player.jersey_number = isNaN(jerseyValue) ? 0 : jerseyValue;
@@ -315,6 +471,40 @@ export const DataManagementSection: React.FC = () => {
                 if (value) player.preferred_foot = value;
               } else if (headerLower === 'status') {
                 if (value) player.status = value;
+=======
+              } else if (headerLower === 'goals') {
+                const goalsValue = value ? parseInt(value, 10) : 0;
+                player.goals = isNaN(goalsValue) ? 0 : goalsValue;
+              } else if (headerLower === 'assists') {
+                const assistsValue = value ? parseInt(value, 10) : 0;
+                player.assists = isNaN(assistsValue) ? 0 : assistsValue;
+              } else if (headerLower === 'minutes') {
+                const minutesValue = value ? parseInt(value, 10) : 0;
+                player.minutes = isNaN(minutesValue) ? 0 : minutesValue;
+              } else if (headerLower === 'fitness') {
+                const fitnessValue = value ? parseInt(value, 10) : 0;
+                player.fitness = isNaN(fitnessValue) ? 0 : fitnessValue;
+              } else if (headerLower === 'technical skills') {
+                if (!player.skills) player.skills = { technical: 0, physical: 0, tactical: 0, mental: 0 };
+                const technicalValue = value ? parseInt(value, 10) : 0;
+                player.skills.technical = isNaN(technicalValue) ? 0 : technicalValue;
+              } else if (headerLower === 'physical skills') {
+                if (!player.skills) player.skills = { technical: 0, physical: 0, tactical: 0, mental: 0 };
+                const physicalValue = value ? parseInt(value, 10) : 0;
+                player.skills.physical = isNaN(physicalValue) ? 0 : physicalValue;
+              } else if (headerLower === 'tactical skills') {
+                if (!player.skills) player.skills = { technical: 0, physical: 0, tactical: 0, mental: 0 };
+                const tacticalValue = value ? parseInt(value, 10) : 0;
+                player.skills.tactical = isNaN(tacticalValue) ? 0 : tacticalValue;
+              } else if (headerLower === 'mental skills') {
+                if (!player.skills) player.skills = { technical: 0, physical: 0, tactical: 0, mental: 0 };
+                const mentalValue = value ? parseInt(value, 10) : 0;
+                player.skills.mental = isNaN(mentalValue) ? 0 : mentalValue;
+              } else if (headerLower === 'medical clearance') {
+                player.medicalClearance = value?.toLowerCase() === 'yes';
+              } else if (headerLower === 'notes') {
+                if (value) player.notes = value;
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
               }
             }
           });
@@ -330,11 +520,19 @@ export const DataManagementSection: React.FC = () => {
           try {
             if (player.id) {
               // Update existing player
+<<<<<<< HEAD
               await updatePlayer(player.id, player);
               successCount++;
             } else {
               // Create new player
               await addPlayer(player);
+=======
+              await dataManagementService.updatePlayer(player.id, player);
+              successCount++;
+            } else {
+              // Create new player
+              await dataManagementService.createPlayer(player);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
               successCount++;
             }
           } catch (error) {
@@ -346,7 +544,11 @@ export const DataManagementSection: React.FC = () => {
       } else if (fileExtension === 'json') {
         // Handle JSON import
         const text = await file.text();
+<<<<<<< HEAD
         const players: Partial<ExtendedPlayer>[] = JSON.parse(text);
+=======
+        const players: Partial<Player>[] = JSON.parse(text);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       
         // Process imported players
         let successCount = 0;
@@ -354,11 +556,19 @@ export const DataManagementSection: React.FC = () => {
           try {
             if (player.id) {
               // Update existing player
+<<<<<<< HEAD
               await updatePlayer(player.id, player);
               successCount++;
             } else {
               // Create new player
               await addPlayer(player);
+=======
+              await dataManagementService.updatePlayer(player.id, player);
+              successCount++;
+            } else {
+              // Create new player
+              await dataManagementService.createPlayer(player);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
               successCount++;
             }
           } catch (error) {
@@ -371,6 +581,12 @@ export const DataManagementSection: React.FC = () => {
         toast.error('Unsupported file format. Please use CSV or JSON files.');
         return;
       }
+<<<<<<< HEAD
+=======
+    
+      // Refresh data
+      loadData();
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     } catch (error) {
       console.error('Error importing players:', error);
       toast.error('Failed to import players. Please check the file format and try again.');
@@ -397,7 +613,20 @@ export const DataManagementSection: React.FC = () => {
           name: player.name,
           position: player.position,
           age: player.age,
+<<<<<<< HEAD
           nationality: player.nationality
+=======
+          nationality: player.nationality,
+          goals: player.goals,
+          assists: player.assists,
+          minutes: player.minutes,
+          fitness: player.fitness,
+          technicalSkills: player.skills?.technical,
+          physicalSkills: player.skills?.physical,
+          tacticalSkills: player.skills?.tactical,
+          mentalSkills: player.skills?.mental,
+          medicalClearance: player.medicalClearance ? 'Yes' : 'No'
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         })),
         metadata: {
           generatedAt: new Date().toISOString(),
@@ -434,12 +663,42 @@ export const DataManagementSection: React.FC = () => {
 
   const generateTeamAnalyticsReport = async () => {
     try {
+<<<<<<< HEAD
+=======
+      // Generate team statistics from players data
+      const totalGoals = players.reduce((sum, player) => sum + (player.goals || 0), 0);
+      const totalAssists = players.reduce((sum, player) => sum + (player.assists || 0), 0);
+      const totalMinutes = players.reduce((sum, player) => sum + (player.minutes || 0), 0);
+      const avgFitness = players.length > 0 
+        ? players.reduce((sum, player) => sum + (player.fitness || 0), 0) / players.length 
+        : 0;
+
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       const exportData = {
         title: 'Team Analytics Report',
         data: [
           {
             metric: 'Total Players',
             value: players.length
+<<<<<<< HEAD
+=======
+          },
+          {
+            metric: 'Total Goals',
+            value: totalGoals
+          },
+          {
+            metric: 'Total Assists',
+            value: totalAssists
+          },
+          {
+            metric: 'Total Minutes Played',
+            value: totalMinutes
+          },
+          {
+            metric: 'Average Fitness Level',
+            value: avgFitness.toFixed(2)
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
           }
         ],
         metadata: {
@@ -481,7 +740,15 @@ export const DataManagementSection: React.FC = () => {
         title: 'Medical Report',
         data: players.map(player => ({
           name: player.name,
+<<<<<<< HEAD
           position: player.position
+=======
+          position: player.position,
+          medicalClearance: player.medicalClearance ? 'Cleared' : 'Pending',
+          lastMedicalCheck: player.lastMedicalCheck || 'Not recorded',
+          injuries: player.injuries?.join(', ') || 'None recorded',
+          fitness: player.fitness
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         })),
         metadata: {
           generatedAt: new Date().toISOString(),
@@ -522,7 +789,13 @@ export const DataManagementSection: React.FC = () => {
         title: 'Contract Overview',
         data: players.map(player => ({
           name: player.name,
+<<<<<<< HEAD
           position: player.position
+=======
+          position: player.position,
+          contractEnd: player.contractEnd || player.contract_end || 'Not specified',
+          salary: player.salary ? `€${player.salary.toLocaleString()}` : 'Not specified'
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         })),
         metadata: {
           generatedAt: new Date().toISOString(),
@@ -570,7 +843,21 @@ export const DataManagementSection: React.FC = () => {
           phone: clubData.phone,
           email: clubData.email,
           budget: clubData.budget ? `€${clubData.budget.toLocaleString()}` : 'Not specified',
+<<<<<<< HEAD
           trophies: clubData.trophies
+=======
+          trophies: clubData.trophies,
+          president: clubData.president,
+          headCoach: clubData.headCoach,
+          website: clubData.website,
+          coaches: clubData.staff?.coaches,
+          medicalStaff: clubData.staff?.medical,
+          administrativeStaff: clubData.staff?.administrative,
+          trainingGrounds: clubData.facilities?.trainingGrounds,
+          medicalCenter: clubData.facilities?.medicalCenter ? 'Yes' : 'No',
+          gym: clubData.facilities?.gym ? 'Yes' : 'No',
+          restaurant: clubData.facilities?.restaurant ? 'Yes' : 'No'
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         }] : [],
         metadata: {
           generatedAt: new Date().toISOString(),
@@ -670,14 +957,27 @@ export const DataManagementSection: React.FC = () => {
                 <Button
                   size="sm"
                   variant="outline"
+<<<<<<< HEAD
                   onClick={() => window.location.reload()}
+=======
+                  onClick={loadData}
+                  disabled={loading}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                   className={`${
                     theme === 'midnight' 
                       ? 'border-gray-300 text-gray-700 hover:bg-gray-100' 
                       : 'border-gray-300 text-gray-700 hover:bg-gray-100'
                   }`}
                 >
+<<<<<<< HEAD
                   <RefreshCw className="h-4 w-4" />
+=======
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                 </Button>
               </div>
             </div>
@@ -925,7 +1225,11 @@ export const DataManagementSection: React.FC = () => {
                         </CardHeader>
                         <CardContent>
                           <AddPlayerForm
+<<<<<<< HEAD
                             player={selectedPlayer as any}
+=======
+                            player={selectedPlayer}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                             isOpen={true}
                             onClose={() => {
                               setShowAddForm(false);
@@ -970,6 +1274,7 @@ export const DataManagementSection: React.FC = () => {
                             
                             <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
                               <div>
+<<<<<<< HEAD
                                 <span className="font-medium">{player.goals || 0}</span> goals
                               </div>
                               <div>
@@ -980,6 +1285,18 @@ export const DataManagementSection: React.FC = () => {
                               </div>
                               <div>
                                 <span className="font-medium">{player.fitness || 0}%</span> fitness
+=======
+                                <span className="font-medium">{player.goals}</span> goals
+                              </div>
+                              <div>
+                                <span className="font-medium">{player.assists}</span> assists
+                              </div>
+                              <div>
+                                <span className="font-medium">{player.minutes}</span> min
+                              </div>
+                              <div>
+                                <span className="font-medium">{player.fitness}%</span> fitness
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                               </div>
                             </div>
 
@@ -1099,6 +1416,7 @@ export const DataManagementSection: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium mb-1">Club Name</label>
+<<<<<<< HEAD
                             <Input value={clubData?.name || ''} onChange={(e) => {
                               // In a real implementation, we would update clubData through the context
                             }} />
@@ -1132,19 +1450,55 @@ export const DataManagementSection: React.FC = () => {
                             <Input value={clubData?.email || ''} onChange={(e) => {
                               // In a real implementation, we would update clubData through the context
                             }} />
+=======
+                            <Input value={clubData?.name || ''} onChange={(e) => setClubData(prev => prev ? {...prev, name: e.target.value} : null)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Founded</label>
+                            <Input type="number" value={clubData?.founded || ''} onChange={(e) => setClubData(prev => prev ? {...prev, founded: parseInt(e.target.value) || 0} : null)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Stadium</label>
+                            <Input value={clubData?.stadium || ''} onChange={(e) => setClubData(prev => prev ? {...prev, stadium: e.target.value} : null)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Capacity</label>
+                            <Input type="number" value={clubData?.capacity || ''} onChange={(e) => setClubData(prev => prev ? {...prev, capacity: parseInt(e.target.value) || 0} : null)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Phone</label>
+                            <Input value={clubData?.phone || ''} onChange={(e) => setClubData(prev => prev ? {...prev, phone: e.target.value} : null)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Email</label>
+                            <Input value={clubData?.email || ''} onChange={(e) => setClubData(prev => prev ? {...prev, email: e.target.value} : null)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">President</label>
+                            <Input value={clubData?.president || ''} onChange={(e) => setClubData(prev => prev ? {...prev, president: e.target.value} : null)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Head Coach</label>
+                            <Input value={clubData?.headCoach || ''} onChange={(e) => setClubData(prev => prev ? {...prev, headCoach: e.target.value} : null)} />
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                           </div>
                         </div>
                         
                         <div>
                           <label className="block text-sm font-medium mb-1">Address</label>
+<<<<<<< HEAD
                           <Input value={clubData?.address || ''} onChange={(e) => {
                             // In a real implementation, we would update clubData through the context
                           }} />
+=======
+                          <Input value={clubData?.address || ''} onChange={(e) => setClubData(prev => prev ? {...prev, address: e.target.value} : null)} />
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
                             <label className="block text-sm font-medium mb-1">Annual Budget (€)</label>
+<<<<<<< HEAD
                             <Input type="number" value={clubData?.budget || ''} onChange={(e) => {
                               // In a real implementation, we would update clubData through the context
                             }} />
@@ -1154,6 +1508,17 @@ export const DataManagementSection: React.FC = () => {
                             <Input type="number" value={clubData?.trophies || ''} onChange={(e) => {
                               // In a real implementation, we would update clubData through the context
                             }} />
+=======
+                            <Input type="number" value={clubData?.budget || ''} onChange={(e) => setClubData(prev => prev ? {...prev, budget: parseInt(e.target.value) || 0} : null)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Trophies Won</label>
+                            <Input type="number" value={clubData?.trophies || ''} onChange={(e) => setClubData(prev => prev ? {...prev, trophies: parseInt(e.target.value) || 0} : null)} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Website</label>
+                            <Input value={clubData?.website || ''} onChange={(e) => setClubData(prev => prev ? {...prev, website: e.target.value} : null)} />
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                           </div>
                         </div>
 
@@ -1161,9 +1526,13 @@ export const DataManagementSection: React.FC = () => {
                           <label className="block text-sm font-medium mb-1">Club Notes</label>
                           <Textarea
                             value={clubData?.notes || ''}
+<<<<<<< HEAD
                             onChange={(e) => {
                               // In a real implementation, we would update clubData through the context
                             }}
+=======
+                            onChange={(e) => setClubData(prev => prev ? {...prev, notes: e.target.value} : null)}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                             placeholder="Club history, achievements, goals, strategic notes..."
                             rows={4}
                           />
@@ -1172,8 +1541,23 @@ export const DataManagementSection: React.FC = () => {
                         <Button 
                           className="bg-green-600 hover:bg-green-700"
                           onClick={async () => {
+<<<<<<< HEAD
                             // In a real implementation, we would save clubData through the context
                             toast.success('Club data updated successfully!');
+=======
+                            if (clubData) {
+                              try {
+                                setSaving(true);
+                                await dataManagementService.updateClubData(clubData);
+                                toast.success('Club data updated successfully!');
+                              } catch (error) {
+                                console.error('Error updating club data:', error);
+                                toast.error('Failed to update club data');
+                              } finally {
+                                setSaving(false);
+                              }
+                            }
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                           }}
                           disabled={saving}
                         >
@@ -1186,6 +1570,72 @@ export const DataManagementSection: React.FC = () => {
                         </Button>
                       </CardContent>
                     </Card>
+<<<<<<< HEAD
+=======
+
+                    {/* Staff & Facilities */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Users className="h-5 w-5" />
+                            <span>Staff Overview</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Coaches</span>
+                              <Badge variant="outline">{clubData?.staff?.coaches || 0}</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Medical Staff</span>
+                              <Badge variant="outline">{clubData?.staff?.medical || 0}</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Administrative</span>
+                              <Badge variant="outline">{clubData?.staff?.administrative || 0}</Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Settings className="h-5 w-5" />
+                            <span>Facilities</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Training Grounds</span>
+                              <Badge variant="outline">{clubData?.facilities?.trainingGrounds || 0}</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Medical Center</span>
+                              <Badge className={clubData?.facilities?.medicalCenter ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                                {clubData?.facilities?.medicalCenter ? 'Available' : 'Not Available'}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Gym</span>
+                              <Badge className={clubData?.facilities?.gym ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                                {clubData?.facilities?.gym ? 'Available' : 'Not Available'}
+                              </Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">Restaurant</span>
+                              <Badge className={clubData?.facilities?.restaurant ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                                {clubData?.facilities?.restaurant ? 'Available' : 'Not Available'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                   </div>
                 </TabsContent>
 

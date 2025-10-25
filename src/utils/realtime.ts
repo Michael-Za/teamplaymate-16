@@ -804,6 +804,7 @@ export class RealTimeDataSync {
 }
 
 // Export service instances
+<<<<<<< HEAD
 // Derive WS URL from VITE_API_URL if available
 const viteApi = import.meta.env?.VITE_API_URL as string | undefined;
 function deriveWsUrl(apiUrl?: string) {
@@ -818,11 +819,19 @@ function deriveWsUrl(apiUrl?: string) {
 
 export const webSocketManager = new WebSocketManager(
   deriveWsUrl(viteApi)
+=======
+export const webSocketManager = new WebSocketManager(
+  process.env.REACT_APP_WS_URL || 'ws://localhost:3001'
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 );
 export const serviceWorkerManager = new ServiceWorkerManager();
 export const progressiveLoadingManager = new ProgressiveLoadingManager();
 export const realTimeDataSync = new RealTimeDataSync(
+<<<<<<< HEAD
   deriveWsUrl(viteApi)
+=======
+  process.env.REACT_APP_WS_URL || 'ws://localhost:3001'
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 );
 
 // Real-time service orchestrator

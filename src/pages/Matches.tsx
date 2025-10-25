@@ -8,7 +8,11 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Calendar, MapPin, Clock, Users, Target, TrendingUp, Plus, X, ArrowLeft, Trophy, Award, Copy, Download, Shield } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+<<<<<<< HEAD
 import { useDataSync } from '../contexts/DataSyncContext'; // Use DataSyncContext instead of direct Supabase
+=======
+import { supabase } from '../lib/supabase';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 import { toast } from 'sonner';
 import MatchNotesModal from '../components/MatchNotesModal';
 
@@ -21,6 +25,7 @@ interface Match {
   awayScore: number;
   venue: string;
   status: 'completed' | 'upcoming';
+<<<<<<< HEAD
   // Add other properties that might be in the dataManagementService matches
   team_id?: string;
   opponent_name?: string;
@@ -81,11 +86,61 @@ const Matches = () => {
     // If match date is in the future, it's upcoming
     return matchDate < now ? 'completed' : 'upcoming';
   };
+=======
+}
+
+interface MatchStats {
+  firstHalf: {
+    goalLocations: { location: string; player: string; minute: number }[];
+    goals: number;
+    assists: number;
+    shots: number;
+    shotsOff: number;
+    foulsCommitted: number;
+    foulsReceived: number;
+    ballsLost: number;
+    ballsRecovered: number;
+    duelsWon: number;
+    duelsLost: number;
+    saves: number;
+    possession: number;
+  };
+  secondHalf: {
+    goalLocations: { location: string; player: string; minute: number }[];
+    goals: number;
+    assists: number;
+    shots: number;
+    shotsOff: number;
+    foulsCommitted: number;
+    foulsReceived: number;
+    ballsLost: number;
+    ballsRecovered: number;
+    duelsWon: number;
+    duelsLost: number;
+    saves: number;
+    possession: number;
+  };
+}
+
+interface MatchPlayer {
+  id: string;
+  name: string;
+  number: number;
+  goals: number;
+  assists: number;
+  mvpRating?: number;
+  photo?: string;
+}
+
+const Matches = () => {
+  const { t } = useLanguage();
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [matchNotes, setMatchNotes] = useState<any[]>([]);
   const [showAddMatchForm, setShowAddMatchForm] = useState(false);
+<<<<<<< HEAD
   const [localMatches, setLocalMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -111,6 +166,59 @@ const Matches = () => {
     }
   }, [matches]);
 
+=======
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch matches from database
+  const fetchMatches = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('Please sign in to view matches');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('match_date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching matches:', error);
+        toast.error('Error loading matches');
+        return;
+      }
+
+      // Transform database data to match component expectations
+      const transformedMatches = data.map(match => ({
+        id: match.id.toString(),
+        date: match.match_date,
+        homeTeam: match.home_team,
+        awayTeam: match.away_team,
+        homeScore: match.home_score || 0,
+        awayScore: match.away_score || 0,
+        venue: match.venue || 'TBD',
+        status: match.status as 'completed' | 'upcoming'
+      }));
+
+      setMatches(transformedMatches);
+    } catch (error) {
+      console.error('Error fetching matches:', error);
+      toast.error('Error loading matches');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch matches on component mount
+  useEffect(() => {
+    fetchMatches();
+  }, []);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   const [newMatch, setNewMatch] = useState({
     homeTeam: '',
     awayTeam: '',
@@ -127,6 +235,7 @@ const Matches = () => {
       return;
     }
 
+<<<<<<< HEAD
     // The DataSyncContext handles adding matches, so we don't need to do anything here
     // The matches will automatically update through the context
     setNewMatch({
@@ -140,6 +249,65 @@ const Matches = () => {
     });
     setShowAddMatchForm(false);
     toast.success('Match added successfully!');
+=======
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('Please sign in to add matches');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('matches')
+        .insert({
+          user_id: user.id,
+          home_team: newMatch.homeTeam,
+          away_team: newMatch.awayTeam,
+          match_date: newMatch.date,
+          venue: newMatch.venue,
+          status: newMatch.status,
+          home_score: newMatch.homeScore,
+          away_score: newMatch.awayScore
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding match:', error);
+        toast.error('Error adding match');
+        return;
+      }
+
+      // Transform and add to local state
+      const transformedMatch: Match = {
+        id: data.id.toString(),
+        date: data.match_date,
+        homeTeam: data.home_team,
+        awayTeam: data.away_team,
+        homeScore: data.home_score || 0,
+        awayScore: data.away_score || 0,
+        venue: data.venue,
+        status: data.status as 'completed' | 'upcoming'
+      };
+
+      setMatches(prev => [transformedMatch, ...prev]);
+      setNewMatch({
+        homeTeam: '',
+        awayTeam: '',
+        date: '',
+        venue: '',
+        status: 'upcoming',
+        homeScore: 0,
+        awayScore: 0
+      });
+      setShowAddMatchForm(false);
+      toast.success('Match added successfully!');
+    } catch (error) {
+      console.error('Error adding match:', error);
+      toast.error('Error adding match');
+    }
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   };
 
   const handleCancelAddMatch = () => {
@@ -155,6 +323,7 @@ const Matches = () => {
     setShowAddMatchForm(false);
   };
 
+<<<<<<< HEAD
   const [matchStats, setMatchStats] = useState<any | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
 
@@ -193,6 +362,106 @@ const Matches = () => {
           duelsLost: Math.floor(Math.random() * 14),
           saves: Math.floor(Math.random() * 4),
           possession: 50 + Math.floor(Math.random() * 20) - 10
+=======
+  const [matchStats, setMatchStats] = useState<MatchStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  // Fetch match statistics from database
+  const fetchMatchStats = async (matchId: string) => {
+    try {
+      setLoadingStats(true);
+      const { data, error } = await supabase
+        .from('matches')
+        .select('statistics, events')
+        .eq('id', matchId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching match stats:', error);
+        // Use fallback mock data if no real stats available
+        setMatchStats({
+          firstHalf: {
+            goalLocations: [],
+            goals: 0,
+            assists: 0,
+            shots: 0,
+            shotsOff: 0,
+            foulsCommitted: 0,
+            foulsReceived: 0,
+            ballsLost: 0,
+            ballsRecovered: 0,
+            duelsWon: 0,
+            duelsLost: 0,
+            saves: 0,
+            possession: 50
+          },
+          secondHalf: {
+            goalLocations: [],
+            goals: 0,
+            assists: 0,
+            shots: 0,
+            shotsOff: 0,
+            foulsCommitted: 0,
+            foulsReceived: 0,
+            ballsLost: 0,
+            ballsRecovered: 0,
+            duelsWon: 0,
+            duelsLost: 0,
+            saves: 0,
+            possession: 50
+          }
+        });
+        return;
+      }
+
+      // Parse statistics and events from database
+      const stats = data.statistics || {};
+      const events = data.events || [];
+
+      // Extract goal events for locations
+      const goalEvents = events.filter((event: any) => event.type === 'goal');
+      const firstHalfGoals = goalEvents.filter((event: any) => event.minute <= 45);
+      const secondHalfGoals = goalEvents.filter((event: any) => event.minute > 45);
+
+      setMatchStats({
+        firstHalf: {
+          goalLocations: firstHalfGoals.map((goal: any) => ({
+            location: goal.location || 'center',
+            player: goal.player || 'Unknown',
+            minute: goal.minute
+          })),
+          goals: stats.first_half_goals || firstHalfGoals.length,
+          assists: stats.first_half_assists || 0,
+          shots: stats.first_half_shots || 0,
+          shotsOff: stats.first_half_shots_off || 0,
+          foulsCommitted: stats.first_half_fouls_committed || 0,
+          foulsReceived: stats.first_half_fouls_received || 0,
+          ballsLost: stats.first_half_balls_lost || 0,
+          ballsRecovered: stats.first_half_balls_recovered || 0,
+          duelsWon: stats.first_half_duels_won || 0,
+          duelsLost: stats.first_half_duels_lost || 0,
+          saves: stats.first_half_saves || 0,
+          possession: stats.first_half_possession || 50
+        },
+        secondHalf: {
+          goalLocations: secondHalfGoals.map((goal: any) => ({
+            location: goal.location || 'center',
+            player: goal.player || 'Unknown',
+            minute: goal.minute
+          })),
+          goals: stats.second_half_goals || secondHalfGoals.length,
+          assists: stats.second_half_assists || 0,
+          shots: stats.second_half_shots || 0,
+          shotsOff: stats.second_half_shots_off || 0,
+          foulsCommitted: stats.second_half_fouls_committed || 0,
+          foulsReceived: stats.second_half_fouls_received || 0,
+          ballsLost: stats.second_half_balls_lost || 0,
+          ballsRecovered: stats.second_half_balls_recovered || 0,
+          duelsWon: stats.second_half_duels_won || 0,
+          duelsLost: stats.second_half_duels_lost || 0,
+          saves: stats.second_half_saves || 0,
+          possession: stats.second_half_possession || 50
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         }
       });
     } catch (error) {
@@ -210,6 +479,7 @@ const Matches = () => {
     }
   }, [selectedMatch]);
 
+<<<<<<< HEAD
   const [matchPlayers, setMatchPlayers] = useState<any[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
 
@@ -225,6 +495,45 @@ const Matches = () => {
         { id: '4', name: 'Kylian Mbappé', number: 9, goals: 0, assists: 1, mvpRating: 8.2 }
       ];
       setMatchPlayers(mockPlayers);
+=======
+  const [matchPlayers, setMatchPlayers] = useState<MatchPlayer[]>([]);
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
+
+  // Fetch match players from database
+  const fetchMatchPlayers = async (matchId: string) => {
+    try {
+      setLoadingPlayers(true);
+      const { data, error } = await supabase
+        .from('match_players')
+        .select(`
+          *,
+          players (
+            name,
+            jersey_number
+          )
+        `)
+        .eq('match_id', matchId);
+
+      if (error) {
+        console.error('Error fetching match players:', error);
+        setMatchPlayers([]);
+        return;
+      }
+
+      // Transform data to match MatchPlayer interface
+      const transformedPlayers: MatchPlayer[] = data.map((player: any) => ({
+        id: player.player_id,
+        name: player.players?.name || 'Unknown Player',
+        number: player.players?.jersey_number || 0,
+        goals: player.goals || 0,
+        assists: player.assists || 0,
+        mvpRating: player.rating || 0
+      }));
+
+      // Sort by performance (goals * 2 + assists)
+      const sortedPlayers = transformedPlayers.sort((a, b) => (b.goals * 2 + b.assists) - (a.goals * 2 + a.assists));
+      setMatchPlayers(sortedPlayers);
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     } catch (error) {
       console.error('Error fetching match players:', error);
       setMatchPlayers([]);
@@ -241,7 +550,11 @@ const Matches = () => {
   }, [selectedMatch]);
 
   const formatDate = (dateString: string) => {
+<<<<<<< HEAD
     return new Date(dateString).toLocaleDateString('en-US', {
+=======
+    return new Date(dateString).toLocaleDateString('es-ES', {
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -256,6 +569,7 @@ const Matches = () => {
     const mvpPlayer = matchPlayers[0];
     
     const goalScorers = matchPlayers
+<<<<<<< HEAD
       .filter((player: any) => player.goals > 0)
       .map((player: any) => `${player.name} (${player.goals} ${player.goals === 1 ? 'goal' : 'goals'})`)
       .join(', ');
@@ -272,6 +586,24 @@ In the first half, ${matchStats ? matchStats.firstHalf.goals : 0} goals were sco
 ${goalScorers ? `Goal scorers: ${goalScorers}.` : ''} ${assistProviders ? `Assists: ${assistProviders}.` : ''}
 
 The standout player was ${mvpPlayer?.name} with ${mvpPlayer?.goals} ${mvpPlayer?.goals === 1 ? 'goal' : 'goals'} and ${mvpPlayer?.assists} ${mvpPlayer?.assists === 1 ? 'assist' : 'assists'} (Rating: ${mvpPlayer?.mvpRating}).`;
+=======
+      .filter(player => player.goals > 0)
+      .map(player => `${player.name} (${player.goals} ${player.goals === 1 ? 'gol' : 'goles'})`)
+      .join(', ');
+
+    const assistProviders = matchPlayers
+      .filter(player => player.assists > 0)
+      .map(player => `${player.name} (${player.assists} ${player.assists === 1 ? 'asistencia' : 'asistencias'})`)
+      .join(', ');
+
+    return `El equipo ${selectedMatch.homeTeam} ${selectedMatch.homeScore > selectedMatch.awayScore ? 'ganó' : selectedMatch.homeScore < selectedMatch.awayScore ? 'perdió' : 'empató'} ${selectedMatch.homeScore}-${selectedMatch.awayScore} frente a ${selectedMatch.awayTeam}. 
+
+En la primera parte se marcaron ${matchStats ? matchStats.firstHalf.goals : 0} goles y se realizaron ${matchStats ? matchStats.firstHalf.assists : 0} asistencias. En la segunda parte fueron ${matchStats ? matchStats.secondHalf.goals : 0} goles y ${matchStats ? matchStats.secondHalf.assists : 0} asistencias.
+
+${goalScorers ? `Goleadores: ${goalScorers}.` : ''} ${assistProviders ? `Asistencias: ${assistProviders}.` : ''}
+
+El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlayer.goals === 1 ? 'gol' : 'goles'} y ${mvpPlayer.assists} ${mvpPlayer.assists === 1 ? 'asistencia' : 'asistencias'} (Nota: ${mvpPlayer.mvpRating}).`;
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
   };
 
   const copyToClipboard = () => {
@@ -312,7 +644,11 @@ The standout player was ${mvpPlayer?.name} with ${mvpPlayer?.goals} ${mvpPlayer?
             className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
           >
             <Award className="w-4 h-4" />
+<<<<<<< HEAD
             <span>Generate Summary</span>
+=======
+            <span>Generar Resumen</span>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
           </Button>
         </div>
 
@@ -340,12 +676,20 @@ The standout player was ${mvpPlayer?.name} with ${mvpPlayer?.goals} ${mvpPlayer?
           </CardContent>
         </Card>
 
+<<<<<<< HEAD
         {/* Featured Players */}
+=======
+        {/* Jugadores Destacados */}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Trophy className="w-5 h-5 text-yellow-500" />
+<<<<<<< HEAD
               <span>Featured Players</span>
+=======
+              <span>Jugadores Destacados</span>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -355,7 +699,11 @@ The standout player was ${mvpPlayer?.name} with ${mvpPlayer?.goals} ${mvpPlayer?
               </div>
             ) : matchPlayers.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+<<<<<<< HEAD
                 {matchPlayers.slice(0, 4).map((player: any) => (
+=======
+                {matchPlayers.slice(0, 4).map((player) => (
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                   <div
                     key={player.id}
                     className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg text-center hover:shadow-md transition-shadow"
@@ -390,12 +738,20 @@ The standout player was ${mvpPlayer?.name} with ${mvpPlayer?.goals} ${mvpPlayer?
           </CardContent>
         </Card>
 
+<<<<<<< HEAD
         {/* Match Summary */}
+=======
+        {/* Resumen del Partido */}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
         {showSummary && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
+<<<<<<< HEAD
                 <CardTitle>Match Summary</CardTitle>
+=======
+                <CardTitle>Resumen del Partido</CardTitle>
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                 <div className="flex space-x-2">
                   <Button
                     onClick={copyToClipboard}
@@ -861,7 +1217,11 @@ The standout player was ${mvpPlayer?.name} with ${mvpPlayer?.goals} ${mvpPlayer?
       {showAddMatchForm && renderAddMatchForm()}
       
       <div className="space-y-4">
+<<<<<<< HEAD
         {localMatches.map((match) => (
+=======
+        {matches.map((match) => (
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
           <Card
             key={match.id}
             onClick={() => setSelectedMatch(match)}
@@ -884,7 +1244,11 @@ The standout player was ${mvpPlayer?.name} with ${mvpPlayer?.goals} ${mvpPlayer?
                     ? 'bg-green-100 text-green-800' 
                     : 'bg-blue-100 text-blue-800'
                 }`}>
+<<<<<<< HEAD
                   {match.status === 'completed' ? 'Completed' : 'Upcoming'}
+=======
+                  {match.status === 'completed' ? t('matches.completed') : t('matches.upcoming')}
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
                 </div>
               </div>
               
@@ -912,4 +1276,8 @@ The standout player was ${mvpPlayer?.name} with ${mvpPlayer?.goals} ${mvpPlayer?
   );
 };
 
+<<<<<<< HEAD
 export default Matches;
+=======
+export default Matches;
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721

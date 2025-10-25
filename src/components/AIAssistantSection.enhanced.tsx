@@ -214,7 +214,11 @@ export const AIAssistantSection: React.FC = () => {
     setConnectionStatus('connecting');
     try {
       // Try to connect to the AI service using the proper endpoint
+<<<<<<< HEAD
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+=======
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+>>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
       const response = await fetch(`${apiUrl}/api/v1/ai-proxy/chat`, {
         method: 'POST',
         headers: {
