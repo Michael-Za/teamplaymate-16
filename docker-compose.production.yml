@@ -12,38 +12,11 @@ services:
     environment:
       - NODE_ENV=production
       - VITE_API_URL=https://api.statsor.com
-<<<<<<< HEAD
     depends_on: []
     networks:
       - statsor-network
 
   # Backend removed: using external backend service
-=======
-    depends_on:
-      - backend
-    networks:
-      - statsor-network
-
-  # Backend API
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
-    environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - FRONTEND_URL=https://statsor.com
-      - CORS_ORIGIN=https://statsor.com
-    env_file:
-      - ./backend/env.production
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - statsor-network
->>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
 
   # PostgreSQL Database
   postgres:
@@ -80,10 +53,6 @@ services:
       - ./ssl:/etc/nginx/ssl
     depends_on:
       - frontend
-<<<<<<< HEAD
-=======
-      - backend
->>>>>>> 5b1c6eafdf9968ae53e6d141d90a040247079721
     networks:
       - statsor-network
 
@@ -93,4 +62,4 @@ volumes:
 
 networks:
   statsor-network:
-    driver: bridge 
+    driver: bridge
