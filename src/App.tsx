@@ -66,7 +66,6 @@ const queryClient = new QueryClient({
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  const { sport, isFirstTime } = useSport();
   
   if (loading) {
     return (
@@ -76,13 +75,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
+  // Check if this is a demo account
+  const isDemo = localStorage.getItem('user_type') === 'demo';
+  
+  // For demo accounts, skip all checks and go directly to dashboard
+  if (isDemo) {
+    // Set a default sport in localStorage so the platform works
+    if (!localStorage.getItem('statsor_sport')) {
+      localStorage.setItem('statsor_sport', 'soccer');
+    }
+    if (!localStorage.getItem('statsor_sport_selection_completed')) {
+      localStorage.setItem('statsor_sport_selection_completed', 'true');
+    }
+    return <>{children}</>;
+  }
+  
+  // For real accounts, require sign in
   if (!user) {
     return <Navigate to="/signin" />;
-  }
-
-  // Show sport selection for first-time users
-  if (isFirstTime && !sport && user) {
-    return <SportSelectionModal isOpen={true} onClose={() => {}} />;
   }
   
   return <>{children}</>;
@@ -118,7 +128,7 @@ const AppProviders = ({ children }: { children: React.ReactNode }) => (
 function App() {
   // Clear demo data on app initialization if mock auth is disabled
   useEffect(() => {
-    const enableMockAuth = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+    const enableMockAuth = import.meta.env['VITE_ENABLE_MOCK_AUTH'] === 'true';
     
     // If mock auth is disabled, clear any demo authentication data
     if (!enableMockAuth) {

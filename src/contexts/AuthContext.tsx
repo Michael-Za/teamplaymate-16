@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { authAPI } from '../lib/api'
+import { supabase } from '../lib/supabase'
 import { csrfToken, rateLimiter, secureStorage } from '../utils/security'
 
 // PKCE utility functions for enhanced OAuth security
@@ -80,7 +81,6 @@ interface AuthContextType {
   resetPasswordWithCode?: (email: string, code: string, newPassword: string) => Promise<any>
   updateProfile?: (data: Partial<UserProfile>) => Promise<any>
   updateUser?: (data: Partial<UserProfile>) => Promise<any>
-  setUser: (user: UserProfile | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -142,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       try {
         // Check if mock auth is enabled
-        const enableMockAuth = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+        const enableMockAuth = import.meta.env['VITE_ENABLE_MOCK_AUTH'] === 'true';
         
         // If mock auth is disabled, clear any demo authentication data
         if (!enableMockAuth) {

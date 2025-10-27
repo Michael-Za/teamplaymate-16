@@ -141,8 +141,8 @@ const SignUp = () => {
         id: 'demo_' + Date.now(),
         email: 'demo@statsor.com',
         name: 'Demo User',
-        provider: 'email' as const,
-        sportSelected: false,
+        provider: 'demo',
+        sportSelected: true, // Set to true to bypass sport selection
         created_at: new Date().toISOString()
       };
       
@@ -156,6 +156,10 @@ const SignUp = () => {
       const mockToken = 'demo-token-' + Date.now();
       localStorage.setItem('auth_token', mockToken);
       localStorage.setItem('statsor_user', JSON.stringify(demoUser));
+      localStorage.setItem('user_type', 'demo');
+      // For demo accounts, set default sport immediately so no selection is needed
+      localStorage.setItem('statsor_sport', 'soccer');
+      localStorage.setItem('statsor_sport_selection_completed', 'true');
        
       const result = { user: demoUser, error: null };
       
