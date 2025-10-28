@@ -31,7 +31,9 @@ export const supabase = (isRealSupabase || isDemoMode) ? createClient(supabaseUr
   },
   global: {
     headers: {
-      'X-Client-Info': 'statsor-app'
+      'X-Client-Info': 'statsor-app',
+      // Add cache-busting header to prevent caching in production
+      'Cache-Control': 'no-cache'
     }
   }
 }) : {

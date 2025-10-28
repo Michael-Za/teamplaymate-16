@@ -74,6 +74,12 @@ class DataManagementService {
   }
 
   private getCachedData(key: string): any | null {
+    // Disable cache in production to ensure fresh data
+    const isProduction = import.meta.env.PROD;
+    if (isProduction) {
+      return null;
+    }
+    
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
       return cached.data;
@@ -83,6 +89,12 @@ class DataManagementService {
   }
 
   private setCachedData(key: string, data: any): void {
+    // Disable cache in production to ensure fresh data
+    const isProduction = import.meta.env.PROD;
+    if (isProduction) {
+      return;
+    }
+    
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 
