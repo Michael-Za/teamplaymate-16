@@ -6,11 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge';
 import { Users, Calendar, Plus, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+import { dataManagementService, Player as DataPlayer } from '../services/dataManagementService';
 
+// Define our Player interface to match the dataManagementService
 interface Player {
-  id: string;
+  id: string; // Make id mandatory for our component
   name: string;
-  number: number;
+  jersey_number: number;
   position: string;
 }
 
@@ -24,14 +26,8 @@ interface AttendanceRecord {
 }
 
 const Attendance: React.FC = () => {
-  const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: 'Fernando Torres', number: 9, position: 'DEL' },
-    { id: '2', name: 'Pablo Sánchez', number: 8, position: 'CEN' },
-    { id: '3', name: 'Juan Pérez', number: 4, position: 'DEL' },
-    { id: '4', name: 'Alejandro Martínez', number: 1, position: 'POR' },
-    { id: '5', name: 'David González', number: 2, position: 'DEF' }
-  ]);
-  
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0] || '');
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +37,47 @@ const Attendance: React.FC = () => {
     status: 'present' as 'present' | 'absent' | 'late',
     notes: ''
   });
+
+  // Load players from dataManagementService
+  useEffect(() => {
+    const loadPlayers = async () => {
+      try {
+        setLoading(true);
+        const playersData = await dataManagementService.getPlayers();
+        // Transform the data to match our Player interface
+        const transformedPlayers: Player[] = [];
+        
+        for (const player of playersData) {
+          // Only include players with valid IDs
+          if (player.id && typeof player.id === 'string') {
+            transformedPlayers.push({
+              id: player.id,
+              name: player.name,
+              jersey_number: player.jersey_number || 0,
+              position: player.position
+            });
+          }
+        }
+        
+        setPlayers(transformedPlayers);
+      } catch (error) {
+        console.error('Error loading players:', error);
+        toast.error('Failed to load players');
+        // Fallback to hardcoded data if service fails
+        setPlayers([
+          { id: '1', name: 'Fernando Torres', jersey_number: 9, position: 'DEL' },
+          { id: '2', name: 'Pablo Sánchez', jersey_number: 8, position: 'CEN' },
+          { id: '3', name: 'Juan Pérez', jersey_number: 4, position: 'DEL' },
+          { id: '4', name: 'Alejandro Martínez', jersey_number: 1, position: 'POR' },
+          { id: '5', name: 'David González', jersey_number: 2, position: 'DEF' }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPlayers();
+  }, []);
 
   // Load attendance records from localStorage
   useEffect(() => {
@@ -115,6 +152,22 @@ const Attendance: React.FC = () => {
   const absentCount = filteredRecords.filter(r => r.status === 'absent').length;
   const lateCount = filteredRecords.filter(r => r.status === 'late').length;
   const totalCount = filteredRecords.length;
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+            <Users className="mr-3 h-8 w-8 text-blue-600" />
+            Attendance
+          </h1>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -195,7 +248,7 @@ const Attendance: React.FC = () => {
                   )
                   .map(player => (
                     <SelectItem key={player.id} value={player.id}>
-                      {player.number}. {player.name}
+                      {player.jersey_number}. {player.name}
                     </SelectItem>
                   ))}
               </SelectContent>
@@ -209,7 +262,7 @@ const Attendance: React.FC = () => {
               onValueChange={(value) => setNewRecord(prev => ({ ...prev, status: value as 'present' | 'absent' | 'late' }))}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="present">Present</SelectItem>
@@ -219,102 +272,101 @@ const Attendance: React.FC = () => {
             </Select>
           </div>
           
-          <div>
+          <div className="md:col-span-2">
             <label className="text-sm font-medium mb-1 block">Notes</label>
             <Input
-              placeholder="Optional notes"
+              placeholder="Add any notes..."
               value={newRecord.notes}
               onChange={(e) => setNewRecord(prev => ({ ...prev, notes: e.target.value }))}
             />
           </div>
           
-          <div className="flex items-end">
-            <Button onClick={handleAddRecord} className="w-full">
+          <div className="md:col-span-4">
+            <Button onClick={handleAddRecord} className="w-full md:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
               Add Record
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Search and Filter */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search players or notes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <div className="w-full md:w-48">
-          <Select 
-            value={statusFilter} 
-            onValueChange={(value) => setStatusFilter(value as 'all' | 'present' | 'absent' | 'late')}
-          >
-            <SelectTrigger>
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="present">Present</SelectItem>
-              <SelectItem value="absent">Absent</SelectItem>
-              <SelectItem value="late">Late</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
       {/* Attendance Records Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Attendance Records for {new Date(selectedDate).toLocaleDateString()}</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle>Attendance Records</CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search records..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 pr-4 py-2 w-full sm:w-48"
+                />
+              </div>
+              <Select 
+                value={statusFilter} 
+                onValueChange={(value) => setStatusFilter(value as 'all' | 'present' | 'absent' | 'late')}
+              >
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                  <SelectItem value="late">Late</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {filteredRecords.length > 0 ? (
+          {filteredRecords.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No attendance records found for {selectedDate}
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-2">Player</th>
-                    <th className="text-left py-2">Status</th>
-                    <th className="text-left py-2">Notes</th>
-                    <th className="text-left py-2">Actions</th>
+                    <th className="text-left py-3 px-4 font-medium">Player</th>
+                    <th className="text-left py-3 px-4 font-medium">Position</th>
+                    <th className="text-left py-3 px-4 font-medium">Status</th>
+                    <th className="text-left py-3 px-4 font-medium">Notes</th>
+                    <th className="text-left py-3 px-4 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRecords.map(record => {
+                  {filteredRecords.map((record) => {
                     const player = players.find(p => p.id === record.playerId);
                     return (
                       <tr key={record.id} className="border-b hover:bg-gray-50">
-                        <td className="py-2">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-2">
-                              {player?.number || '0'}
-                            </div>
-                            {record.playerName}
-                          </div>
+                        <td className="py-3 px-4">{player ? `${player.jersey_number}. ${player.name}` : record.playerName}</td>
+                        <td className="py-3 px-4">
+                          <Badge variant="secondary">
+                            {player ? player.position : 'Unknown'}
+                          </Badge>
                         </td>
-                        <td className="py-2">
+                        <td className="py-3 px-4">
                           <Badge 
-                            className={
-                              record.status === 'present' ? 'bg-green-500' : 
-                              record.status === 'absent' ? 'bg-red-500' : 
-                              'bg-yellow-500'
+                            variant={
+                              record.status === 'present' ? 'default' : 
+                              record.status === 'absent' ? 'destructive' : 'secondary'
                             }
                           >
                             {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                           </Badge>
                         </td>
-                        <td className="py-2">{record.notes || '-'}</td>
-                        <td className="py-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                        <td className="py-3 px-4">{record.notes || '-'}</td>
+                        <td className="py-3 px-4">
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
                             onClick={() => handleDeleteRecord(record.id)}
-                            className="text-red-500 hover:text-red-700"
                           >
                             Delete
                           </Button>
@@ -324,12 +376,6 @@ const Attendance: React.FC = () => {
                   })}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p>No attendance records for this date</p>
-              <p className="text-sm">Add attendance records using the form above</p>
             </div>
           )}
         </CardContent>

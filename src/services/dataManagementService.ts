@@ -15,8 +15,27 @@ export interface Player {
   status?: string;
   team_id?: string;
   user_id?: string;
+  goals?: number;
+  assists?: number;
+  shots?: number;
+  shots_on_target?: number;
+  passes?: number;
+  pass_accuracy?: number;
+  fouls_committed?: number;
+  fouls_received?: number;
+  balls_lost?: number;
+  balls_recovered?: number;
+  duels_won?: number;
+  duels_lost?: number;
+  crosses?: number;
+  saves?: number;
+  minutes?: number;
+  games?: number;
+  yellow_cards?: number;
+  red_cards?: number;
   created_at?: string;
   updated_at?: string;
+  [key: string]: any; // Allow additional dynamic properties
 }
 
 export interface Team {
@@ -100,6 +119,15 @@ class DataManagementService {
 
   async getPlayers(teamId?: string): Promise<Player[]> {
     try {
+      // Check if this is a demo account
+      const isDemo = localStorage.getItem('user_type') === 'demo';
+      
+      if (isDemo) {
+        // For demo accounts, return demo players
+        const { demoAccountService } = await import('../services/demoAccountService');
+        return demoAccountService.getDemoPlayers();
+      }
+
       const cacheKey = `players_${teamId || 'all'}`;
       const cached = this.getCachedData(cacheKey);
       if (cached) return cached;
@@ -136,6 +164,17 @@ class DataManagementService {
 
   async getPlayer(id: string): Promise<Player | null> {
     try {
+      // Check if this is a demo account
+      const isDemo = localStorage.getItem('user_type') === 'demo';
+      
+      if (isDemo) {
+        // For demo accounts, return demo player
+        const { demoAccountService } = await import('../services/demoAccountService');
+        const demoPlayers = demoAccountService.getDemoPlayers();
+        const player = demoPlayers.find(p => p.id === id);
+        return player || null;
+      }
+
       const { data: player, error } = await supabase
         .from('players')
         .select('*')
@@ -361,6 +400,37 @@ class DataManagementService {
 
   async getMatches(teamId?: string): Promise<Match[]> {
     try {
+      // Check if this is a demo account
+      const isDemo = localStorage.getItem('user_type') === 'demo';
+      
+      if (isDemo) {
+        // For demo accounts, return demo matches
+        const { demoAccountService } = await import('../services/demoAccountService');
+        const demoMatches = demoAccountService.getDemoMatches();
+        
+        // Transform DemoMatch to Match interface
+        return demoMatches.map(match => ({
+          id: match.id,
+          opponent_name: match.opponent,
+          match_date: match.date,
+          location: match.venue,
+          match_type: match.competition,
+          home_score: match.result === 'win' || match.result === 'draw' ? 
+            parseInt(match.score.split('-')[0]) : 
+            parseInt(match.score.split('-')[1]),
+          away_score: match.result === 'loss' || match.result === 'draw' ? 
+            parseInt(match.score.split('-')[1]) : 
+            parseInt(match.score.split('-')[0]),
+          is_home: match.venue === 'home',
+          status: 'completed',
+          notes: '',
+          weather: '',
+          user_id: 'demo-user',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }));
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
@@ -450,6 +520,15 @@ class DataManagementService {
 
   async getClubData(): Promise<ClubData | null> {
     try {
+      // Check if this is a demo account
+      const isDemo = localStorage.getItem('user_type') === 'demo';
+      
+      if (isDemo) {
+        // For demo accounts, return demo club data
+        const { demoAccountService } = await import('../services/demoAccountService');
+        return demoAccountService.getDemoClubData();
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 

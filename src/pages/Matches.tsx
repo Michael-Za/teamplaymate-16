@@ -11,6 +11,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 import MatchNotesModal from '../components/MatchNotesModal';
+import { dataManagementService } from '../services/dataManagementService';
+import { demoAccountService, DemoMatch } from '../services/demoAccountService';
 
 interface Match {
   id: string;
@@ -76,42 +78,64 @@ const Matches = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch matches from database
+  // Fetch matches from database or demo service
   const fetchMatches = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) {
-        toast.error('Please sign in to view matches');
-        return;
+      // Check if this is a demo account
+      const isDemo = localStorage.getItem('user_type') === 'demo';
+      
+      if (isDemo) {
+        // For demo accounts, load matches from demo service
+        const demoMatches = demoAccountService.getDemoMatches();
+        // Transform demo matches to match our interface
+        const transformedMatches: Match[] = demoMatches.map((match: DemoMatch) => ({
+          id: match.id,
+          date: match.date,
+          homeTeam: match.venue === 'home' ? 'Statsor FC' : match.opponent,
+          awayTeam: match.venue === 'home' ? match.opponent : 'Statsor FC',
+          homeScore: match.score && typeof match.score === 'string' && match.score.includes('-') ? parseInt((match.score.split('-')[0]) ?? '0', 10) : 0,
+          awayScore: match.score && typeof match.score === 'string' && match.score.includes('-') ? parseInt((match.score.split('-')[1]) ?? '0', 10) : 0,
+          venue: match.venue === 'home' ? 'Victory Stadium' : match.opponent,
+          status: match.result === 'win' || match.result === 'loss' || match.result === 'draw' ? 'completed' : 'upcoming'
+        }));
+        setMatches(transformedMatches);
+      } else {
+        // For real accounts, fetch from Supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          toast.error('Please sign in to view matches');
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('match_date', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching matches:', error);
+          toast.error('Error loading matches');
+          return;
+        }
+
+        // Transform database data to match component expectations
+        const transformedMatches = data.map((match: any) => ({
+          id: match.id.toString(),
+          date: match.match_date,
+          homeTeam: match.home_team,
+          awayTeam: match.away_team,
+          homeScore: match.home_score || 0,
+          awayScore: match.away_score || 0,
+          venue: match.venue || 'TBD',
+          status: match.status as 'completed' | 'upcoming'
+        }));
+
+        setMatches(transformedMatches);
       }
-
-      const { data, error } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('match_date', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching matches:', error);
-        toast.error('Error loading matches');
-        return;
-      }
-
-      // Transform database data to match component expectations
-      const transformedMatches = data.map(match => ({
-        id: match.id.toString(),
-        date: match.match_date,
-        homeTeam: match.home_team,
-        awayTeam: match.away_team,
-        homeScore: match.home_score || 0,
-        awayScore: match.away_score || 0,
-        venue: match.venue || 'TBD',
-        status: match.status as 'completed' | 'upcoming'
-      }));
-
-      setMatches(transformedMatches);
     } catch (error) {
       console.error('Error fetching matches:', error);
       toast.error('Error loading matches');
@@ -124,6 +148,7 @@ const Matches = () => {
   useEffect(() => {
     fetchMatches();
   }, []);
+  
   const [newMatch, setNewMatch] = useState({
     homeTeam: '',
     awayTeam: '',
@@ -141,58 +166,93 @@ const Matches = () => {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Check if this is a demo account
+      const isDemo = localStorage.getItem('user_type') === 'demo';
       
-      if (!user) {
-        toast.error('Please sign in to add matches');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('matches')
-        .insert({
-          user_id: user.id,
-          home_team: newMatch.homeTeam,
-          away_team: newMatch.awayTeam,
-          match_date: newMatch.date,
+      if (isDemo) {
+        // For demo accounts, save to localStorage
+        const newMatchObj: Match = {
+          id: Date.now().toString(),
+          homeTeam: newMatch.homeTeam,
+          awayTeam: newMatch.awayTeam,
+          date: newMatch.date,
           venue: newMatch.venue,
           status: newMatch.status,
-          home_score: newMatch.homeScore,
-          away_score: newMatch.awayScore
-        })
-        .select()
-        .single();
+          homeScore: newMatch.homeScore,
+          awayScore: newMatch.awayScore
+        };
+        
+        const updatedMatches = [newMatchObj, ...matches];
+        setMatches(updatedMatches);
+        localStorage.setItem('statsor_demo_matches', JSON.stringify(updatedMatches));
+        
+        // Reset form
+        setNewMatch({
+          homeTeam: '',
+          awayTeam: '',
+          date: '',
+          venue: '',
+          status: 'upcoming',
+          homeScore: 0,
+          awayScore: 0
+        });
+        setShowAddMatchForm(false);
+        toast.success('Match added successfully!');
+      } else {
+        // For real accounts, save to Supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          toast.error('Please sign in to add matches');
+          return;
+        }
 
-      if (error) {
-        console.error('Error adding match:', error);
-        toast.error('Error adding match');
-        return;
+        const { data, error } = await supabase
+          .from('matches')
+          .insert({
+            user_id: user.id,
+            home_team: newMatch.homeTeam,
+            away_team: newMatch.awayTeam,
+            match_date: newMatch.date,
+            venue: newMatch.venue,
+            status: newMatch.status,
+            home_score: newMatch.homeScore,
+            away_score: newMatch.awayScore
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error adding match:', error);
+          toast.error('Error adding match');
+          return;
+        }
+
+        // Transform and add to local state
+        const transformedMatch: Match = {
+          id: data.id.toString(),
+          date: data.match_date,
+          homeTeam: data.home_team,
+          awayTeam: data.away_team,
+          homeScore: data.home_score || 0,
+          awayScore: data.away_score || 0,
+          venue: data.venue,
+          status: data.status as 'completed' | 'upcoming'
+        };
+
+        setMatches(prev => [transformedMatch, ...prev]);
+        setNewMatch({
+          homeTeam: '',
+          awayTeam: '',
+          date: '',
+          venue: '',
+          status: 'upcoming',
+          homeScore: 0,
+          awayScore: 0
+        });
+        setShowAddMatchForm(false);
+        toast.success('Match added successfully!');
       }
-
-      // Transform and add to local state
-      const transformedMatch: Match = {
-        id: data.id.toString(),
-        date: data.match_date,
-        homeTeam: data.home_team,
-        awayTeam: data.away_team,
-        homeScore: data.home_score || 0,
-        awayScore: data.away_score || 0,
-        venue: data.venue,
-        status: data.status as 'completed' | 'upcoming'
-      };
-
-      setMatches(prev => [transformedMatch, ...prev]);
-      setNewMatch({
-        homeTeam: '',
-        awayTeam: '',
-        date: '',
-        venue: '',
-        status: 'upcoming',
-        homeScore: 0,
-        awayScore: 0
-      });
-      setShowAddMatchForm(false);
-      toast.success('Match added successfully!');
     } catch (error) {
       console.error('Error adding match:', error);
       toast.error('Error adding match');
@@ -380,7 +440,7 @@ const Matches = () => {
   }, [selectedMatch]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -396,26 +456,26 @@ const Matches = () => {
     
     const goalScorers = matchPlayers
       .filter(player => player.goals > 0)
-      .map(player => `${player.name} (${player.goals} ${player.goals === 1 ? 'gol' : 'goles'})`)
+      .map(player => `${player.name} (${player.goals} ${player.goals === 1 ? 'goal' : 'goals'})`)
       .join(', ');
 
     const assistProviders = matchPlayers
       .filter(player => player.assists > 0)
-      .map(player => `${player.name} (${player.assists} ${player.assists === 1 ? 'asistencia' : 'asistencias'})`)
+      .map(player => `${player.name} (${player.assists} ${player.assists === 1 ? 'assist' : 'assists'})`)
       .join(', ');
 
-    return `El equipo ${selectedMatch.homeTeam} ${selectedMatch.homeScore > selectedMatch.awayScore ? 'ganó' : selectedMatch.homeScore < selectedMatch.awayScore ? 'perdió' : 'empató'} ${selectedMatch.homeScore}-${selectedMatch.awayScore} frente a ${selectedMatch.awayTeam}. 
+    return `The team ${selectedMatch.homeTeam} ${selectedMatch.homeScore > selectedMatch.awayScore ? 'won' : selectedMatch.homeScore < selectedMatch.awayScore ? 'lost' : 'drew'} ${selectedMatch.homeScore}-${selectedMatch.awayScore} against ${selectedMatch.awayTeam}. 
 
-En la primera parte se marcaron ${matchStats ? matchStats.firstHalf.goals : 0} goles y se realizaron ${matchStats ? matchStats.firstHalf.assists : 0} asistencias. En la segunda parte fueron ${matchStats ? matchStats.secondHalf.goals : 0} goles y ${matchStats ? matchStats.secondHalf.assists : 0} asistencias.
+In the first half, ${matchStats ? matchStats.firstHalf.goals : 0} goals were scored and ${matchStats ? matchStats.firstHalf.assists : 0} assists were made. In the second half, ${matchStats ? matchStats.secondHalf.goals : 0} goals and ${matchStats ? matchStats.secondHalf.assists : 0} assists were recorded.
 
-${goalScorers ? `Goleadores: ${goalScorers}.` : ''} ${assistProviders ? `Asistencias: ${assistProviders}.` : ''}
+${goalScorers ? `Goal scorers: ${goalScorers}.` : ''} ${assistProviders ? `Assists: ${assistProviders}.` : ''}
 
-El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlayer.goals === 1 ? 'gol' : 'goles'} y ${mvpPlayer.assists} ${mvpPlayer.assists === 1 ? 'asistencia' : 'asistencias'} (Nota: ${mvpPlayer.mvpRating}).`;
+${mvpPlayer ? `The standout player was ${mvpPlayer.name} with ${mvpPlayer.goals} ${mvpPlayer.goals === 1 ? 'goal' : 'goals'} and ${mvpPlayer.assists} ${mvpPlayer.assists === 1 ? 'assist' : 'assists'} (Rating: ${mvpPlayer.mvpRating ?? 0}).` : ''}`;
   };
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generateMatchSummary());
-    // Aquí podrías añadir un toast de confirmación
+    // Here you could add a confirmation toast
   };
 
   const downloadPDF = () => {
@@ -424,7 +484,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `resumen-partido-${selectedMatch?.id}.txt`;
+    a.download = `match-summary-${selectedMatch?.id}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -451,7 +511,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
             className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
           >
             <Award className="w-4 h-4" />
-            <span>Generar Resumen</span>
+            <span>Generate Summary</span>
           </Button>
         </div>
 
@@ -479,12 +539,12 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
           </CardContent>
         </Card>
 
-        {/* Jugadores Destacados */}
+        {/* Top Players */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Trophy className="w-5 h-5 text-yellow-500" />
-              <span>Jugadores Destacados</span>
+              <span>Top Players</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -529,12 +589,12 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
           </CardContent>
         </Card>
 
-        {/* Resumen del Partido */}
+        {/* Match Summary */}
         {showSummary && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Resumen del Partido</CardTitle>
+                <CardTitle>Match Summary</CardTitle>
                 <div className="flex space-x-2">
                   <Button
                     onClick={copyToClipboard}
@@ -543,7 +603,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                     className="flex items-center space-x-1"
                   >
                     <Copy className="w-4 h-4" />
-                    <span>Copiar</span>
+                    <span>Copy</span>
                   </Button>
                   <Button
                     onClick={downloadPDF}
@@ -552,7 +612,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                     className="flex items-center space-x-1"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Descargar</span>
+                    <span>Download</span>
                   </Button>
                 </div>
               </div>
@@ -590,7 +650,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white mr-3">
                           <TrendingUp className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Posesión (%)</span>
+                        <span className="font-medium">Possession (%)</span>
                       </div>
                       <span className="text-xl font-bold text-blue-600">{matchStats.firstHalf.possession + matchStats.secondHalf.possession}%</span>
                     </div>
@@ -599,7 +659,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white mr-3">
                           <Target className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Pases completados</span>
+                        <span className="font-medium">Completed Passes</span>
                       </div>
                       <span className="text-xl font-bold text-blue-600">342</span>
                     </div>
@@ -608,7 +668,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white mr-3">
                           <Target className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Precisión de pases</span>
+                        <span className="font-medium">Pass Accuracy</span>
                       </div>
                       <span className="text-xl font-bold text-blue-600">85%</span>
                     </div>
@@ -617,7 +677,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white mr-3">
                           <TrendingUp className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Distancia recorrida</span>
+                        <span className="font-medium">Distance Covered</span>
                       </div>
                       <span className="text-xl font-bold text-blue-600">102 km</span>
                     </div>
@@ -652,7 +712,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white mr-3">
                           <Target className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Goles</span>
+                        <span className="font-medium">Goals</span>
                       </div>
                       <span className="text-xl font-bold text-red-600">{matchStats.firstHalf.goals + matchStats.secondHalf.goals}</span>
                     </div>
@@ -661,7 +721,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white mr-3">
                           <Award className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Asistencias</span>
+                        <span className="font-medium">Assists</span>
                       </div>
                       <span className="text-xl font-bold text-red-600">{matchStats.firstHalf.assists + matchStats.secondHalf.assists}</span>
                     </div>
@@ -670,7 +730,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white mr-3">
                           <Target className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Tiros a portería</span>
+                        <span className="font-medium">Shots on Target</span>
                       </div>
                       <span className="text-xl font-bold text-red-600">{matchStats.firstHalf.shots + matchStats.secondHalf.shots}</span>
                     </div>
@@ -679,7 +739,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white mr-3">
                           <Target className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Tiros fuera</span>
+                        <span className="font-medium">Shots Off Target</span>
                       </div>
                       <span className="text-xl font-bold text-red-600">{matchStats.firstHalf.shotsOff + matchStats.secondHalf.shotsOff}</span>
                     </div>
@@ -714,7 +774,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white mr-3">
                           <Shield className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Entradas</span>
+                        <span className="font-medium">Tackles</span>
                       </div>
                       <span className="text-xl font-bold text-green-600">24</span>
                     </div>
@@ -741,7 +801,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white mr-3">
                           <Shield className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Balones recuperados</span>
+                        <span className="font-medium">Balls Recovered</span>
                       </div>
                       <span className="text-xl font-bold text-green-600">{matchStats.firstHalf.ballsRecovered + matchStats.secondHalf.ballsRecovered}</span>
                     </div>
@@ -776,7 +836,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-white mr-3">
                           <Award className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Tarjetas amarillas</span>
+                        <span className="font-medium">Yellow Cards</span>
                       </div>
                       <span className="text-xl font-bold text-yellow-600">2</span>
                     </div>
@@ -785,7 +845,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-white mr-3">
                           <Award className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Tarjetas rojas</span>
+                        <span className="font-medium">Red Cards</span>
                       </div>
                       <span className="text-xl font-bold text-yellow-600">0</span>
                     </div>
@@ -794,7 +854,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-white mr-3">
                           <Award className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Faltas cometidas</span>
+                        <span className="font-medium">Fouls Committed</span>
                       </div>
                       <span className="text-xl font-bold text-yellow-600">{matchStats.firstHalf.foulsCommitted + matchStats.secondHalf.foulsCommitted}</span>
                     </div>
@@ -803,7 +863,7 @@ El jugador más destacado fue ${mvpPlayer.name} con ${mvpPlayer.goals} ${mvpPlay
                         <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-white mr-3">
                           <Award className="w-5 h-5" />
                         </div>
-                        <span className="font-medium">Faltas recibidas</span>
+                        <span className="font-medium">Fouls Received</span>
                       </div>
                       <span className="text-xl font-bold text-yellow-600">{matchStats.firstHalf.foulsReceived + matchStats.secondHalf.foulsReceived}</span>
                     </div>

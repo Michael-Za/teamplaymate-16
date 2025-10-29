@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '../contexts/LanguageContext';
+import { dataManagementService, Player as DataPlayer } from '../services/dataManagementService';
 
 interface Player {
   id: string;
@@ -163,6 +164,7 @@ const CommandTable: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const [newPlayer, setNewPlayer] = useState({
     name: '',
@@ -253,28 +255,45 @@ const CommandTable: React.FC = () => {
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const importMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns when clicking outside
+  // Load players from data management service
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
-        setShowExportMenu(false);
-      }
-      if (importMenuRef.current && !importMenuRef.current.contains(event.target as Node)) {
-        setShowImportMenu(false);
+    const loadPlayers = async () => {
+      try {
+        setLoading(true);
+        const playersData = await dataManagementService.getPlayers();
+        // Transform the data to match our Player interface
+        const transformedPlayers = playersData.map((player, index) => ({
+          id: player.id || `player_${index}`,
+          name: player.name,
+          number: player.jersey_number || index + 1,
+          position: player.position || 'DEL',
+          role: '',
+          notes: '',
+          rating: 3.0,
+          status: 'available' as 'available' | 'injured' | 'suspended',
+          goals: player.goals || 0,
+          assists: player.assists || 0,
+          yellowCards: player.yellow_cards || 0,
+          redCards: player.red_cards || 0,
+          matchesPlayed: 0,
+          createdAt: new Date(player.created_at || Date.now())
+        }));
+        setPlayers(transformedPlayers);
+      } catch (error) {
+        console.error('Error loading players:', error);
+        toast.error('Failed to load players');
+      } finally {
+        setLoading(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    loadPlayers();
   }, []);
 
   // Save data to localStorage
   useEffect(() => {
-    localStorage.setItem('statsor_command_players', JSON.stringify(players));
     localStorage.setItem('statsor_command_formations', JSON.stringify(formations));
-  }, [players, formations]);
+  }, [formations]);
 
   // Save player actions to localStorage
   useEffect(() => {
@@ -859,6 +878,19 @@ const CommandTable: React.FC = () => {
     if (sortBy !== column) return null;
     return sortOrder === 'asc' ? '↑' : '↓';
   };
+
+  if (loading) {
+    return (
+      <div className="p-4 md:p-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading players...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6">

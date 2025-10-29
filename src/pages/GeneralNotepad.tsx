@@ -574,7 +574,7 @@ export const GeneralNotepad: React.FC = () => {
                         ref={contentTextareaRef}
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
-                        placeholder="Start writing your thoughts here... 📝\n\nTip: Use this space for:\n• Meeting notes\n• Ideas and brainstorming\n• Task lists\n• Project planning\n• Daily reflections\n• Or anything else you want to remember!"
+                        placeholder="Start writing your thoughts here...\n\nTip: Use this space for:\n• Meeting notes\n• Ideas and brainstorming\n• Task lists\n• Project planning\n• Daily reflections\n• Or anything else you want to remember!"
                         className="h-64 resize-none text-base leading-relaxed overflow-y-auto placeholder:text-gray-400"
                         onKeyDown={(e) => {
                           if (e.key === 'Tab') {
@@ -645,10 +645,10 @@ export const GeneralNotepad: React.FC = () => {
                     <p className="text-xl mb-3 font-semibold">Start Writing</p>
                     <p className="text-sm mb-4">Click here to start writing in this space</p>
                     <div className="space-y-2 text-sm text-gray-500">
-                      <p>✍️ Quick notes and thoughts</p>
-                      <p>📝 Meeting minutes</p>
-                      <p>💡 Ideas and brainstorming</p>
-                      <p>📋 Task lists and planning</p>
+                      <p>Quick notes and thoughts</p>
+                      <p>Meeting minutes</p>
+                      <p>Ideas and brainstorming</p>
+                      <p>Task lists and planning</p>
                     </div>
                     <div className="mt-6">
                       <Button 

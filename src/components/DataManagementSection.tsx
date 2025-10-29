@@ -6,6 +6,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useNavigate } from 'react-router-dom';
 import {
   Database,
   Users,
@@ -43,7 +45,6 @@ import { dataManagementService, Player, ClubData } from '../services/dataManagem
 import { analyticsExportService } from '../services/analyticsExportService';
 import { toast } from 'sonner';
 import AddPlayerForm from './AddPlayerForm';
-
 // Extend ClubData with analytics fields
 interface AnalyticsData extends ClubData {
   revenue?: number;
@@ -58,6 +59,7 @@ interface AnalyticsData extends ClubData {
 
 export const DataManagementSection: React.FC = () => {
   const { theme, isHighContrast } = useTheme();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('players');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,9 +76,21 @@ export const DataManagementSection: React.FC = () => {
   const [clubData, setClubData] = useState<ClubData | null>(null);
   
   // Data for other tabs
-  const [matches, setMatches] = useState<any[]>([]);
+  const [matches, setMatches] = useState<any[]>([
+    { id: 1, opponent: 'Barcelona', result: 'W', score: '3-1', competition: 'La Liga', venue: 'Home', date: 'Dec 15, 2024' },
+    { id: 2, opponent: 'Real Madrid', result: 'D', score: '1-1', competition: 'La Liga', venue: 'Away', date: 'Dec 10, 2024' },
+    { id: 3, opponent: 'Atletico Madrid', result: 'W', score: '2-0', competition: 'La Liga', venue: 'Home', date: 'Dec 5, 2024' },
+    { id: 4, opponent: 'Valencia', result: 'L', score: '0-1', competition: 'La Liga', venue: 'Away', date: 'Nov 30, 2024' },
+    { id: 5, opponent: 'Sevilla', result: 'W', score: '3-1', competition: 'La Liga', venue: 'Home', date: 'Nov 25, 2024' }
+  ]);
   const [trainingSessions, setTrainingSessions] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([
+    { id: 1, type: 'match', title: 'vs Barcelona', date: 'Dec 20, 2024', time: '20:00', location: 'Camp Nou' },
+    { id: 2, type: 'training', title: 'Tactical Training', date: 'Dec 18, 2024', time: '09:00', location: 'Training Ground' },
+    { id: 3, type: 'meeting', title: 'Team Meeting', date: 'Dec 17, 2024', time: '14:00', location: 'Conference Room' },
+    { id: 4, type: 'match', title: 'vs Atletico Madrid', date: 'Dec 23, 2024', time: '18:30', location: 'Wanda Metropolitano' },
+    { id: 5, type: 'other', title: 'Medical Checkups', date: 'Dec 19, 2024', time: '10:00', location: 'Medical Center' }
+  ]);
   
   // Analytics data state
   const [analyticsData, setAnalyticsData] = useState<Partial<AnalyticsData> | null>(null);
@@ -89,6 +103,14 @@ export const DataManagementSection: React.FC = () => {
   const [showMatchesExportMenu, setShowMatchesExportMenu] = useState(false);
   const [showTrainingExportMenu, setShowTrainingExportMenu] = useState(false);
   const [showEventsExportMenu, setShowEventsExportMenu] = useState(false);
+  
+  // State for event management
+  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [showAddEventForm, setShowAddEventForm] = useState(false);
+  
+  // State for match management
+  const [editingMatch, setEditingMatch] = useState<any>(null);
+  const [showAddMatchForm, setShowAddMatchForm] = useState(false);
 
   // Export history state
   const [exportHistory, setExportHistory] = useState<{ id: string, type: string, format: string, timestamp: Date, fileName: string }[]>([]);
@@ -114,9 +136,9 @@ export const DataManagementSection: React.FC = () => {
     if (searchTerm) {
       setFilteredPlayers(
         players.filter(player => 
-          player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          player.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (player.nationality && player.nationality.toLowerCase().includes(searchTerm.toLowerCase()))
+          player['name'].toLowerCase().includes(searchTerm.toLowerCase()) ||
+          player['position'].toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (player['nationality'] && player['nationality'].toLowerCase().includes(searchTerm.toLowerCase()))
         )
       );
     } else {
@@ -154,7 +176,7 @@ export const DataManagementSection: React.FC = () => {
         }
       } else {
         // Add new player
-        const newPlayer = await dataManagementService.createPlayer(playerData);
+        const newPlayer = await dataManagementService.addPlayer(playerData as Player);
         if (newPlayer) {
           setPlayers([...players, newPlayer]);
           toast.success('Player added successfully!');
@@ -217,19 +239,19 @@ export const DataManagementSection: React.FC = () => {
           ...players.map(player => [
             player.id,
             `"${player.name}"`,
-            player.position,
-            player.age,
-            `"${player.nationality || ''}"`,
-            player.goals,
-            player.assists,
-            player.minutes,
-            player.fitness,
-            player.skills?.technical || 0,
-            player.skills?.physical || 0,
-            player.skills?.tactical || 0,
-            player.skills?.mental || 0,
-            player.medicalClearance ? 'Yes' : 'No',
-            `"${player.notes || ''}"`
+            player['position'],
+            player['age'],
+            `"${player['nationality'] || ''}"`,
+            player['goals'],
+            player['assists'],
+            player['minutes'],
+            player['fitness'],
+            player['skills']?.technical || 0,
+            player['skills']?.physical || 0,
+            player['skills']?.tactical || 0,
+            player['skills']?.mental || 0,
+            player['medicalClearance'] ? 'Yes' : 'No',
+            `"${player['notes'] || ''}"`
           ].join(','))
         ].join('\n');
         
@@ -326,27 +348,27 @@ export const DataManagementSection: React.FC = () => {
                 player.minutes = isNaN(minutesValue) ? 0 : minutesValue;
               } else if (headerLower === 'fitness') {
                 const fitnessValue = value ? parseInt(value, 10) : 0;
-                player.fitness = isNaN(fitnessValue) ? 0 : fitnessValue;
+                player['fitness'] = isNaN(fitnessValue) ? 0 : fitnessValue;
               } else if (headerLower === 'technical skills') {
-                if (!player.skills) player.skills = { technical: 0, physical: 0, tactical: 0, mental: 0 };
+                if (!player['skills']) player['skills'] = { technical: 0, physical: 0, tactical: 0, mental: 0 };
                 const technicalValue = value ? parseInt(value, 10) : 0;
-                player.skills.technical = isNaN(technicalValue) ? 0 : technicalValue;
+                player['skills'].technical = isNaN(technicalValue) ? 0 : technicalValue;
               } else if (headerLower === 'physical skills') {
-                if (!player.skills) player.skills = { technical: 0, physical: 0, tactical: 0, mental: 0 };
+                if (!player['skills']) player['skills'] = { technical: 0, physical: 0, tactical: 0, mental: 0 };
                 const physicalValue = value ? parseInt(value, 10) : 0;
-                player.skills.physical = isNaN(physicalValue) ? 0 : physicalValue;
+                player['skills'].physical = isNaN(physicalValue) ? 0 : physicalValue;
               } else if (headerLower === 'tactical skills') {
-                if (!player.skills) player.skills = { technical: 0, physical: 0, tactical: 0, mental: 0 };
+                if (!player['skills']) player['skills'] = { technical: 0, physical: 0, tactical: 0, mental: 0 };
                 const tacticalValue = value ? parseInt(value, 10) : 0;
-                player.skills.tactical = isNaN(tacticalValue) ? 0 : tacticalValue;
+                player['skills'].tactical = isNaN(tacticalValue) ? 0 : tacticalValue;
               } else if (headerLower === 'mental skills') {
-                if (!player.skills) player.skills = { technical: 0, physical: 0, tactical: 0, mental: 0 };
+                if (!player['skills']) player['skills'] = { technical: 0, physical: 0, tactical: 0, mental: 0 };
                 const mentalValue = value ? parseInt(value, 10) : 0;
-                player.skills.mental = isNaN(mentalValue) ? 0 : mentalValue;
+                player['skills'].mental = isNaN(mentalValue) ? 0 : mentalValue;
               } else if (headerLower === 'medical clearance') {
-                player.medicalClearance = value?.toLowerCase() === 'yes';
+                player['medicalClearance'] = value?.toLowerCase() === 'yes';
               } else if (headerLower === 'notes') {
-                if (value) player.notes = value;
+                if (value) player['notes'] = value;
               }
             }
           });
@@ -366,7 +388,7 @@ export const DataManagementSection: React.FC = () => {
               successCount++;
             } else {
               // Create new player
-              await dataManagementService.createPlayer(player);
+              await dataManagementService.addPlayer(player as Player);
               successCount++;
             }
           } catch (error) {
@@ -390,7 +412,7 @@ export const DataManagementSection: React.FC = () => {
               successCount++;
             } else {
               // Create new player
-              await dataManagementService.createPlayer(player);
+              await dataManagementService.addPlayer(player as Player);
               successCount++;
             }
           } catch (error) {
@@ -422,6 +444,82 @@ export const DataManagementSection: React.FC = () => {
     toast.success('Export history cleared');
   };
 
+  // Event management functions
+  const handleEditEvent = (event: any) => {
+    setEditingEvent(event);
+    setShowAddEventForm(true);
+  };
+
+  const handleDeleteEvent = (eventId: number) => {
+    setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+    toast.success('Event deleted successfully!');
+  };
+
+  const handleAddEvent = () => {
+    setShowAddEventForm(true);
+    setEditingEvent(null);
+  };
+
+  const handleSaveEvent = (eventData: any) => {
+    if (editingEvent) {
+      // Update existing event
+      setEvents(prevEvents => 
+        prevEvents.map(event => 
+          event.id === editingEvent.id ? { ...event, ...eventData } : event
+        )
+      );
+      toast.success('Event updated successfully!');
+    } else {
+      // Add new event
+      const newEvent = {
+        ...eventData,
+        id: Date.now() // Simple ID generation
+      };
+      setEvents(prevEvents => [...prevEvents, newEvent]);
+      toast.success('Event added successfully!');
+    }
+    setShowAddEventForm(false);
+    setEditingEvent(null);
+  };
+
+  // Match management functions
+  const handleEditMatch = (match: any) => {
+    setEditingMatch(match);
+    setShowAddMatchForm(true);
+  };
+
+  const handleDeleteMatch = (matchId: number) => {
+    setMatches(prevMatches => prevMatches.filter(match => match.id !== matchId));
+    toast.success('Match deleted successfully!');
+  };
+
+  const handleAddMatch = () => {
+    setShowAddMatchForm(true);
+    setEditingMatch(null);
+  };
+
+  const handleSaveMatch = (matchData: any) => {
+    if (editingMatch) {
+      // Update existing match
+      setMatches(prevMatches => 
+        prevMatches.map(match => 
+          match.id === editingMatch.id ? { ...match, ...matchData } : match
+        )
+      );
+      toast.success('Match updated successfully!');
+    } else {
+      // Add new match
+      const newMatch = {
+        ...matchData,
+        id: Date.now() // Simple ID generation
+      };
+      setMatches(prevMatches => [...prevMatches, newMatch]);
+      toast.success('Match added successfully!');
+    }
+    setShowAddMatchForm(false);
+    setEditingMatch(null);
+  };
+
   // PDF Generation Handlers
   const generatePlayerPerformanceReport = async () => {
     try {
@@ -436,12 +534,12 @@ export const DataManagementSection: React.FC = () => {
           goals: player.goals,
           assists: player.assists,
           minutes: player.minutes,
-          fitness: player.fitness,
-          technicalSkills: player.skills?.technical,
-          physicalSkills: player.skills?.physical,
-          tacticalSkills: player.skills?.tactical,
-          mentalSkills: player.skills?.mental,
-          medicalClearance: player.medicalClearance ? 'Yes' : 'No'
+          fitness: player['fitness'],
+          technicalSkills: player['skills']?.technical,
+          physicalSkills: player['skills']?.physical,
+          tacticalSkills: player['skills']?.tactical,
+          mentalSkills: player['skills']?.mental,
+          medicalClearance: player['medicalClearance'] ? 'Yes' : 'No'
         })),
         metadata: {
           generatedAt: new Date().toISOString(),
@@ -483,7 +581,7 @@ export const DataManagementSection: React.FC = () => {
       const totalAssists = players.reduce((sum, player) => sum + (player.assists || 0), 0);
       const totalMinutes = players.reduce((sum, player) => sum + (player.minutes || 0), 0);
       const avgFitness = players.length > 0 
-        ? players.reduce((sum, player) => sum + (player.fitness || 0), 0) / players.length 
+        ? players.reduce((sum, player) => sum + (player['fitness'] || 0), 0) / players.length 
         : 0;
 
       const exportData = {
@@ -550,10 +648,10 @@ export const DataManagementSection: React.FC = () => {
         data: players.map(player => ({
           name: player.name,
           position: player.position,
-          medicalClearance: player.medicalClearance ? 'Cleared' : 'Pending',
-          lastMedicalCheck: player.lastMedicalCheck || 'Not recorded',
-          injuries: player.injuries?.join(', ') || 'None recorded',
-          fitness: player.fitness
+          medicalClearance: player['medicalClearance'] ? 'Cleared' : 'Pending',
+          lastMedicalCheck: player['lastMedicalCheck'] || 'Not recorded',
+          injuries: player['injuries']?.join(', ') || 'None recorded',
+          fitness: player['fitness']
         })),
         metadata: {
           generatedAt: new Date().toISOString(),
@@ -595,8 +693,8 @@ export const DataManagementSection: React.FC = () => {
         data: players.map(player => ({
           name: player.name,
           position: player.position,
-          contractEnd: player.contractEnd || player.contract_end || 'Not specified',
-          salary: player.salary ? `€${player.salary.toLocaleString()}` : 'Not specified'
+          contractEnd: player['contractEnd'] || player['contract_end'] || 'Not specified',
+          salary: player['salary'] ? `€${player['salary'].toLocaleString()}` : 'Not specified'
         })),
         metadata: {
           generatedAt: new Date().toISOString(),
@@ -644,17 +742,7 @@ export const DataManagementSection: React.FC = () => {
           phone: clubData.phone,
           email: clubData.email,
           budget: clubData.budget ? `€${clubData.budget.toLocaleString()}` : 'Not specified',
-          trophies: clubData.trophies,
-          president: clubData.president,
-          headCoach: clubData.headCoach,
-          website: clubData.website,
-          coaches: clubData.staff?.coaches,
-          medicalStaff: clubData.staff?.medical,
-          administrativeStaff: clubData.staff?.administrative,
-          trainingGrounds: clubData.facilities?.trainingGrounds,
-          medicalCenter: clubData.facilities?.medicalCenter ? 'Yes' : 'No',
-          gym: clubData.facilities?.gym ? 'Yes' : 'No',
-          restaurant: clubData.facilities?.restaurant ? 'Yes' : 'No'
+          trophies: clubData.trophies
         }] : [],
         metadata: {
           generatedAt: new Date().toISOString(),
@@ -1037,9 +1125,7 @@ export const DataManagementSection: React.FC = () => {
                       {filteredPlayers.map((player) => (
                         <Card 
                           key={player.id} 
-                          className={`hover:shadow-lg transition-shadow cursor-pointer ${
-                            theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
-                          }`}
+                          className="hover:shadow-lg transition-shadow cursor-pointer bg-card rounded-lg border shadow-sm"
                         >
                           <CardContent className="p-6">
                             <div className="flex items-start justify-between mb-4">
@@ -1068,37 +1154,37 @@ export const DataManagementSection: React.FC = () => {
                                 <span className="font-medium">{player.minutes}</span> min
                               </div>
                               <div>
-                                <span className="font-medium">{player.fitness}%</span> fitness
+                                <span className="font-medium">{player['fitness'] || 0}%</span> fitness
                               </div>
                             </div>
 
-                            {player.skills && (
+                            {player['skills'] && (
                               <div className="mb-4">
                                 <div className={`text-xs mb-1 ${
                                   theme === 'midnight' ? 'text-gray-500' : 'text-gray-500'
                                 }`}>Skills</div>
                                 <div className="grid grid-cols-4 gap-2 text-xs">
                                   <div className="text-center">
-                                    <div className={`font-semibold ${getSkillColor(player.skills?.technical || 0)}`}>
-                                      {player.skills?.technical || 0}
+                                    <div className={`font-semibold ${getSkillColor(player['skills']?.technical || 0)}`}>
+                                      {player['skills']?.technical || 0}
                                     </div>
                                     <div className="text-gray-500">TEC</div>
                                   </div>
                                   <div className="text-center">
-                                    <div className={`font-semibold ${getSkillColor(player.skills?.physical || 0)}`}>
-                                      {player.skills?.physical || 0}
+                                    <div className={`font-semibold ${getSkillColor(player['skills']?.physical || 0)}`}>
+                                      {player['skills']?.physical || 0}
                                     </div>
                                     <div className="text-gray-500">PHY</div>
                                   </div>
                                   <div className="text-center">
-                                    <div className={`font-semibold ${getSkillColor(player.skills?.tactical || 0)}`}>
-                                      {player.skills?.tactical || 0}
+                                    <div className={`font-semibold ${getSkillColor(player['skills']?.tactical || 0)}`}>
+                                      {player['skills']?.tactical || 0}
                                     </div>
                                     <div className="text-gray-500">TAC</div>
                                   </div>
                                   <div className="text-center">
-                                    <div className={`font-semibold ${getSkillColor(player.skills?.mental || 0)}`}>
-                                      {player.skills?.mental || 0}
+                                    <div className={`font-semibold ${getSkillColor(player['skills']?.mental || 0)}`}>
+                                      {player['skills']?.mental || 0}
                                     </div>
                                     <div className="text-gray-500">MEN</div>
                                   </div>
@@ -1127,7 +1213,7 @@ export const DataManagementSection: React.FC = () => {
                                 <span className={`text-xs ${
                                   theme === 'midnight' ? 'text-gray-500' : 'text-gray-500'
                                 }`}>
-                                  Medical: {player.medicalClearance ? 'Clear' : 'Pending'}
+                                  Medical: {player['medicalClearance'] ? 'Clear' : 'Pending'}
                                 </span>
                               </div>
                               <div className="flex space-x-1">
@@ -1225,11 +1311,7 @@ export const DataManagementSection: React.FC = () => {
                           <Input value={clubData?.address || ''} onChange={(e) => setClubData(prev => prev ? {...prev, address: e.target.value} : null)} />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium mb-1">Annual Budget (€)</label>
-                            <Input type="number" value={clubData?.budget || ''} onChange={(e) => setClubData(prev => prev ? {...prev, budget: parseInt(e.target.value) || 0} : null)} />
-                          </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium mb-1">Trophies Won</label>
                             <Input type="number" value={clubData?.trophies || ''} onChange={(e) => setClubData(prev => prev ? {...prev, trophies: parseInt(e.target.value) || 0} : null)} />
@@ -1291,15 +1373,30 @@ export const DataManagementSection: React.FC = () => {
                           <div className="space-y-3">
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium">Coaches</span>
-                              <Badge variant="outline">{clubData?.staff?.coaches || 0}</Badge>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="outline">{clubData?.staff?.coaches || 0}</Badge>
+                                <Button variant="outline" size="sm">
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium">Medical Staff</span>
-                              <Badge variant="outline">{clubData?.staff?.medical || 0}</Badge>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="outline">{clubData?.staff?.medical || 0}</Badge>
+                                <Button variant="outline" size="sm">
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium">Administrative</span>
-                              <Badge variant="outline">{clubData?.staff?.administrative || 0}</Badge>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="outline">{clubData?.staff?.administrative || 0}</Badge>
+                                <Button variant="outline" size="sm">
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </CardContent>
@@ -1316,25 +1413,45 @@ export const DataManagementSection: React.FC = () => {
                           <div className="space-y-3">
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium">Training Grounds</span>
-                              <Badge variant="outline">{clubData?.facilities?.trainingGrounds || 0}</Badge>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="outline">{clubData?.facilities?.trainingGrounds || 0}</Badge>
+                                <Button variant="outline" size="sm">
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium">Medical Center</span>
-                              <Badge className={clubData?.facilities?.medicalCenter ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                                {clubData?.facilities?.medicalCenter ? 'Available' : 'Not Available'}
-                              </Badge>
+                              <div className="flex items-center space-x-2">
+                                <Badge className={clubData?.facilities?.medicalCenter ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                                  {clubData?.facilities?.medicalCenter ? 'Available' : 'Not Available'}
+                                </Badge>
+                                <Button variant="outline" size="sm">
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium">Gym</span>
-                              <Badge className={clubData?.facilities?.gym ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                                {clubData?.facilities?.gym ? 'Available' : 'Not Available'}
-                              </Badge>
+                              <div className="flex items-center space-x-2">
+                                <Badge className={clubData?.facilities?.gym ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                                  {clubData?.facilities?.gym ? 'Available' : 'Not Available'}
+                                </Badge>
+                                <Button variant="outline" size="sm">
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-sm font-medium">Restaurant</span>
-                              <Badge className={clubData?.facilities?.restaurant ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                                {clubData?.facilities?.restaurant ? 'Available' : 'Not Available'}
-                              </Badge>
+                              <div className="flex items-center space-x-2">
+                                <Badge className={clubData?.facilities?.restaurant ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                                  {clubData?.facilities?.restaurant ? 'Available' : 'Not Available'}
+                                </Badge>
+                                <Button variant="outline" size="sm">
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </CardContent>
@@ -1351,7 +1468,7 @@ export const DataManagementSection: React.FC = () => {
                         <h3 className="text-lg font-semibold">Match Management</h3>
                         <p className="text-sm text-gray-600">Schedule and track matches</p>
                       </div>
-                      <Button className="bg-green-600 hover:bg-green-700">
+                      <Button className="bg-green-600 hover:bg-green-700" onClick={handleAddMatch}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Match
                       </Button>
@@ -1412,28 +1529,29 @@ export const DataManagementSection: React.FC = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
-                          {[
-                            'vs Barcelona',
-                            'vs Real Madrid',
-                            'vs Atletico Madrid',
-                            'vs Valencia',
-                            'vs Sevilla'
-                          ].map((match) => (
-                            <div key={match} className="flex items-center justify-between p-3 border rounded-lg">
+                          {matches.map((match) => (
+                            <div key={match.id} className="flex items-center justify-between p-3 border rounded-lg">
                               <div className="flex items-center space-x-3">
-                                <Badge className="bg-green-100 text-green-800">W</Badge>
+                                <Badge className={match.result === 'W' ? 'bg-green-100 text-green-800' : match.result === 'D' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}>
+                                  {match.result}
+                                </Badge>
                                 <div>
-                                  <p className="font-medium">{match}</p>
-                                  <p className="text-sm text-gray-500">La Liga • Home</p>
+                                  <p className="font-medium">{match.opponent}</p>
+                                  <p className="text-sm text-gray-500">{match.competition} • {match.venue}</p>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold">3-1</p>
-                                <p className="text-sm text-gray-500">Dec 15, 2024</p>
+                                <p className="font-bold">{match.score}</p>
+                                <p className="text-sm text-gray-500">{match.date}</p>
                               </div>
-                              <Button variant="outline" size="sm">
-                                <Edit3 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex space-x-1">
+                                <Button variant="outline" size="sm" onClick={() => handleEditMatch(match)}>
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleDeleteMatch(match.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1450,7 +1568,7 @@ export const DataManagementSection: React.FC = () => {
                         <h3 className="text-lg font-semibold">Training Management</h3>
                         <p className="text-sm text-gray-600">Plan and track training sessions</p>
                       </div>
-                      <Button className="bg-blue-600 hover:bg-blue-700">
+                      <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate('/training')}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Training Session
                       </Button>
@@ -1543,7 +1661,10 @@ export const DataManagementSection: React.FC = () => {
                         <h3 className="text-lg font-semibold">Event Management</h3>
                         <p className="text-sm text-gray-600">Schedule and manage team events</p>
                       </div>
-                      <Button className="bg-purple-600 hover:bg-purple-700">
+                      <Button 
+                        className="bg-purple-600 hover:bg-purple-700"
+                        onClick={handleAddEvent}
+                      >
                         <Plus className="h-4 w-4 mr-2" />
                         Add Event
                       </Button>
@@ -1604,14 +1725,8 @@ export const DataManagementSection: React.FC = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
-                          {[
-                            { type: 'match', title: 'vs Barcelona', date: 'Dec 20, 2024', time: '20:00', location: 'Camp Nou' },
-                            { type: 'training', title: 'Tactical Training', date: 'Dec 18, 2024', time: '09:00', location: 'Training Ground' },
-                            { type: 'meeting', title: 'Team Meeting', date: 'Dec 17, 2024', time: '14:00', location: 'Conference Room' },
-                            { type: 'match', title: 'vs Atletico Madrid', date: 'Dec 23, 2024', time: '18:30', location: 'Wanda Metropolitano' },
-                            { type: 'other', title: 'Medical Checkups', date: 'Dec 19, 2024', time: '10:00', location: 'Medical Center' }
-                          ].map((event, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          {events.map((event) => (
+                            <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
                               <div className="flex items-center space-x-3">
                                 <Badge className={
                                   event.type === 'match' ? 'bg-yellow-100 text-yellow-800' :
@@ -1633,12 +1748,359 @@ export const DataManagementSection: React.FC = () => {
                                 <p className="font-bold">{event.time}</p>
                                 <p className="text-sm text-gray-500">{event.date}</p>
                               </div>
-                              <Button variant="outline" size="sm">
-                                <Edit3 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex space-x-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditEvent(event)}
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </div>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Add/Edit Event Form */}
+                    {showAddEventForm && (
+                      <Card className="mt-6">
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle>
+                              {editingEvent ? 'Edit Event' : 'Add New Event'}
+                            </CardTitle>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setShowAddEventForm(false);
+                                setEditingEvent(null);
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Event Type</label>
+                              <Select 
+                                value={editingEvent?.type || ''}
+                                onValueChange={(value) => {
+                                  if (editingEvent) {
+                                    setEditingEvent({...editingEvent, type: value});
+                                  }
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select event type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="match">Match</SelectItem>
+                                  <SelectItem value="training">Training</SelectItem>
+                                  <SelectItem value="meeting">Meeting</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Title</label>
+                              <Input 
+                                value={editingEvent?.title || ''}
+                                onChange={(e) => {
+                                  if (editingEvent) {
+                                    setEditingEvent({...editingEvent, title: e.target.value});
+                                  }
+                                }}
+                                placeholder="Event title"
+                              />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Date</label>
+                                <Input 
+                                  type="date"
+                                  value={editingEvent?.date || ''}
+                                  onChange={(e) => {
+                                    if (editingEvent) {
+                                      setEditingEvent({...editingEvent, date: e.target.value});
+                                    }
+                                  }}
+                                />
+                              </div>
+                              
+                              <div>
+                                <label className="block text-sm font-medium mb-1">Time</label>
+                                <Input 
+                                  type="time"
+                                  value={editingEvent?.time || ''}
+                                  onChange={(e) => {
+                                    if (editingEvent) {
+                                      setEditingEvent({...editingEvent, time: e.target.value});
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Location</label>
+                              <Input 
+                                value={editingEvent?.location || ''}
+                                onChange={(e) => {
+                                  if (editingEvent) {
+                                    setEditingEvent({...editingEvent, location: e.target.value});
+                                  }
+                                }}
+                                placeholder="Event location"
+                              />
+                            </div>
+                            
+                            <div className="flex justify-end space-x-2">
+                              <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                  setShowAddEventForm(false);
+                                  setEditingEvent(null);
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button 
+                                onClick={() => {
+                                  if (editingEvent) {
+                                    handleSaveEvent(editingEvent);
+                                  }
+                                }}
+                              >
+                                {editingEvent ? 'Update Event' : 'Add Event'}
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* Add/Edit Match Form */}
+                {showAddMatchForm && (
+                  <Card className="mt-6">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle>
+                          {editingMatch ? 'Edit Match' : 'Add New Match'}
+                        </CardTitle>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setShowAddMatchForm(false);
+                            setEditingMatch(null);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Opponent</label>
+                            <Input 
+                              value={editingMatch?.opponent || ''}
+                              onChange={(e) => {
+                                if (editingMatch) {
+                                  setEditingMatch({...editingMatch, opponent: e.target.value});
+                                }
+                              }}
+                              placeholder="Opponent team name"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Competition</label>
+                            <Select 
+                              value={editingMatch?.competition || ''}
+                              onValueChange={(value) => {
+                                if (editingMatch) {
+                                  setEditingMatch({...editingMatch, competition: value});
+                                }
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select competition" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="La Liga">La Liga</SelectItem>
+                                <SelectItem value="Champions League">Champions League</SelectItem>
+                                <SelectItem value="Copa del Rey">Copa del Rey</SelectItem>
+                                <SelectItem value="Friendly">Friendly</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Date</label>
+                            <Input 
+                              type="date"
+                              value={editingMatch?.date || ''}
+                              onChange={(e) => {
+                                if (editingMatch) {
+                                  setEditingMatch({...editingMatch, date: e.target.value});
+                                }
+                              }}
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Venue</label>
+                            <Select 
+                              value={editingMatch?.venue || ''}
+                              onValueChange={(value) => {
+                                if (editingMatch) {
+                                  setEditingMatch({...editingMatch, venue: value});
+                                }
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select venue" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Home">Home</SelectItem>
+                                <SelectItem value="Away">Away</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Result</label>
+                            <Select 
+                              value={editingMatch?.result || ''}
+                              onValueChange={(value) => {
+                                if (editingMatch) {
+                                  setEditingMatch({...editingMatch, result: value});
+                                }
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select result" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="W">Win</SelectItem>
+                                <SelectItem value="D">Draw</SelectItem>
+                                <SelectItem value="L">Loss</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Score</label>
+                            <Input 
+                              value={editingMatch?.score || ''}
+                              onChange={(e) => {
+                                if (editingMatch) {
+                                  setEditingMatch({...editingMatch, score: e.target.value});
+                                }
+                              }}
+                              placeholder="e.g., 2-1"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setShowAddMatchForm(false);
+                              setEditingMatch(null);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              if (editingMatch) {
+                                handleSaveMatch(editingMatch);
+                              } else {
+                                // For new matches, we need to collect all the data
+                                const newMatch = {
+                                  opponent: editingMatch?.opponent || '',
+                                  competition: editingMatch?.competition || '',
+                                  date: editingMatch?.date || '',
+                                  venue: editingMatch?.venue || '',
+                                  result: editingMatch?.result || '',
+                                  score: editingMatch?.score || ''
+                                };
+                                handleSaveMatch(newMatch);
+                              }
+                            }}
+                          >
+                            {editingMatch ? 'Update Match' : 'Add Match'}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <TabsContent value="training" className="mt-6">
+                  <div className="space-y-6">
+                    {/* Upcoming Training Sessions */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Upcoming Training Sessions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {trainingSessions.length > 0 ? (
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {trainingSessions.map((session) => (
+                              <div key={session.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                <div className="flex items-center space-x-2">
+                                  <Calendar className="h-4 w-4 text-blue-500" />
+                                  <span className="text-sm font-medium">{session.date}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleEditTrainingSession(session.id)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleDeleteTrainingSession(session.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500 text-center py-4">
+                            No upcoming training sessions yet. Schedule new sessions to see them here.
+                          </p>
+                        )}
                       </CardContent>
                     </Card>
                   </div>

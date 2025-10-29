@@ -54,6 +54,8 @@ const Suggestions = lazy(() => import("./pages/Suggestions"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Profile = lazy(() => import("./pages/Profile"));
 const GeneralNotepad = lazy(() => import("./pages/GeneralNotepad"));
+const TestPlayerIntegration = lazy(() => import("./pages/TestPlayerIntegration"));
+const DemoPlayerTest = lazy(() => import("./pages/DemoPlayerTest"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -196,6 +198,26 @@ function App() {
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <PlayerManagement />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/player-test" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <TestPlayerIntegration />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/demo-player-test" 
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <DemoPlayerTest />
                       </ResponsiveLayout>
                     </ProtectedRoute>
                   } 

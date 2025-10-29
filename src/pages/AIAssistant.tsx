@@ -305,14 +305,10 @@ const AIAssistant: React.FC = () => {
 
       <div className={`px-4 ${isFullscreen ? 'h-[calc(100vh-80px)]' : 'py-6'} flex flex-col`}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-3 mb-6 bg-white border border-gray-200 rounded-lg p-1">
+          <TabsList className="grid w-full grid-cols-2 mb-6 bg-white border border-gray-200 rounded-lg p-1">
             <TabsTrigger value="chat" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-md">
               <MessageSquare className="h-4 w-4" />
               Chat
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-md">
-              <BarChart3 className="h-4 w-4" />
-              Analytics
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-md">
               <Settings className="h-4 w-4" />
@@ -475,140 +471,6 @@ const AIAssistant: React.FC = () => {
                   </CardContent>
                 </Card>
               </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="flex-1 mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full">
-              <Card className="bg-white border-gray-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <TrendingUp className="h-5 w-5 text-blue-500" />
-                    Team Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">Win Rate</span>
-                        <span className="text-sm font-medium">72%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" style={{ width: '72%' }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">Goals Scored</span>
-                        <span className="text-sm font-medium">52</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-green-500 to-teal-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">Clean Sheets</span>
-                        <span className="text-sm font-medium">12</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full" style={{ width: '60%' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border-gray-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Users className="h-5 w-5 text-green-500" />
-                    Top Players
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-medium">
-                          T
-                        </div>
-                        <div>
-                          <div className="font-medium">Torres</div>
-                          <div className="text-sm text-gray-500">ST</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">8.4</div>
-                        <div className="text-sm text-gray-500">Rating</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium">
-                          S
-                        </div>
-                        <div>
-                          <div className="font-medium">Silva</div>
-                          <div className="text-sm text-gray-500">CM</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">8.1</div>
-                        <div className="text-sm text-gray-500">Rating</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-500 rounded-full flex items-center justify-center text-white font-medium">
-                          R
-                        </div>
-                        <div>
-                          <div className="font-medium">Rodriguez</div>
-                          <div className="text-sm text-gray-500">CB</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">7.8</div>
-                        <div className="text-sm text-gray-500">Rating</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border-gray-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Target className="h-5 w-5 text-purple-500" />
-                    Upcoming Match
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="font-bold text-xl mb-2">vs Real Madrid</div>
-                    <div className="text-sm text-gray-600 mb-4">Feb 15, 2024 • Away</div>
-                    <div className="flex justify-center space-x-6 mb-6">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-500">35%</div>
-                        <div className="text-xs text-gray-500">Win Chance</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-yellow-500">28%</div>
-                        <div className="text-xs text-gray-500">Draw Chance</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-500">37%</div>
-                        <div className="text-xs text-gray-500">Loss Chance</div>
-                      </div>
-                    </div>
-                    <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white">
-                      Prepare Strategy
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 

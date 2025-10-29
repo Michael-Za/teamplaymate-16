@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Plus, Minus, Download, Save, Edit3 } from 'lucide-react';
@@ -7,20 +7,21 @@ import { toast } from 'sonner';
 // Add jsPDF import
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { dataManagementService, Player as DataPlayer } from '../services/dataManagementService';
 
 // Add a separate interface for shot map data
 interface PlayerShotMapData {
-  [playerId: number]: { [key: string]: number };
+  [playerId: string]: { [key: string]: number };
 }
 
 // Add interface for player notes
 interface PlayerNotes {
-  [playerId: number]: string;
+  [playerId: string]: string;
 }
 
 // Add interface for player statistics
 interface PlayerStats {
-  [playerId: number]: {
+  [playerId: string]: {
     goal: number;
     goalAgainst: number;
     cornerFor: number;
@@ -39,45 +40,24 @@ interface PlayerStats {
   };
 }
 
+// Define our Player interface with all needed properties
+interface Player {
+  id: string; // Use string to match DataPlayer
+  name: string;
+  number: number;
+  position: string;
+}
+
 const ManualActions = () => {
   const { t } = useLanguage();
   
-  // Mock players data
-  const players = [
-    { id: 1, name: 'Carlos Rodríguez', number: 7, position: t('position.forward') },
-    { id: 2, name: 'Miguel Ángel Torres', number: 10, position: t('position.midfielder') },
-    { id: 3, name: 'David López', number: 4, position: t('position.defender') },
-    { id: 4, name: 'Juan Martínez', number: 9, position: t('position.forward') },
-    { id: 5, name: 'Roberto García', number: 6, position: t('position.midfielder') },
-    { id: 6, name: 'Luis Sánchez', number: 3, position: t('position.defender') },
-    { id: 7, name: 'Antonio Pérez', number: 2, position: t('position.defender') },
-    { id: 8, name: 'Fernando Ruiz', number: 11, position: t('position.forward') },
-    { id: 9, name: 'Pablo Díaz', number: 8, position: t('position.midfielder') },
-    { id: 10, name: 'Javier Moreno', number: 1, position: t('position.goalkeeper') },
-  ];
+  // State for players
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // State for player statistics
   const [playerStats, setPlayerStats] = useState<PlayerStats>(() => {
     const initialStats: PlayerStats = {};
-    players.forEach(player => {
-      initialStats[player.id] = {
-        goal: 0,
-        goalAgainst: 0,
-        cornerFor: 0,
-        cornerAgainst: 0,
-        penaltyFor: 0,
-        penaltyAgainst: 0,
-        duelWon: 0,
-        duelLost: 0,
-        shotOnTarget: 0,
-        shotOffTarget: 0,
-        ballRecovered: 0,
-        ballLost: 0,
-        foulFor: 0,
-        foulAgainst: 0,
-        quickActions: 0
-      };
-    });
     return initialStats;
   });
 
@@ -100,7 +80,101 @@ const ManualActions = () => {
   const [editingNote, setEditingNote] = useState<number | null>(null);
   const [noteText, setNoteText] = useState('');
 
-  const updateStat = (playerId: number, stat: keyof PlayerStats[number], increment: boolean) => {
+  // Load players from data management service
+  useEffect(() => {
+    const loadPlayers = async () => {
+      try {
+        setLoading(true);
+        const playersData = await dataManagementService.getPlayers();
+        // Transform the data to match our Player interface
+        const transformedPlayers: Player[] = [];
+        
+        for (const player of playersData) {
+          // Only include players with valid IDs
+          if (player.id && typeof player.id === 'string') {
+            transformedPlayers.push({
+              id: player.id,
+              name: player.name,
+              number: player.jersey_number || 0,
+              position: player.position
+            });
+          }
+        }
+        
+        setPlayers(transformedPlayers);
+        
+        // Initialize player stats
+        const initialStats: PlayerStats = {};
+        transformedPlayers.forEach(player => {
+          initialStats[player.id] = {
+            goal: 0,
+            goalAgainst: 0,
+            cornerFor: 0,
+            cornerAgainst: 0,
+            penaltyFor: 0,
+            penaltyAgainst: 0,
+            duelWon: 0,
+            duelLost: 0,
+            shotOnTarget: 0,
+            shotOffTarget: 0,
+            ballRecovered: 0,
+            ballLost: 0,
+            foulFor: 0,
+            foulAgainst: 0,
+            quickActions: 0
+          };
+        });
+        setPlayerStats(initialStats);
+      } catch (error) {
+        console.error('Error loading players:', error);
+        toast.error('Failed to load players');
+        
+        // Fallback to mock data
+        const mockPlayers: Player[] = [
+          { id: '1', name: 'Carlos Rodríguez', number: 7, position: t('position.forward') },
+          { id: '2', name: 'Miguel Ángel Torres', number: 10, position: t('position.midfielder') },
+          { id: '3', name: 'David López', number: 4, position: t('position.defender') },
+          { id: '4', name: 'Juan Martínez', number: 9, position: t('position.forward') },
+          { id: '5', name: 'Roberto García', number: 6, position: t('position.midfielder') },
+          { id: '6', name: 'Luis Sánchez', number: 3, position: t('position.defender') },
+          { id: '7', name: 'Antonio Pérez', number: 2, position: t('position.defender') },
+          { id: '8', name: 'Fernando Ruiz', number: 11, position: t('position.forward') },
+          { id: '9', name: 'Pablo Díaz', number: 8, position: t('position.midfielder') },
+          { id: '10', name: 'Javier Moreno', number: 1, position: t('position.goalkeeper') },
+        ];
+        setPlayers(mockPlayers);
+        
+        // Initialize player stats for mock data
+        const initialStats: PlayerStats = {};
+        mockPlayers.forEach(player => {
+          initialStats[player.id] = {
+            goal: 0,
+            goalAgainst: 0,
+            cornerFor: 0,
+            cornerAgainst: 0,
+            penaltyFor: 0,
+            penaltyAgainst: 0,
+            duelWon: 0,
+            duelLost: 0,
+            shotOnTarget: 0,
+            shotOffTarget: 0,
+            ballRecovered: 0,
+            ballLost: 0,
+            foulFor: 0,
+            foulAgainst: 0,
+            quickActions: 0
+          };
+        });
+        setPlayerStats(initialStats);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPlayers();
+  }, [t]);
+
+  const updateStat = (playerId: string, stat: keyof PlayerStats[string], increment: boolean) => {
     setPlayerStats((prev: PlayerStats) => {
       const playerStatsCopy = { ...prev };
       if (!playerStatsCopy[playerId]) {
@@ -410,7 +484,7 @@ const ManualActions = () => {
   };
 
   // Render shot map
-  const renderShotMap = (playerId: number) => {
+  const renderShotMap = (playerId: string) => {
     if (showGoalMap !== playerId) {
       return null;
     }
@@ -667,6 +741,78 @@ const ManualActions = () => {
       </Button>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <h1 className="text-3xl font-bold text-gray-900">{t('manual.actions.title')}</h1>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              onClick={saveData}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {t('manual.actions.save')}
+            </Button>
+            <div className="relative">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  const menu = document.getElementById('export-menu');
+                  if (menu) {
+                    menu.classList.toggle('hidden');
+                  }
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {t('manual.actions.export')}
+              </Button>
+              <div 
+                id="export-menu" 
+                className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-10 border hidden"
+              >
+                <button
+                  onClick={() => {
+                    exportToCSV();
+                    document.getElementById('export-menu')?.classList.add('hidden');
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  {t('manual.actions.export.csv')}
+                </button>
+                <button
+                  onClick={() => {
+                    exportToJSON();
+                    document.getElementById('export-menu')?.classList.add('hidden');
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  {t('manual.actions.export.json')}
+                </button>
+                <button
+                  onClick={() => {
+                    exportToPDF();
+                    document.getElementById('export-menu')?.classList.add('hidden');
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  {t('manual.actions.export.pdf')}
+                </button>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500 self-center">{t('manual.actions.realtime')}</div>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading players...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

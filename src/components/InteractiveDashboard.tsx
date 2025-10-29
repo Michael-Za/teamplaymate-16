@@ -7,6 +7,7 @@ import { Badge } from './ui/badge';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { dataManagementService, Player } from '../services/dataManagementService';
 import { toast } from 'sonner';
 import { 
   Trophy, 
@@ -30,6 +31,29 @@ import {
   Bot,
   BookOpen
 } from 'lucide-react';
+
+// Interface for transformed player data for dashboard
+interface DashboardPlayer {
+  name: string;
+  position: string;
+  minutes: number;
+  goals: number;
+  assists: number;
+  fitness: number;
+  shots: number;
+  cards: number;
+  fitCom: number;
+}
+
+// Interface for attendance records
+interface AttendanceRecord {
+  id: string;
+  playerId: string;
+  playerName: string;
+  date: string;
+  status: 'present' | 'absent' | 'late';
+  notes?: string;
+}
 
 // Match Timer Component
 const MatchTimer: React.FC = () => {
@@ -259,6 +283,7 @@ const ActionButtons: React.FC = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (cardRef.current) {
@@ -353,8 +378,16 @@ const ActionButtons: React.FC = () => {
         theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
       }`}>
         <CardHeader>
-          <CardTitle>
-            {language === 'en' ? 'Actions' : 'Actions'}
+          <CardTitle className="flex items-center justify-between">
+            <span>{language === 'en' ? 'Actions' : 'Actions'}</span>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/manual-actions')}
+              className="text-sm"
+            >
+              {language === 'en' ? 'View All' : 'Ver Todo'}
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -507,19 +540,118 @@ export const InteractiveDashboard: React.FC = () => {
     { partido: 6, victories: 100, points: 3, goalsFor: 3, goalsAgainst: 0 }
   ]);
 
-  const playersData = [
-    { name: 'Fernando Torres', position: 'DEL', minutes: 480, goals: 5, assists: 3, fitness: 8, shots: 12, cards: 2, fitCom: 2 },
-    { name: 'Pablo Sánchez', position: 'CEN', minutes: 465, goals: 2, assists: 6, fitness: 6, shots: 8, cards: 2, fitCom: 4 },
-    { name: 'Juan Pérez', position: 'DEL', minutes: 420, goals: 3, assists: 2, fitness: 6, shots: 10, cards: 1, fitCom: 3 },
-    { name: 'Miguel Rodríguez', position: 'CEN', minutes: 390, goals: 1, assists: 4, fitness: 3, shots: 6, cards: 3, fitCom: 5 },
-    { name: 'David González', position: 'DEF', minutes: 480, goals: 1, assists: 0, fitness: 2, shots: 3, cards: 1, fitCom: 8 }
-  ];
+  // Mock data for recent matches
+  const [recentMatches] = useState([
+    { id: '1', date: '2025-07-20', homeTeam: 'CD Statsor', awayTeam: 'Real Madrid', homeScore: 3, awayScore: 2, result: 'W' },
+    { id: '2', date: '2025-07-15', homeTeam: 'CD Statsor', awayTeam: 'Barcelona', homeScore: 1, awayScore: 1, result: 'D' },
+    { id: '3', date: '2025-07-10', homeTeam: 'CD Statsor', awayTeam: 'Atletico Madrid', homeScore: 2, awayScore: 0, result: 'W' },
+    { id: '4', date: '2025-07-05', homeTeam: 'CD Statsor', awayTeam: 'Valencia', homeScore: 0, awayScore: 2, result: 'L' },
+    { id: '5', date: '2025-06-30', homeTeam: 'CD Statsor', awayTeam: 'Sevilla', homeScore: 3, awayScore: 1, result: 'W' }
+  ]);
+
+  // Mock data for analytics
+  const [analyticsData] = useState({
+    performance: {
+      goals: 15,
+      assists: 12,
+      shotsOnTarget: 42,
+      passAccuracy: 87,
+      duelsWon: 128,
+      possession: 58
+    },
+    attack: {
+      shotsOnTarget: 42,
+      shotsOffTarget: 28,
+      goals: 15,
+      assists: 12,
+      keyPasses: 35,
+      dribblesSuccessful: 22
+    },
+    defense: {
+      ballsRecovered: 89,
+      interceptions: 67,
+      tacklesWon: 78,
+      goalsConceded: 11,
+      defensiveDuelsWon: 92
+    },
+    discipline: {
+      foulsCommitted: 45,
+      foulsReceived: 38,
+      yellowCards: 8,
+      redCards: 1
+    }
+  });
+
+  const [playersData, setPlayersData] = useState<DashboardPlayer[]>([]);
+  const [loadingPlayers, setLoadingPlayers] = useState(true);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0] || '');
+
+  // Fetch real player data
+  useEffect(() => {
+    const fetchPlayers = async () => {
+      try {
+        setLoadingPlayers(true);
+        const players = await dataManagementService.getPlayers();
+        // Transform the data to match the dashboard format
+        const transformedPlayers: DashboardPlayer[] = players.map(player => ({
+          name: player.name,
+          position: player.position,
+          minutes: player.minutes || 0,
+          goals: player.goals || 0,
+          assists: player.assists || 0,
+          fitness: (player as any)['fitness'] || 0,
+          shots: player.shots || 0,
+          cards: (player.yellow_cards || 0) + (player.red_cards || 0),
+          fitCom: player.fouls_committed || 0
+        }));
+        setPlayersData(transformedPlayers);
+      } catch (error) {
+        console.error('Error fetching players:', error);
+        // Fallback to mock data if fetch fails
+        const mockPlayers = [
+          { name: 'Fernando Torres', position: 'DEL', minutes: 480, goals: 5, assists: 3, fitness: 8, shots: 12, cards: 2, fitCom: 2 },
+          { name: 'Pablo Sánchez', position: 'CEN', minutes: 465, goals: 2, assists: 6, fitness: 6, shots: 8, cards: 2, fitCom: 4 },
+          { name: 'Juan Pérez', position: 'DEL', minutes: 420, goals: 3, assists: 2, fitness: 6, shots: 10, cards: 1, fitCom: 3 },
+          { name: 'Miguel Rodríguez', position: 'CEN', minutes: 390, goals: 1, assists: 4, fitness: 3, shots: 6, cards: 3, fitCom: 5 },
+          { name: 'David González', position: 'DEF', minutes: 480, goals: 1, assists: 0, fitness: 2, shots: 3, cards: 1, fitCom: 8 }
+        ];
+        setPlayersData(mockPlayers);
+      } finally {
+        setLoadingPlayers(false);
+      }
+    };
+
+    fetchPlayers();
+  }, []);
+
+  // Load attendance records from localStorage
+  useEffect(() => {
+    const savedRecords = localStorage.getItem('statsor_attendance');
+    if (savedRecords) {
+      try {
+        setAttendanceRecords(JSON.parse(savedRecords));
+      } catch (error) {
+        console.error('Error parsing attendance records:', error);
+        setAttendanceRecords([]);
+      }
+    }
+  }, []);
 
   // Calculate cumulative points for the line chart
   const cumulativePoints = evolutionData.map((item, index) => {
     const cumulative = evolutionData.slice(0, index + 1).reduce((sum, curr) => sum + curr.points, 0);
     return { ...item, cumulative };
   });
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
 
   return (
     <div className={`min-h-screen transition-all duration-500 ${
@@ -605,6 +737,95 @@ export const InteractiveDashboard: React.FC = () => {
           </motion.div>
         </div>
 
+        {/* Analytics Overview Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-6"
+        >
+          <Card className={`${
+            isHighContrast ? 'hc-card' :
+            theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
+          }`}>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <BarChart3 className="mr-2 h-5 w-5 text-blue-600" />
+                  <span>Statistics Overview</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/general-stats')}
+                  className="text-sm"
+                >
+                  View Detailed Analytics
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Performance Block */}
+                <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-100 text-sm font-medium">Performance</p>
+                        <p className="text-xl font-bold mt-1">{analyticsData.performance.goals + analyticsData.performance.assists}</p>
+                        <p className="text-purple-100 text-xs mt-1">Goals & Assists</p>
+                      </div>
+                      <TrendingUp className="h-8 w-8 text-purple-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Attack Block */}
+                <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-medium">Attack</p>
+                        <p className="text-xl font-bold mt-1">{analyticsData.attack.goals}</p>
+                        <p className="text-green-100 text-xs mt-1">Goals Scored</p>
+                      </div>
+                      <Target className="h-8 w-8 text-green-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Defense Block */}
+                <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Defense</p>
+                        <p className="text-xl font-bold mt-1">{analyticsData.defense.tacklesWon}</p>
+                        <p className="text-blue-100 text-xs mt-1">Tackles Won</p>
+                      </div>
+                      <Shield className="h-8 w-8 text-blue-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Discipline Block */}
+                <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-lg">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm font-medium">Discipline</p>
+                        <p className="text-xl font-bold mt-1">{analyticsData.discipline.yellowCards + analyticsData.discipline.redCards}</p>
+                        <p className="text-orange-100 text-xs mt-1">Cards</p>
+                      </div>
+                      <Award className="h-8 w-8 text-orange-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Evolution Chart and Players Table - Better organized with proper spacing */}
         <div className="grid grid-cols-1 gap-6 mb-6">
           {/* Evolution Chart */}
@@ -688,66 +909,135 @@ export const InteractiveDashboard: React.FC = () => {
             </Card>
           </motion.div>
 
-          {/* Players Table */}
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }}>
-            <Card className={`h-full ${
+          {/* Recent Matches Section */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mb-6"
+          >
+            <Card className={`${
               isHighContrast ? 'hc-card' :
               theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
             }`}>
               <CardHeader>
-                <CardTitle>Players</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Recent Matches</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/matches')}
+                    className="text-sm"
+                  >
+                    View All
+                  </Button>
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 px-2">Player</th>
-                        <th className="text-center py-2 px-2">Pos</th>
-                        <th className="text-center py-2 px-2">Min</th>
-                        <th className="text-center py-2 px-2">Goals</th>
-                        <th className="text-center py-2 px-2">Assists</th>
-                        <th className="text-center py-2 px-2">Fit</th>
-                        <th className="text-center py-2 px-2">Shots</th>
-                        <th className="text-center py-2 px-2">Cards</th>
-                        <th className="text-center py-2 px-2">Fit Com</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {playersData.map((player, index) => (
-                        <tr key={index} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-2 font-medium text-contained">{player.name}</td>
-                          <td className="text-center py-2 px-2">
-                            <Badge variant="outline" className={`text-xs ${
-                              player.position === 'DEL' ? 'bg-red-100 text-red-800' :
-                              player.position === 'CEN' ? 'bg-blue-100 text-blue-800' :
-                              'bg-green-100 text-green-800'
-                            }`}>
-                              {player.position}
-                            </Badge>
-                          </td>
-                          <td className="text-center py-2 px-2">{player.minutes}</td>
-                          <td className="text-center py-2 px-2 font-semibold text-green-600">{player.goals}</td>
-                          <td className="text-center py-2 px-2 font-semibold text-blue-600">{player.assists}</td>
-                          <td className="text-center py-2 px-2">{player.fitness}</td>
-                          <td className="text-center py-2 px-2">{player.shots}</td>
-                          <td className="text-center py-2 px-2">
-                            <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800">
-                              {player.cards}
-                            </Badge>
-                          </td>
-                          <td className="text-center py-2 px-2">{player.fitCom}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-3">
+                  {recentMatches.map((match) => (
+                    <div 
+                      key={match.id} 
+                      className={`p-4 rounded-lg border flex items-center justify-between ${
+                        isHighContrast ? 'border-black bg-white' :
+                        theme === 'midnight' ? 'border-gray-200 bg-white' : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="text-sm text-gray-600 w-20">
+                          {formatDate(match.date)}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{match.homeTeam}</span>
+                          <span className="text-gray-600">vs</span>
+                          <span className="font-medium">{match.awayTeam}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-1">
+                          <span className="font-bold">{match.homeScore}</span>
+                          <span className="text-gray-600">-</span>
+                          <span className="font-bold">{match.awayScore}</span>
+                        </div>
+                        <Badge 
+                          className={`${
+                            match.result === 'W' 
+                              ? 'bg-green-100 text-green-800 border-green-200' 
+                              : match.result === 'D' 
+                                ? 'bg-yellow-100 text-yellow-800 border-yellow-200' 
+                                : 'bg-red-100 text-red-800 border-red-200'
+                          }`}
+                        >
+                          {match.result === 'W' ? 'Win' : match.result === 'D' ? 'Draw' : 'Loss'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         </div>
 
-        {/* Upcoming Matches - Full width card */}
+        {/* Recent Matches Section */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mb-6"
+        >
+          <Card className={`${
+            isHighContrast ? 'hc-card' :
+            theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
+          }`}>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Recent Matches</span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/matches')}
+                  className="text-sm"
+                >
+                  View All
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentMatches.map((match) => (
+                  <div key={match.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-base">{formatDate(match.date)}</p>
+                      <p className="text-sm text-gray-600 text-contained">
+                        {match.homeTeam} {match.homeScore} - {match.awayScore} {match.awayTeam}
+                      </p>
+                      <Badge 
+                        className={
+                          match.result === 'W' ? 'bg-green-100 text-green-800' : 
+                          match.result === 'D' ? 'bg-yellow-100 text-yellow-800' : 
+                          'bg-red-100 text-red-800'
+                        }
+                      >
+                        {match.result === 'W' ? 'Win' : match.result === 'D' ? 'Draw' : 'Loss'}
+                      </Badge>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/matches`)}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
+                    >
+                      Details
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Upcoming Matches - Horizontal Line Format */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="mb-6">
           <Card className={`${
             isHighContrast ? 'hc-card' :
@@ -757,56 +1047,62 @@ export const InteractiveDashboard: React.FC = () => {
               <CardTitle className="text-gray-900">{t('matches.upcoming')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-base">July 25, 2025</p>
-                    <p className="text-sm text-gray-600 text-contained">CD Statsor vs Jaén FS</p>
-                    <p className="text-xs text-gray-500 text-contained">Pabellón Municipal</p>
+              <div className="flex overflow-x-auto space-x-4 pb-4">
+                <div className="flex space-x-4 min-w-max">
+                  <div className="flex-shrink-0 w-64 p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="text-center">
+                      <p className="font-semibold text-gray-900">July 25, 2025</p>
+                      <p className="text-sm text-gray-600 mt-1">CD Statsor vs Jaén FS</p>
+                      <p className="text-xs text-gray-500 mt-1">Pabellón Municipal</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/matches')}
+                        className="mt-3 border-gray-300 text-gray-700 hover:bg-gray-100 text-sm w-full"
+                      >
+                        {t('manual.actions.details')}
+                      </Button>
+                    </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/matches')}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
-                  >
-                    {t('manual.actions.details')}
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-base">August 1, 2025</p>
-                    <p className="text-sm text-gray-600 text-contained">CD Statsor vs Granada CF</p>
-                    <p className="text-xs text-gray-500 text-contained">Estadio Nuevo Los Cármenes</p>
+                  
+                  <div className="flex-shrink-0 w-64 p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="text-center">
+                      <p className="font-semibold text-gray-900">August 1, 2025</p>
+                      <p className="text-sm text-gray-600 mt-1">CD Statsor vs Granada CF</p>
+                      <p className="text-xs text-gray-500 mt-1">Estadio Nuevo Los Cármenes</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/matches')}
+                        className="mt-3 border-gray-300 text-gray-700 hover:bg-gray-100 text-sm w-full"
+                      >
+                        {t('manual.actions.details')}
+                      </Button>
+                    </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/matches')}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
-                  >
-                    {t('manual.actions.details')}
-                  </Button>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 text-base">August 8, 2025</p>
-                    <p className="text-sm text-gray-600 text-contained">CD Statsor vs Real Madrid</p>
-                    <p className="text-xs text-gray-500 text-contained">Santiago Bernabéu</p>
+                  
+                  <div className="flex-shrink-0 w-64 p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                    <div className="text-center">
+                      <p className="font-semibold text-gray-900">August 8, 2025</p>
+                      <p className="text-sm text-gray-600 mt-1">CD Statsor vs Real Madrid</p>
+                      <p className="text-xs text-gray-500 mt-1">Santiago Bernabéu</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/matches')}
+                        className="mt-3 border-gray-300 text-gray-700 hover:bg-gray-100 text-sm w-full"
+                      >
+                        {t('manual.actions.details')}
+                      </Button>
+                    </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/matches')}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
-                  >
-                    {t('manual.actions.details')}
-                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
+
+
       </div>
     </div>
   );

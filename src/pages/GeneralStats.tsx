@@ -9,6 +9,8 @@ import { useTranslation } from 'react-i18next';
 import { realAnalyticsService, RealTeamStats, RealPlayerPerformance, RealMatchPerformance, RealPositionStats } from '../services/realAnalyticsService';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { dataManagementService } from '../services/dataManagementService';
+import { demoAccountService } from '../services/demoAccountService';
 
 const GeneralStats: React.FC = () => {
   const { t } = useTranslation();
@@ -26,32 +28,96 @@ const GeneralStats: React.FC = () => {
   const loadRealAnalytics = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) {
-        toast.error('Please log in to view analytics');
-        setLoading(false);
-        return;
+      // Check if this is a demo account
+      const isDemo = localStorage.getItem('user_type') === 'demo';
+      
+      if (isDemo) {
+        // For demo accounts, load mock data from demo service
+        loadDemoAnalytics();
+      } else {
+        // For real accounts, fetch from Supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          toast.error('Please log in to view analytics');
+          setLoading(false);
+          return;
+        }
+
+        // Load all analytics data
+        const [teamStatsData, monthlyData, positionData, playerData] = await Promise.all([
+          realAnalyticsService.getTeamStats(user.id),
+          realAnalyticsService.getMonthlyPerformance(user.id),
+          realAnalyticsService.getPositionStats(user.id),
+          realAnalyticsService.getPlayerPerformance(user.id)
+        ]);
+
+        setTeamStats(teamStatsData);
+        setPerformanceData(monthlyData);
+        setPositionStats(positionData);
+        setPlayerPerformance(playerData);
       }
-
-      // Load all analytics data
-      const [teamStatsData, monthlyData, positionData, playerData] = await Promise.all([
-        realAnalyticsService.getTeamStats(user.id),
-        realAnalyticsService.getMonthlyPerformance(user.id),
-        realAnalyticsService.getPositionStats(user.id),
-        realAnalyticsService.getPlayerPerformance(user.id)
-      ]);
-
-      setTeamStats(teamStatsData);
-      setPerformanceData(monthlyData);
-      setPositionStats(positionData);
-      setPlayerPerformance(playerData);
     } catch (error) {
       console.error('Error loading analytics:', error);
       toast.error('Failed to load analytics data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadDemoAnalytics = () => {
+    // Use demo data from demoAccountService
+    const demoAnalytics = demoAccountService.getDemoAnalytics();
+    const demoPlayers = demoAccountService.getDemoPlayers();
+    
+    // Transform demo data to match RealTeamStats interface
+    const mockTeamStats: RealTeamStats = {
+      totalMatches: 30,
+      goalsFor: demoAnalytics.performance.goalsFor,
+      goalsAgainst: demoAnalytics.performance.goalsAgainst,
+      totalAssists: Math.round(demoAnalytics.performance.goalsFor * 0.8),
+      foulsCommitted: Math.round(demoAnalytics.performance.goalsFor * 1.2),
+      foulsReceived: Math.round(demoAnalytics.performance.goalsFor * 1.0),
+      winPercentage: demoAnalytics.performance.winRate,
+      wins: Math.round(30 * demoAnalytics.performance.winRate / 100),
+      draws: Math.round(30 * (100 - demoAnalytics.performance.winRate) / 200),
+      losses: Math.round(30 * (100 - demoAnalytics.performance.winRate) / 200)
+    };
+
+    const mockPerformanceData: RealMatchPerformance[] = [
+      { month: 'Jan', wins: 3, draws: 1, losses: 1, goals: 8, assists: 6, matchesPlayed: 5 },
+      { month: 'Feb', wins: 4, draws: 1, losses: 1, goals: 10, assists: 8, matchesPlayed: 6 },
+      { month: 'Mar', wins: 3, draws: 1, losses: 1, goals: 7, assists: 5, matchesPlayed: 5 },
+      { month: 'Apr', wins: 5, draws: 1, losses: 1, goals: 9, assists: 10, matchesPlayed: 7 },
+      { month: 'May', wins: 4, draws: 2, losses: 1, goals: 8, assists: 7, matchesPlayed: 7 }
+    ];
+
+    const mockPositionStats: RealPositionStats[] = [
+      { position: 'Forward', playerCount: 3, totalGoals: 15, totalAssists: 8, averageRating: 87 },
+      { position: 'Midfielder', playerCount: 4, totalGoals: 6, totalAssists: 12, averageRating: 84 },
+      { position: 'Defender', playerCount: 4, totalGoals: 2, totalAssists: 3, averageRating: 82 },
+      { position: 'Goalkeeper', playerCount: 1, totalGoals: 0, totalAssists: 1, averageRating: 85 }
+    ];
+
+    // Transform demo players to match RealPlayerPerformance interface
+    const mockPlayerPerformance: RealPlayerPerformance[] = demoPlayers.map(player => ({
+      playerId: player['id'] || '',
+      name: `${player['first_name']} ${player['last_name']}`,
+      position: player['position'],
+      matchesPlayed: player['matches'] || 0,
+      goals: player['goals'] || 0,
+      assists: player['assists'] || 0,
+      averageRating: player['rating'] || 0,
+      totalMinutes: (player['matches'] || 0) * 90, // Assuming 90 minutes per match
+      passAccuracy: 85, // Mock value
+      form: 75 // Mock value
+    }));
+
+    setTeamStats(mockTeamStats);
+    setPerformanceData(mockPerformanceData);
+    setPositionStats(mockPositionStats);
+    setPlayerPerformance(mockPlayerPerformance);
   };
 
   // Fallback data when no real data is available

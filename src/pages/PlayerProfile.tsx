@@ -23,10 +23,12 @@ import {
   Edit,
   Save,
   Camera,
-  X
+  X,
+  Plus,
+  Minus,
+  Footprints
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { uploadService } from '../services/uploadService';
 import { toast } from 'sonner';
 import { dataManagementService, Player as DataPlayer } from '../services/dataManagementService';
 
@@ -34,8 +36,9 @@ import { dataManagementService, Player as DataPlayer } from '../services/dataMan
 interface ExtendedPlayer extends DataPlayer {
   // Extended properties
   nickname?: string;
+  secondaryPositions?: string[];
   dominantFoot?: string;
-  birthDate?: Date;
+  birthDate?: Date | null;
   games?: number;
   yellowCards?: number;
   redCards?: number;
@@ -52,8 +55,13 @@ interface ExtendedPlayer extends DataPlayer {
   crosses?: number;
   saves?: number;
   photo?: string;
+  shotMap?: { [key: string]: number };
   height?: number;
   weight?: number;
+  number?: number;
+  goals?: number;
+  assists?: number;
+  minutes?: number;
 }
 
 const PlayerProfile = () => {
@@ -67,6 +75,10 @@ const PlayerProfile = () => {
   const [editedPlayer, setEditedPlayer] = useState<ExtendedPlayer | null>(null);
   const [showPhotoUpload, setShowPhotoUpload] = useState(false);
   const [tempPhoto, setTempPhoto] = useState<string | null>(null);
+  
+  // Scoring areas state
+  const [scoringAreas, setScoringAreas] = useState<number[][]>(Array(3).fill(null).map(() => Array(3).fill(0)));
+  const [activeTab, setActiveTab] = useState<'offensive' | 'defensive' | 'scoring'>('offensive');
 
   // Mock performance data for the chart
   const performanceData = [
@@ -93,28 +105,37 @@ const PlayerProfile = () => {
           // Transform the player data to match our interface
           const transformedPlayer: ExtendedPlayer = {
             ...foundPlayer,
-            number: foundPlayer.number || Math.floor(Math.random() * 99) + 1,
-            nickname: foundPlayer.nickname || '',
-            dominantFoot: foundPlayer.dominantFoot || 'Right',
-            birthDate: foundPlayer.date_of_birth ? new Date(foundPlayer.date_of_birth) : new Date('1990-01-01'),
-            games: foundPlayer.games || 0,
-            yellowCards: foundPlayer.yellowCards || 0,
-            redCards: foundPlayer.redCards || 0,
-            shots: foundPlayer.shots || 0,
-            shotsOnTarget: foundPlayer.shotsOnTarget || 0,
-            passes: foundPlayer.passes || 0,
-            passAccuracy: foundPlayer.passAccuracy || 0,
-            foulsCommitted: foundPlayer.foulsCommitted || 0,
-            foulsReceived: foundPlayer.foulsReceived || 0,
-            ballsLost: foundPlayer.ballsLost || 0,
-            ballsRecovered: foundPlayer.ballsRecovered || 0,
-            duelsWon: foundPlayer.duelsWon || 0,
-            duelsLost: foundPlayer.duelsLost || 0,
-            crosses: foundPlayer.crosses || 0,
-            saves: foundPlayer.saves || 0,
-            photo: foundPlayer.photo || '/placeholder.svg',
+            number: foundPlayer.jersey_number || Math.floor(Math.random() * 99) + 1,
+            nickname: (foundPlayer as any).nickname || '',
+            secondaryPositions: (foundPlayer as any).secondaryPositions || [],
+            dominantFoot: foundPlayer.preferred_foot || 'Right',
+            birthDate: (foundPlayer as any).date_of_birth ? new Date((foundPlayer as any).date_of_birth) : null,
+            games: (foundPlayer as any).games || 0,
+            yellowCards: (foundPlayer as any).yellowCards || 0,
+            redCards: (foundPlayer as any).redCards || 0,
+            shots: (foundPlayer as any).shots || 0,
+            shotsOnTarget: (foundPlayer as any).shotsOnTarget || 0,
+            passes: (foundPlayer as any).passes || 0,
+            passAccuracy: (foundPlayer as any).passAccuracy || 0,
+            foulsCommitted: (foundPlayer as any).foulsCommitted || 0,
+            foulsReceived: (foundPlayer as any).foulsReceived || 0,
+            ballsLost: (foundPlayer as any).ballsLost || 0,
+            ballsRecovered: (foundPlayer as any).ballsRecovered || 0,
+            duelsWon: (foundPlayer as any).duelsWon || 0,
+            duelsLost: (foundPlayer as any).duelsLost || 0,
+            crosses: (foundPlayer as any).crosses || 0,
+            saves: (foundPlayer as any).saves || 0,
+            photo: foundPlayer.photo_url || '/placeholder.svg',
+            shotMap: (foundPlayer as any).shotMap || { 
+              'top-left': 0, 'top-center': 0, 'top-right': 0, 
+              'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
+              'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
+            },
             height: foundPlayer.height || 0,
-            weight: foundPlayer.weight || 0
+            weight: foundPlayer.weight || 0,
+            goals: (foundPlayer as any).goals || 0,
+            assists: (foundPlayer as any).assists || 0,
+            minutes: (foundPlayer as any).minutes || 0
           };
           
           setPlayer(transformedPlayer);
@@ -134,6 +155,16 @@ const PlayerProfile = () => {
     
     loadPlayer();
     
+    // Load scoring areas data from localStorage
+    const savedScoringAreas = localStorage.getItem(`player_${id}_scoring_areas`);
+    if (savedScoringAreas) {
+      try {
+        setScoringAreas(JSON.parse(savedScoringAreas));
+      } catch (e) {
+        console.error('Failed to parse scoring areas data', e);
+      }
+    }
+    
     // Subscribe to player updates
     dataManagementService.setPlayersUpdateCallback((updatedPlayers) => {
       if (id) {
@@ -142,28 +173,37 @@ const PlayerProfile = () => {
           // Transform the player data to match our interface
           const transformedPlayer: ExtendedPlayer = {
             ...foundPlayer,
-            number: foundPlayer.number || Math.floor(Math.random() * 99) + 1,
-            nickname: foundPlayer.nickname || '',
-            dominantFoot: foundPlayer.dominantFoot || 'Right',
-            birthDate: foundPlayer.date_of_birth ? new Date(foundPlayer.date_of_birth) : new Date('1990-01-01'),
-            games: foundPlayer.games || 0,
-            yellowCards: foundPlayer.yellowCards || 0,
-            redCards: foundPlayer.redCards || 0,
-            shots: foundPlayer.shots || 0,
-            shotsOnTarget: foundPlayer.shotsOnTarget || 0,
-            passes: foundPlayer.passes || 0,
-            passAccuracy: foundPlayer.passAccuracy || 0,
-            foulsCommitted: foundPlayer.foulsCommitted || 0,
-            foulsReceived: foundPlayer.foulsReceived || 0,
-            ballsLost: foundPlayer.ballsLost || 0,
-            ballsRecovered: foundPlayer.ballsRecovered || 0,
-            duelsWon: foundPlayer.duelsWon || 0,
-            duelsLost: foundPlayer.duelsLost || 0,
-            crosses: foundPlayer.crosses || 0,
-            saves: foundPlayer.saves || 0,
-            photo: foundPlayer.photo || '/placeholder.svg',
+            number: foundPlayer.jersey_number || Math.floor(Math.random() * 99) + 1,
+            nickname: (foundPlayer as any).nickname || '',
+            secondaryPositions: (foundPlayer as any).secondaryPositions || [],
+            dominantFoot: foundPlayer.preferred_foot || 'Right',
+            birthDate: (foundPlayer as any).date_of_birth ? new Date((foundPlayer as any).date_of_birth) : null,
+            games: (foundPlayer as any).games || 0,
+            yellowCards: (foundPlayer as any).yellowCards || 0,
+            redCards: (foundPlayer as any).redCards || 0,
+            shots: (foundPlayer as any).shots || 0,
+            shotsOnTarget: (foundPlayer as any).shotsOnTarget || 0,
+            passes: (foundPlayer as any).passes || 0,
+            passAccuracy: (foundPlayer as any).passAccuracy || 0,
+            foulsCommitted: (foundPlayer as any).foulsCommitted || 0,
+            foulsReceived: (foundPlayer as any).foulsReceived || 0,
+            ballsLost: (foundPlayer as any).ballsLost || 0,
+            ballsRecovered: (foundPlayer as any).ballsRecovered || 0,
+            duelsWon: (foundPlayer as any).duelsWon || 0,
+            duelsLost: (foundPlayer as any).duelsLost || 0,
+            crosses: (foundPlayer as any).crosses || 0,
+            saves: (foundPlayer as any).saves || 0,
+            photo: foundPlayer.photo_url || '/placeholder.svg',
+            shotMap: (foundPlayer as any).shotMap || { 
+              'top-left': 0, 'top-center': 0, 'top-right': 0, 
+              'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
+              'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
+            },
             height: foundPlayer.height || 0,
-            weight: foundPlayer.weight || 0
+            weight: foundPlayer.weight || 0,
+            goals: (foundPlayer as any).goals || 0,
+            assists: (foundPlayer as any).assists || 0,
+            minutes: (foundPlayer as any).minutes || 0
           };
           
           setPlayer(transformedPlayer);
@@ -201,19 +241,29 @@ const PlayerProfile = () => {
     const loadingToast = toast.loading('Updating player profile...');
 
     try {
+      // Only update properties that exist on the DataPlayer interface
       const playerData: Partial<DataPlayer> = {
         name: editedPlayer.name,
         position: editedPlayer.position,
-        number: editedPlayer.number,
-        age: editedPlayer.age,
+        jersey_number: editedPlayer.number ?? undefined,
+        age: editedPlayer.age ?? undefined,
         nationality: editedPlayer.nationality,
-        goals: editedPlayer.goals,
-        assists: editedPlayer.assists,
+        preferred_foot: editedPlayer.dominantFoot,
+        height: editedPlayer.height ?? undefined,
+        weight: editedPlayer.weight ?? undefined,
+        photo_url: editedPlayer.photo,
+        goals: editedPlayer.goals ?? undefined,
+        assists: editedPlayer.assists ?? undefined
       };
 
+      // Handle date_of_birth separately
       if (editedPlayer.birthDate) {
-        playerData.date_of_birth = editedPlayer.birthDate.toISOString().split('T')[0];
+        (playerData as any).date_of_birth = editedPlayer.birthDate.toISOString().split('T')[0];
       }
+
+      // Handle goals and assists
+      playerData.goals = editedPlayer.goals;
+      playerData.assists = editedPlayer.assists;
 
       console.log('Saving player data:', playerData);
 
@@ -222,11 +272,12 @@ const PlayerProfile = () => {
       if (updatedPlayer) {
         const transformedPlayer: ExtendedPlayer = {
           ...updatedPlayer,
-          number: updatedPlayer.number || editedPlayer.number,
+          number: updatedPlayer.jersey_number || editedPlayer.number,
           nickname: editedPlayer.nickname || '',
-          dominantFoot: editedPlayer.dominantFoot || 'Right',
-          birthDate: updatedPlayer.date_of_birth ? new Date(updatedPlayer.date_of_birth) : editedPlayer.birthDate,
-          games: updatedPlayer.games || editedPlayer.games || 0,
+          secondaryPositions: editedPlayer.secondaryPositions || [],
+          dominantFoot: updatedPlayer.preferred_foot || editedPlayer.dominantFoot || 'Right',
+          birthDate: (updatedPlayer as any).date_of_birth ? new Date((updatedPlayer as any).date_of_birth) : editedPlayer.birthDate,
+          games: (updatedPlayer as any).games || editedPlayer.games || 0,
           yellowCards: editedPlayer.yellowCards || 0,
           redCards: editedPlayer.redCards || 0,
           shots: editedPlayer.shots || 0,
@@ -241,9 +292,17 @@ const PlayerProfile = () => {
           duelsLost: editedPlayer.duelsLost || 0,
           crosses: editedPlayer.crosses || 0,
           saves: editedPlayer.saves || 0,
-          photo: editedPlayer.photo || '/placeholder.svg',
-          height: editedPlayer.height || 0,
-          weight: editedPlayer.weight || 0
+          photo: updatedPlayer.photo_url || editedPlayer.photo || '/placeholder.svg',
+          shotMap: editedPlayer.shotMap || { 
+            'top-left': 0, 'top-center': 0, 'top-right': 0, 
+            'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
+            'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
+          },
+          height: updatedPlayer.height || editedPlayer.height || 0,
+          weight: updatedPlayer.weight || editedPlayer.weight || 0,
+          goals: (updatedPlayer as any).goals || editedPlayer.goals || 0,
+          assists: (updatedPlayer as any).assists || editedPlayer.assists || 0,
+          minutes: (updatedPlayer as any).minutes || editedPlayer.minutes || 0
         };
 
         setPlayer(transformedPlayer);
@@ -278,27 +337,41 @@ const PlayerProfile = () => {
     setTempPhoto(null);
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const validation = (uploadService as any).validateFile(file);
-      if (!validation.valid) {
-        toast.error(validation.error);
-        return;
-      }
-
-      uploadService.fileToBase64(file).then(base64 => {
-        setTempPhoto(base64);
-        setEditedPlayer(prev => prev ? { ...prev, photo: base64 } : null);
-      }).catch(error => {
-        console.error('Preview generation failed:', error);
-        toast.error('Failed to generate preview');
-      });
+  const handleAreaClick = (row: number, col: number) => {
+    if (!id) return;
+    
+    // Create a new array with updated value
+    const newAreas = [...scoringAreas];
+    
+    // Ensure row exists
+    if (!newAreas[row]) {
+      newAreas[row] = [0, 0, 0];
     }
+    
+    // Ensure column exists
+    if (col >= newAreas[row].length) {
+      // Extend the row if needed
+      while (newAreas[row].length <= col) {
+        newAreas[row].push(0);
+      }
+    }
+    
+    // Increment the count for the clicked area
+    newAreas[row][col] = (newAreas[row][col] || 0) + 1;
+    
+    // Update state
+    setScoringAreas(newAreas);
+    
+    // Save to localStorage
+    localStorage.setItem(`player_${id}_scoring_areas`, JSON.stringify(newAreas));
   };
 
-  const triggerFileInput = () => {
-    document.getElementById('photo-upload')?.click();
+  const resetScoringAreas = () => {
+    if (!id) return;
+    
+    const resetAreas = Array(3).fill(null).map(() => Array(3).fill(0));
+    setScoringAreas(resetAreas);
+    localStorage.setItem(`player_${id}_scoring_areas`, JSON.stringify(resetAreas));
   };
 
   if (loading) {
@@ -353,7 +426,7 @@ const PlayerProfile = () => {
                   </Avatar>
                   {isEditing && (
                     <Button
-                      onClick={triggerFileInput}
+                      onClick={() => document.getElementById('photo-upload')?.click()}
                       className="absolute bottom-4 right-0 w-8 h-8 p-0 rounded-full"
                       size="sm"
                     >
@@ -365,7 +438,18 @@ const PlayerProfile = () => {
                   id="photo-upload"
                   type="file"
                   accept="image/*"
-                  onChange={handlePhotoChange}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const base64 = event.target?.result as string;
+                        setTempPhoto(base64);
+                        setEditedPlayer(prev => prev ? { ...prev, photo: base64 } : null);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
                   className="hidden"
                 />
                 {isEditing && editedPlayer ? (
@@ -464,6 +548,22 @@ const PlayerProfile = () => {
                         onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, weight: parseInt(e.target.value) || 0 } : null)}
                       />
                     </div>
+                    <div>
+                      <Label>Dominant Foot</Label>
+                      <Select 
+                        value={editedPlayer.dominantFoot || ''} 
+                        onValueChange={(value) => setEditedPlayer(prev => prev ? { ...prev, dominantFoot: value } : null)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select foot" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Right">Right</SelectItem>
+                          <SelectItem value="Left">Left</SelectItem>
+                          <SelectItem value="Both">Both</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 ) : (
                   player && (
@@ -483,6 +583,10 @@ const PlayerProfile = () => {
                       <div className="flex items-center gap-2">
                         <Heart size={16} className="text-muted-foreground" />
                         <span>{player.weight || 0} kg</span>
+                      </div>
+                      <div className="flex items-center gap-2 col-span-2">
+                        <Footprints size={16} className="text-muted-foreground" />
+                        <span>{player.dominantFoot || 'Right'}</span>
                       </div>
                     </div>
                   )
@@ -536,171 +640,280 @@ const PlayerProfile = () => {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Offensive Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {isEditing && editedPlayer ? (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <Label>Goals</Label>
-                      <Input
-                        type="number"
-                        value={editedPlayer.goals || ''}
-                        onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, goals: parseInt(e.target.value) || 0 } : null)}
-                        className="w-20"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <Label>Assists</Label>
-                      <Input
-                        type="number"
-                        value={editedPlayer.assists || ''}
-                        onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, assists: parseInt(e.target.value) || 0 } : null)}
-                        className="w-20"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <Label>Shots</Label>
-                      <Input
-                        type="number"
-                        value={editedPlayer.shots || ''}
-                        onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, shots: parseInt(e.target.value) || 0 } : null)}
-                        className="w-20"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <Label>Shots on Target</Label>
-                      <Input
-                        type="number"
-                        value={editedPlayer.shotsOnTarget || ''}
-                        onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, shotsOnTarget: parseInt(e.target.value) || 0 } : null)}
-                        className="w-20"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <Label>Shot Accuracy</Label>
-                      <span className="font-bold">
-                        {(editedPlayer.shots || 0) > 0 && editedPlayer.shotsOnTarget ? 
-                          Math.round((editedPlayer.shotsOnTarget / (editedPlayer.shots || 1)) * 100) : 0}%
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  player && (
+          <div className="space-y-6">
+            {/* Tab Navigation */}
+            <div className="flex border-b">
+              <button
+                className={`py-2 px-4 font-medium text-sm ${
+                  activeTab === 'offensive'
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setActiveTab('offensive')}
+              >
+                Offensive Stats
+              </button>
+              <button
+                className={`py-2 px-4 font-medium text-sm ${
+                  activeTab === 'defensive'
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setActiveTab('defensive')}
+              >
+                Defensive Stats
+              </button>
+              <button
+                className={`py-2 px-4 font-medium text-sm ${
+                  activeTab === 'scoring'
+                    ? 'border-b-2 border-blue-500 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                onClick={() => setActiveTab('scoring')}
+              >
+                Scoring Areas
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'offensive' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Offensive Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {isEditing && editedPlayer ? (
                     <>
-                      <div className="flex justify-between">
-                        <span>Goals</span>
-                        <span className="font-bold">{player.goals || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Goals</Label>
+                        <Input
+                          type="number"
+                          value={editedPlayer.goals || ''}
+                          onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, goals: parseInt(e.target.value) || 0 } : null)}
+                          className="w-20"
+                        />
                       </div>
-                      <div className="flex justify-between">
-                        <span>Assists</span>
-                        <span className="font-bold">{player.assists || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Assists</Label>
+                        <Input
+                          type="number"
+                          value={editedPlayer.assists || ''}
+                          onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, assists: parseInt(e.target.value) || 0 } : null)}
+                          className="w-20"
+                        />
                       </div>
-                      <div className="flex justify-between">
-                        <span>Shots</span>
-                        <span className="font-bold">{player.shots || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Shots</Label>
+                        <Input
+                          type="number"
+                          value={editedPlayer.shots || ''}
+                          onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, shots: parseInt(e.target.value) || 0 } : null)}
+                          className="w-20"
+                        />
                       </div>
-                      <div className="flex justify-between">
-                        <span>Shots on Target</span>
-                        <span className="font-bold">{player.shotsOnTarget || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Shots on Target</Label>
+                        <Input
+                          type="number"
+                          value={editedPlayer.shotsOnTarget || ''}
+                          onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, shotsOnTarget: parseInt(e.target.value) || 0 } : null)}
+                          className="w-20"
+                        />
                       </div>
-                      <div className="flex justify-between">
-                        <span>Shot Accuracy</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Shot Accuracy</Label>
                         <span className="font-bold">
-                          {player.shots && player.shots > 0 ? 
-                            Math.round(((player.shotsOnTarget || 0) / player.shots) * 100) : 0}%
+                          {(editedPlayer.shots || 0) > 0 && editedPlayer.shotsOnTarget ? 
+                            Math.round((editedPlayer.shotsOnTarget / (editedPlayer.shots || 1)) * 100) : 0}%
                         </span>
                       </div>
                     </>
-                  )
-                )}
-              </CardContent>
-            </Card>
+                  ) : (
+                    player && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>Goals</span>
+                          <span className="font-bold">{player.goals || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Assists</span>
+                          <span className="font-bold">{player.assists || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Shots</span>
+                          <span className="font-bold">{player.shots || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Shots on Target</span>
+                          <span className="font-bold">{player.shotsOnTarget || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Shot Accuracy</span>
+                          <span className="font-bold">
+                            {player.shots && player.shots > 0 ? 
+                              Math.round(((player.shotsOnTarget || 0) / player.shots) * 100) : 0}%
+                          </span>
+                        </div>
+                      </>
+                    )
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Defensive Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {isEditing && editedPlayer ? (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <Label>Balls Recovered</Label>
-                      <Input
-                        type="number"
-                        value={editedPlayer.ballsRecovered || ''}
-                        onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, ballsRecovered: parseInt(e.target.value) || 0 } : null)}
-                        className="w-20"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <Label>Duels Won</Label>
-                      <Input
-                        type="number"
-                        value={editedPlayer.duelsWon || ''}
-                        onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, duelsWon: parseInt(e.target.value) || 0 } : null)}
-                        className="w-20"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <Label>Fouls Committed</Label>
-                      <Input
-                        type="number"
-                        value={editedPlayer.foulsCommitted || ''}
-                        onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, foulsCommitted: parseInt(e.target.value) || 0 } : null)}
-                        className="w-20"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <Label>Yellow Cards</Label>
-                      <Input
-                        type="number"
-                        value={editedPlayer.yellowCards || ''}
-                        onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, yellowCards: parseInt(e.target.value) || 0 } : null)}
-                        className="w-20"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <Label>Red Cards</Label>
-                      <Input
-                        type="number"
-                        value={editedPlayer.redCards || ''}
-                        onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, redCards: parseInt(e.target.value) || 0 } : null)}
-                        className="w-20"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  player && (
+            {activeTab === 'defensive' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Defensive Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {isEditing && editedPlayer ? (
                     <>
-                      <div className="flex justify-between">
-                        <span>Balls Recovered</span>
-                        <span className="font-bold">{player.ballsRecovered || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Balls Recovered</Label>
+                        <Input
+                          type="number"
+                          value={editedPlayer.ballsRecovered || ''}
+                          onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, ballsRecovered: parseInt(e.target.value) || 0 } : null)}
+                          className="w-20"
+                        />
                       </div>
-                      <div className="flex justify-between">
-                        <span>Duels Won</span>
-                        <span className="font-bold">{player.duelsWon || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Duels Won</Label>
+                        <Input
+                          type="number"
+                          value={editedPlayer.duelsWon || ''}
+                          onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, duelsWon: parseInt(e.target.value) || 0 } : null)}
+                          className="w-20"
+                        />
                       </div>
-                      <div className="flex justify-between">
-                        <span>Fouls Committed</span>
-                        <span className="font-bold">{player.foulsCommitted || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Fouls Committed</Label>
+                        <Input
+                          type="number"
+                          value={editedPlayer.foulsCommitted || ''}
+                          onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, foulsCommitted: parseInt(e.target.value) || 0 } : null)}
+                          className="w-20"
+                        />
                       </div>
-                      <div className="flex justify-between">
-                        <span>Yellow Cards</span>
-                        <span className="font-bold">{player.yellowCards || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Yellow Cards</Label>
+                        <Input
+                          type="number"
+                          value={editedPlayer.yellowCards || ''}
+                          onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, yellowCards: parseInt(e.target.value) || 0 } : null)}
+                          className="w-20"
+                        />
                       </div>
-                      <div className="flex justify-between">
-                        <span>Red Cards</span>
-                        <span className="font-bold">{player.redCards || 0}</span>
+                      <div className="flex justify-between items-center">
+                        <Label>Red Cards</Label>
+                        <Input
+                          type="number"
+                          value={editedPlayer.redCards || ''}
+                          onChange={(e) => setEditedPlayer(prev => prev ? { ...prev, redCards: parseInt(e.target.value) || 0 } : null)}
+                          className="w-20"
+                        />
                       </div>
                     </>
-                  )
-                )}
-              </CardContent>
-            </Card>
+                  ) : (
+                    player && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>Balls Recovered</span>
+                          <span className="font-bold">{player.ballsRecovered || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Duels Won</span>
+                          <span className="font-bold">{player.duelsWon || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Fouls Committed</span>
+                          <span className="font-bold">{player.foulsCommitted || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Yellow Cards</span>
+                          <span className="font-bold">{player.yellowCards || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Red Cards</span>
+                          <span className="font-bold">{player.redCards || 0}</span>
+                        </div>
+                      </>
+                    )
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {activeTab === 'scoring' && (
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Scoring Areas</CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={resetScoringAreas}
+                      className="text-xs"
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center">
+                    <p className="text-sm text-gray-600 mb-4 text-center">
+                      Tap on any area of the grid to record a goal from that position
+                    </p>
+                    
+                    <div className="grid grid-cols-3 gap-2 w-48 h-48 bg-gray-100 p-4 rounded-lg border border-gray-200">
+                      {[0, 1, 2].map((rowIndex) => 
+                        [0, 1, 2].map((colIndex) => {
+                          // Get current count for this area
+                          const count = scoringAreas[rowIndex] ? scoringAreas[rowIndex][colIndex] || 0 : 0;
+                          
+                          return (
+                            <button
+                              key={`${rowIndex}-${colIndex}`}
+                              className={`
+                                w-full h-full flex items-center justify-center rounded-lg border-2 font-bold text-lg transition-all duration-200 relative cursor-pointer hover:scale-105 hover:shadow-md
+                                ${count > 0 
+                                  ? count > 3 
+                                    ? 'bg-red-500 text-white border-red-600' 
+                                    : count > 1 
+                                      ? 'bg-orange-400 text-white border-orange-500' 
+                                      : 'bg-yellow-300 text-gray-800 border-yellow-400'
+                                  : 'bg-white text-gray-400 border-gray-300'}
+                              `}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleAreaClick(rowIndex, colIndex);
+                              }}
+                            >
+                              {count > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                                  {count}
+                                </span>
+                              )}
+                              <div className="w-3 h-3 rounded-full bg-current opacity-20"></div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 text-sm text-gray-600">
+                      <p>Total Goals Recorded: {
+                        scoringAreas.reduce((total, row) => 
+                          total + row.reduce((rowTotal, cell) => rowTotal + cell, 0), 0
+                        )
+                      }</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
