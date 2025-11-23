@@ -10,6 +10,7 @@ import { Switch } from '../components/ui/switch';
 import { Slider } from '../components/ui/slider';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import { 
   Bot, 
   Send, 
@@ -70,6 +71,7 @@ interface ChatHistory {
 const AIAssistant: React.FC = () => {
   useTheme(); // Just call the hook without destructuring since we don't use the values
   const { user } = useAuth();
+  const { currentPlan, getAIRequestsRemaining, incrementAIUsage, getUsageStats } = useSubscription();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -81,21 +83,17 @@ const AIAssistant: React.FC = () => {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
-    { id: '1', title: 'Team Formation Analysis', timestamp: new Date(Date.now() - 86400000), preview: 'Analyzed our 4-3-3 formation...' },
-    { id: '2', title: 'Player Performance Review', timestamp: new Date(Date.now() - 172800000), preview: 'Reviewed player statistics...' },
-    { id: '3', title: 'Match Strategy Discussion', timestamp: new Date(Date.now() - 259200000), preview: 'Discussed tactics for...' }
-  ]);
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [activeTab, setActiveTab] = useState('chat');
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentChatId, setCurrentChatId] = useState<string>('default');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Settings state
   const [responseDepth, setResponseDepth] = useState<number>(2);
   const [autoAnalysis, setAutoAnalysis] = useState<boolean>(true);
   const [realTimeUpdates, setRealTimeUpdates] = useState<boolean>(true);
-  const [confidenceThreshold, setConfidenceThreshold] = useState<number[]>([75]);
   const [enableSuggestions, setEnableSuggestions] = useState<boolean>(true);
 
   const scrollToBottom = () => {
@@ -106,6 +104,42 @@ const AIAssistant: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Load chat history and current chat on mount
+  useEffect(() => {
+    if (!user) return;
+    
+    // Load chat history from localStorage
+    const savedHistory = localStorage.getItem(`ai_chat_history_${user.id}`);
+    if (savedHistory) {
+      try {
+        const history = JSON.parse(savedHistory);
+        setChatHistory(history);
+      } catch (e) {
+        console.error('Failed to parse chat history', e);
+      }
+    }
+
+    // Load current chat messages
+    const savedChat = localStorage.getItem(`ai_current_chat_${user.id}`);
+    if (savedChat) {
+      try {
+        const chat = JSON.parse(savedChat);
+        setMessages(chat.messages || [
+          {
+            id: '1',
+            content: 'Hello! I\'m your AI Assistant. How can I help you today?',
+            sender: 'ai',
+            timestamp: new Date(),
+            type: 'text'
+          }
+        ]);
+        setCurrentChatId(chat.id || 'default');
+      } catch (e) {
+        console.error('Failed to parse current chat', e);
+      }
+    }
+  }, [user]);
+
   // Load settings from localStorage on component mount
   useEffect(() => {
     const savedSettings = localStorage.getItem('aiAssistantSettings');
@@ -115,7 +149,6 @@ const AIAssistant: React.FC = () => {
         setResponseDepth(settings.responseDepth || 2);
         setAutoAnalysis(settings.autoAnalysis ?? true);
         setRealTimeUpdates(settings.realTimeUpdates ?? true);
-        setConfidenceThreshold(settings.confidenceThreshold || [75]);
         setEnableSuggestions(settings.enableSuggestions ?? true);
       } catch (e) {
         console.error('Failed to parse saved settings', e);
@@ -129,14 +162,112 @@ const AIAssistant: React.FC = () => {
       responseDepth,
       autoAnalysis,
       realTimeUpdates,
-      confidenceThreshold,
       enableSuggestions
     };
     localStorage.setItem('aiAssistantSettings', JSON.stringify(settings));
-  }, [responseDepth, autoAnalysis, realTimeUpdates, confidenceThreshold, enableSuggestions]);
+  }, [responseDepth, autoAnalysis, realTimeUpdates, enableSuggestions]);
+
+  // Save current chat whenever messages change
+  useEffect(() => {
+    if (!user || messages.length === 0) return;
+    
+    const currentChat = {
+      id: currentChatId,
+      messages,
+      lastUpdated: new Date().toISOString()
+    };
+    localStorage.setItem(`ai_current_chat_${user.id}`, JSON.stringify(currentChat));
+  }, [messages, user, currentChatId]);
+
+  // Save chat to history
+  const saveChatToHistory = () => {
+    if (!user || messages.length <= 1) return; // Don't save if only welcome message
+    
+    const firstUserMessage = messages.find(m => m.sender === 'user');
+    if (!firstUserMessage) return;
+
+    const chatTitle = firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '');
+    const chatPreview = firstUserMessage.content.substring(0, 100);
+
+    const newHistoryItem: ChatHistory = {
+      id: currentChatId,
+      title: chatTitle,
+      timestamp: new Date(),
+      preview: chatPreview
+    };
+
+    const updatedHistory = [newHistoryItem, ...chatHistory.filter(h => h.id !== currentChatId)].slice(0, 20); // Keep last 20 chats
+    setChatHistory(updatedHistory);
+    localStorage.setItem(`ai_chat_history_${user.id}`, JSON.stringify(updatedHistory));
+
+    // Save the actual chat messages
+    const chatData = {
+      id: currentChatId,
+      messages,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem(`ai_chat_${user.id}_${currentChatId}`, JSON.stringify(chatData));
+  };
+
+  // Start a new chat - FIXED to clear old prompts
+  const startNewChat = () => {
+    // Save current chat to history first
+    if (messages.length > 1) {
+      saveChatToHistory();
+    }
+
+    // Create completely new chat with new ID
+    const newChatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setCurrentChatId(newChatId);
+    
+    // Clear all messages and start fresh
+    const welcomeMessage: ChatMessage = {
+      id: `msg_${Date.now()}`,
+      content: 'Hello! I\'m your AI Assistant. How can I help you today?',
+      sender: 'ai',
+      timestamp: new Date(),
+      type: 'text'
+    };
+    
+    setMessages([welcomeMessage]);
+    setActiveChat(null);
+    setInputMessage(''); // Clear input field
+    
+    // Clear the current chat from localStorage to prevent old data
+    if (user) {
+      localStorage.removeItem(`ai_current_chat_${user.id}`);
+    }
+    
+    toast.success('Started new chat');
+  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
+
+    // Check AI request limits
+    const remaining = getAIRequestsRemaining();
+    if (remaining === 0) {
+      const upgradeMessage = currentPlan?.id === 'free' 
+        ? 'Daily AI request limit reached. Upgrade to Pro for 50 requests per day!'
+        : currentPlan?.id === 'pro'
+          ? 'Daily AI request limit reached. Upgrade to Pro Plus for 200 requests per day!'
+          : 'Daily AI request limit reached. Please try again tomorrow.';
+      
+      toast.error(upgradeMessage, {
+        duration: 5000,
+        action: currentPlan?.id !== 'pro_plus' ? {
+          label: 'Upgrade',
+          onClick: () => window.location.href = '/pricing'
+        } : undefined
+      });
+      return;
+    }
+
+    // Try to increment usage
+    if (!incrementAIUsage()) {
+      toast.error('Unable to process request. Please try again later.');
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -152,96 +283,134 @@ const AIAssistant: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Simulate AI response
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('[AIAssistant] Sending message to backend:', currentInput);
       
-      let aiResponse = '';
-      let responseType: 'text' | 'analysis' | 'prediction' | 'success' | 'error' | 'data' = 'text';
-      let confidence = 85;
-      let priority: 'low' | 'medium' | 'high' = 'medium';
-      
-      if (currentInput.toLowerCase().includes('hello') || currentInput.toLowerCase().includes('hi')) {
-        aiResponse = 'Hello there! How can I assist you with your football team management today?';
-      } else if (currentInput.toLowerCase().includes('analyze') || currentInput.toLowerCase().includes('performance')) {
-        responseType = 'analysis';
-        aiResponse = `## Team Performance Analysis
+      // Call backend AI assistant API
+      const backendUrl = import.meta.env['VITE_BACKEND_URL'] || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/v1/ai-assistant/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: currentInput,
+          context: {}
+        })
+      });
 
-**Current Form:** Excellent (72% win rate)
-**Top Scorer:** Torres (5 goals)
-**Best Passer:** Silva (12 assists)
-**Defensive Record:** Strong (0.92 goals against per game)
+      console.log('[AIAssistant] Response status:', response.status);
 
-**Recommendations:**
-• Focus on set piece training
-• Maintain current attacking momentum
-• Monitor player fitness levels`;
-        confidence = 92;
-        priority = 'high';
-      } else if (currentInput.toLowerCase().includes('predict') || currentInput.toLowerCase().includes('match')) {
-        responseType = 'prediction';
-        aiResponse = `## Match Prediction: vs Real Madrid
-
-**Probability Analysis:**
-• Win: 35%
-• Draw: 28%
-• Loss: 37%
-
-**Expected Performance:**
-• Expected Goals: 1.8
-• Recommended Formation: 4-3-3
-
-**Key Factors:**
-• Away disadvantage
-• Strong opponent
-• Recent form
-
-**Recommended Starting XI:**
-1. Martinez (GK)
-2. Silva (CM)
-3. Torres (ST)`;
-        confidence = 88;
-        priority = 'high';
-      } else if (currentInput.toLowerCase().includes('add') && currentInput.toLowerCase().includes('player')) {
-        responseType = 'success';
-        aiResponse = 'Successfully added new player to your squad. The player has been assigned to the training group and is ready for selection.';
-        confidence = 95;
-        priority = 'high';
-      } else {
-        aiResponse = `I understand you're asking about "${currentInput}". As your AI assistant, I can help with various aspects of football management including tactical analysis, player performance insights, match predictions, and strategic recommendations. What specific information would you like to explore?`;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[AIAssistant] Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        content: aiResponse,
-        sender: 'ai',
-        timestamp: new Date(),
-        type: responseType,
-        confidence,
-        priority
-      };
+      const data = await response.json();
+      console.log('[AIAssistant] Response data:', data);
+      
+      if (data.success && data.data.response) {
+        let responseType: 'text' | 'analysis' | 'prediction' | 'success' | 'error' | 'data' = 'text';
+        let priority: 'low' | 'medium' | 'high' = 'medium';
+        
+        // Determine response type based on content
+        if (currentInput.toLowerCase().includes('analyze') || currentInput.toLowerCase().includes('performance')) {
+          responseType = 'analysis';
+          priority = 'high';
+        } else if (currentInput.toLowerCase().includes('predict') || currentInput.toLowerCase().includes('match')) {
+          responseType = 'prediction';
+          priority = 'high';
+        } else if (currentInput.toLowerCase().includes('add') || currentInput.toLowerCase().includes('create')) {
+          responseType = 'success';
+          priority = 'high';
+        }
 
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          content: data.data.response,
+          sender: 'ai',
+          timestamp: new Date(),
+          type: responseType,
+          priority
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        throw new Error(data.error || 'Failed to get AI response');
+      }
+    } catch (error: any) {
+      console.error('[AIAssistant] Error:', error);
+      
+      let errorContent = 'I apologize, but I\'m experiencing technical difficulties. ';
+      
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        errorContent += 'The AI backend server is not running. Please start the backend server with "npm run dev" in the backend folder.';
+      } else if (error.message?.includes('HTTP error')) {
+        errorContent += `Server error: ${error.message}`;
+      } else {
+        errorContent += 'Please try again in a moment.';
+      }
+      
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: 'I apologize, but I\'m experiencing technical difficulties. Please try again in a moment.',
+        content: errorContent,
         sender: 'ai',
         timestamp: new Date(),
         type: 'error',
-        confidence: 30,
         priority: 'high'
       };
       setMessages(prev => [...prev, errorMessage]);
-      toast.error('Connection issue - please try again');
+      toast.error('AI Assistant connection issue');
     } finally {
       setIsLoading(false);
     }
   };
 
   const loadChatHistory = (chatId: string) => {
-    // In a real implementation, this would load the actual chat history
-    setActiveChat(chatId);
-    toast.info('Loading chat history...');
+    if (!user) {
+      toast.error('Please sign in to load chat history');
+      return;
+    }
+
+    try {
+      // Save current chat before switching
+      if (messages.length > 1 && currentChatId !== chatId) {
+        saveChatToHistory();
+      }
+
+      // Load the selected chat
+      const savedChat = localStorage.getItem(`ai_chat_${user.id}_${chatId}`);
+      
+      if (!savedChat) {
+        console.error('[AIAssistant] Chat not found:', chatId);
+        toast.error('Chat not found. It may have been deleted.');
+        return;
+      }
+
+      const chat = JSON.parse(savedChat);
+      
+      if (!chat.messages || !Array.isArray(chat.messages)) {
+        console.error('[AIAssistant] Invalid chat data:', chat);
+        toast.error('Chat data is corrupted');
+        return;
+      }
+
+      // Restore messages with proper timestamp conversion
+      const restoredMessages = chat.messages.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp)
+      }));
+
+      setMessages(restoredMessages);
+      setCurrentChatId(chatId);
+      setActiveChat(chatId);
+      
+      console.log('[AIAssistant] Chat loaded successfully:', chatId);
+      toast.success('Chat loaded successfully');
+    } catch (error) {
+      console.error('[AIAssistant] Failed to load chat:', error);
+      toast.error('Failed to load chat. Please try again.');
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -296,6 +465,26 @@ const AIAssistant: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          {currentPlan && currentPlan.aiRequestsPerDay === -1 ? (
+            <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Unlimited
+            </Badge>
+          ) : currentPlan && (
+            <Badge 
+              variant="outline" 
+              className={`${
+                getAIRequestsRemaining() === 0 
+                  ? 'bg-red-50 text-red-700 border-red-200' 
+                  : getAIRequestsRemaining() <= 2
+                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                    : 'bg-blue-50 text-blue-700 border-blue-200'
+              }`}
+            >
+              <Sparkles className="h-3 w-3 mr-1" />
+              {getAIRequestsRemaining()} / {currentPlan.aiRequestsPerDay} requests today
+            </Badge>
+          )}
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <Activity className="h-3 w-3 mr-1" />
             Online
@@ -329,39 +518,59 @@ const AIAssistant: React.FC = () => {
                           {chatHistory.length}
                         </Badge>
                       </CardTitle>
+                      <Button
+                        onClick={startNewChat}
+                        className="w-full mt-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-sm"
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Chat
+                      </Button>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-y-auto">
-                      <div className="space-y-3">
-                        {chatHistory.map((chat) => (
-                          <div 
-                            key={chat.id} 
-                            className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                            onClick={() => loadChatHistory(chat.id)}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-gray-900 truncate text-sm">{chat.title}</h3>
-                                <p className="text-xs text-gray-500 truncate mt-1">{chat.preview}</p>
+                      {chatHistory.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                          <p className="text-sm">No chat history yet</p>
+                          <p className="text-xs mt-1">Your conversations will appear here</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {chatHistory.map((chat) => (
+                            <div 
+                              key={chat.id} 
+                              className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                                activeChat === chat.id 
+                                  ? 'border-blue-500 bg-blue-50' 
+                                  : 'border-gray-200 hover:bg-gray-50'
+                              }`}
+                              onClick={() => loadChatHistory(chat.id)}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-medium text-gray-900 truncate text-sm">{chat.title}</h3>
+                                  <p className="text-xs text-gray-500 truncate mt-1">{chat.preview}</p>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="p-1 ml-2 h-6 w-6"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    loadChatHistory(chat.id);
+                                  }}
+                                >
+                                  <Eye className="h-3 w-3 text-gray-500" />
+                                </Button>
                               </div>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                className="p-1 ml-2 h-6 w-6"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  loadChatHistory(chat.id);
-                                }}
-                              >
-                                <Eye className="h-3 w-3 text-gray-500" />
-                              </Button>
+                              <div className="flex items-center mt-2 text-xs text-gray-400">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {new Date(chat.timestamp).toLocaleDateString()}
+                              </div>
                             </div>
-                            <div className="flex items-center mt-2 text-xs text-gray-400">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {chat.timestamp.toLocaleDateString()}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -392,17 +601,6 @@ const AIAssistant: React.FC = () => {
                                 <span className="text-xs font-medium text-gray-500">
                                   AI Assistant
                                 </span>
-                                {message.confidence && (
-                                  <Badge variant="outline" className={`text-xs ${
-                                    message.confidence >= 80 
-                                      ? 'border-green-500 text-green-600' 
-                                      : message.confidence >= 60
-                                        ? 'border-yellow-500 text-yellow-600'
-                                        : 'border-red-500 text-red-600'
-                                  }`}>
-                                    {message.confidence}% confident
-                                  </Badge>
-                                )}
                               </div>
                             )}
                             <div className="whitespace-pre-wrap text-sm">
@@ -433,6 +631,45 @@ const AIAssistant: React.FC = () => {
 
                     {/* Quick Actions */}
                     <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
+                      {currentPlan && getAIRequestsRemaining() === 0 && (
+                        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-start space-x-2">
+                            <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-red-900">Daily limit reached</p>
+                              <p className="text-xs text-red-700 mt-1">
+                                You've used all {currentPlan.aiRequestsPerDay} AI requests for today. 
+                                {currentPlan.id === 'free' && ' Upgrade to Pro for 50 requests per day!'}
+                                {currentPlan.id === 'pro' && ' Upgrade to Pro Plus for 200 requests per day!'}
+                              </p>
+                              {currentPlan.id !== 'pro_plus' && (
+                                <Button
+                                  size="sm"
+                                  className="mt-2 bg-red-600 hover:bg-red-700 text-white text-xs"
+                                  onClick={() => window.location.href = '/pricing'}
+                                >
+                                  {currentPlan.id === 'free' ? 'Upgrade to Pro' : 'Upgrade to Pro Plus'}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {currentPlan && getAIRequestsRemaining() > 0 && getAIRequestsRemaining() <= 2 && (
+                        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="flex items-start space-x-2">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-yellow-900">Running low on requests</p>
+                              <p className="text-xs text-yellow-700 mt-1">
+                                Only {getAIRequestsRemaining()} request{getAIRequestsRemaining() > 1 ? 's' : ''} remaining today.
+                                {currentPlan.id === 'free' && ' Upgrade to Pro for 50 requests per day.'}
+                                {currentPlan.id === 'pro' && ' Upgrade to Pro Plus for 200 requests per day.'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-2">
                         {quickActions.map((action, index) => (
                           <Button
@@ -441,6 +678,7 @@ const AIAssistant: React.FC = () => {
                             size="sm"
                             className="text-xs rounded-full"
                             onClick={() => handleQuickAction(action.label)}
+                            disabled={getAIRequestsRemaining() === 0}
                           >
                             <action.icon className="h-3 w-3 mr-1" />
                             {action.label}
@@ -454,15 +692,19 @@ const AIAssistant: React.FC = () => {
                         <Textarea
                           value={inputMessage}
                           onChange={(e) => setInputMessage(e.target.value)}
-                          placeholder="Ask me anything about football tactics, player management, or team strategy..."
+                          placeholder={
+                            getAIRequestsRemaining() === 0
+                              ? "Daily limit reached. Upgrade for more requests..."
+                              : "Ask me anything about football tactics, player management, or team strategy..."
+                          }
                           className="flex-1 border-gray-300 focus:border-blue-500 min-h-[44px] max-h-32 resize-none"
-                          disabled={isLoading}
+                          disabled={isLoading || getAIRequestsRemaining() === 0}
                           onKeyDown={handleKeyPress}
                         />
                         <Button 
                           onClick={handleSendMessage}
                           className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4"
-                          disabled={isLoading || !inputMessage.trim()}
+                          disabled={isLoading || !inputMessage.trim() || getAIRequestsRemaining() === 0}
                         >
                           <Send className="h-4 w-4" />
                         </Button>
@@ -531,22 +773,13 @@ const AIAssistant: React.FC = () => {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-medium">Confidence Threshold</h3>
-                        <p className="text-sm text-gray-500">Minimum confidence level for AI responses</p>
+                        <h3 className="font-medium">Smart Suggestions</h3>
+                        <p className="text-sm text-gray-500">Show contextual suggestions</p>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Slider
-                          value={confidenceThreshold}
-                          onValueChange={(value) => setConfidenceThreshold(value)}
-                          max={100}
-                          min={0}
-                        step={5}
-                        className="w-32"
+                      <Switch
+                        checked={enableSuggestions}
+                        onCheckedChange={setEnableSuggestions}
                       />
-                      <span className="text-sm font-medium bg-gray-100 px-2 py-1 rounded">
-                        {confidenceThreshold[0]}%
-                      </span>
-                      </div>
                     </div>
                   </div>
                 </CardContent>

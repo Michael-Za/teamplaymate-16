@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/badge';
 import { Users, Calendar, Plus, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { dataManagementService, Player as DataPlayer } from '../services/dataManagementService';
+import { playerManagementService } from '../services/playerManagementService';
 
 // Define our Player interface to match the dataManagementService
 interface Player {
@@ -46,7 +47,7 @@ const Attendance: React.FC = () => {
         const playersData = await dataManagementService.getPlayers();
         // Transform the data to match our Player interface
         const transformedPlayers: Player[] = [];
-        
+
         for (const player of playersData) {
           // Only include players with valid IDs
           if (player.id && typeof player.id === 'string') {
@@ -58,7 +59,7 @@ const Attendance: React.FC = () => {
             });
           }
         }
-        
+
         setPlayers(transformedPlayers);
       } catch (error) {
         console.error('Error loading players:', error);
@@ -77,6 +78,16 @@ const Attendance: React.FC = () => {
     };
 
     loadPlayers();
+
+    // Subscribe to player updates
+    const unsubscribe = playerManagementService.onPlayersUpdated(() => {
+      console.log('[Attendance] Players updated, reloading...');
+      loadPlayers();
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Load attendance records from localStorage
@@ -141,7 +152,7 @@ const Attendance: React.FC = () => {
   // Filter records based on date, search, and status
   const filteredRecords = attendanceRecords
     .filter(record => record.date === selectedDate)
-    .filter(record => 
+    .filter(record =>
       record.playerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (record.notes && record.notes.toLowerCase().includes(searchQuery.toLowerCase()))
     )
@@ -192,7 +203,7 @@ const Attendance: React.FC = () => {
             />
           </CardContent>
         </Card>
-        
+
         <Card className="bg-green-50 border-green-200">
           <CardContent className="p-4">
             <div className="text-center">
@@ -201,7 +212,7 @@ const Attendance: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-red-50 border-red-200">
           <CardContent className="p-4">
             <div className="text-center">
@@ -210,7 +221,7 @@ const Attendance: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-yellow-50 border-yellow-200">
           <CardContent className="p-4">
             <div className="text-center">
@@ -232,8 +243,8 @@ const Attendance: React.FC = () => {
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="text-sm font-medium mb-1 block">Player</label>
-            <Select 
-              value={newRecord.playerId} 
+            <Select
+              value={newRecord.playerId}
               onValueChange={(value) => setNewRecord(prev => ({ ...prev, playerId: value }))}
             >
               <SelectTrigger>
@@ -241,8 +252,8 @@ const Attendance: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 {players
-                  .filter(player => 
-                    !attendanceRecords.some(record => 
+                  .filter(player =>
+                    !attendanceRecords.some(record =>
                       record.playerId === player.id && record.date === selectedDate
                     )
                   )
@@ -254,11 +265,11 @@ const Attendance: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <label className="text-sm font-medium mb-1 block">Status</label>
-            <Select 
-              value={newRecord.status} 
+            <Select
+              value={newRecord.status}
               onValueChange={(value) => setNewRecord(prev => ({ ...prev, status: value as 'present' | 'absent' | 'late' }))}
             >
               <SelectTrigger>
@@ -271,7 +282,7 @@ const Attendance: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="md:col-span-2">
             <label className="text-sm font-medium mb-1 block">Notes</label>
             <Input
@@ -280,7 +291,7 @@ const Attendance: React.FC = () => {
               onChange={(e) => setNewRecord(prev => ({ ...prev, notes: e.target.value }))}
             />
           </div>
-          
+
           <div className="md:col-span-4">
             <Button onClick={handleAddRecord} className="w-full md:w-auto">
               <Plus className="mr-2 h-4 w-4" />
@@ -306,8 +317,8 @@ const Attendance: React.FC = () => {
                   className="pl-8 pr-4 py-2 w-full sm:w-48"
                 />
               </div>
-              <Select 
-                value={statusFilter} 
+              <Select
+                value={statusFilter}
                 onValueChange={(value) => setStatusFilter(value as 'all' | 'present' | 'absent' | 'late')}
               >
                 <SelectTrigger className="w-full sm:w-32">
@@ -352,10 +363,10 @@ const Attendance: React.FC = () => {
                           </Badge>
                         </td>
                         <td className="py-3 px-4">
-                          <Badge 
+                          <Badge
                             variant={
-                              record.status === 'present' ? 'default' : 
-                              record.status === 'absent' ? 'destructive' : 'secondary'
+                              record.status === 'present' ? 'default' :
+                                record.status === 'absent' ? 'destructive' : 'secondary'
                             }
                           >
                             {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
@@ -363,9 +374,9 @@ const Attendance: React.FC = () => {
                         </td>
                         <td className="py-3 px-4">{record.notes || '-'}</td>
                         <td className="py-3 px-4">
-                          <Button 
-                            variant="destructive" 
-                            size="sm" 
+                          <Button
+                            variant="destructive"
+                            size="sm"
                             onClick={() => handleDeleteRecord(record.id)}
                           >
                             Delete

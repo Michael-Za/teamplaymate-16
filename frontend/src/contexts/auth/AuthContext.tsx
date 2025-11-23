@@ -258,9 +258,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const csrf = csrfToken.generate()
       csrfToken.store(csrf)
 
+      console.log({
+        email,
+        password,
+        confirmPassword: additionalData?.confirmPassword || password,
+        name: additionalData?.name || email.split('@')[0],
+        location: additionalData?.location || '',
+        csrfToken: csrf,
+      });
+
       const response = await authAPI.register({
         email,
         password,
+        confirmPassword: additionalData?.confirmPassword || password,
         name: additionalData?.name || email.split('@')[0],
         location: additionalData?.location || '',
         csrfToken: csrf

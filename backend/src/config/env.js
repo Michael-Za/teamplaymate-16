@@ -77,7 +77,7 @@ const config = {
   // Google OAuth
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/api/v1/auth/google/callback',
+  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL || 'https://statsor.com/api/v1/auth/google/callback',
 
   // Email Service (SendGrid, Nodemailer, etc.)
   EMAIL_SERVICE: process.env.EMAIL_SERVICE || 'sendgrid', // 'sendgrid', 'smtp', 'ses'

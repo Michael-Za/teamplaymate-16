@@ -1,23 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
-import { ArrowLeft, User, Trophy, Target, Clock, Award, Camera, Upload, X, Maximize2, Plus } from 'lucide-react';
+import { Dialog, DialogContent } from '../components/ui/dialog';
+import { ArrowLeft, Camera, X, Plus } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AddPlayerForm from '../components/AddPlayerForm';
 import { PlayerPhotoUpload } from '../components/PlayerPhotoUpload';
-import { useLanguage } from '../contexts/LanguageContext';
-import { dataManagementService, Player as DataPlayer } from '../services/dataManagementService';
+import { playerManagementService } from '../services/playerManagementService';
 import { toast } from 'sonner';
 
 // Define our Player interface with all needed properties
-interface Player extends DataPlayer {
+interface Player {
+  id?: string;
+  name: string;
+  position: string;
+  age: number;
+  nationality: string;
+  number: number;
+  
   // Extended properties
-  nickname?: string;
-  secondaryPositions?: string[];
-  dominantFoot?: string;
-  birthDate?: Date;
+  nickname: string;
+  secondaryPositions: string[];
+  dominantFoot: string;
+  birthDate: Date;
+  goals: number;
+  assists: number;
+  minutes: number;
   games: number;
   yellowCards: number;
   redCards: number;
@@ -32,27 +41,31 @@ interface Player extends DataPlayer {
   duelsWon: number;
   duelsLost: number;
   crosses: number;
-  saves?: number;
-  photo?: string;
-  shotMap?: { [key: string]: number };
+  saves: number;
+  photo: string;
+  shotMap: { [key: string]: number };
 }
 
 const Players = () => {
-  const { t } = useLanguage();
   const navigate = useNavigate();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [isAddPlayerFormOpen, setIsAddPlayerFormOpen] = useState(false);
-  const [showMoreStats, setShowMoreStats] = useState(false);
   const [modalCard, setModalCard] = useState<'player' | 'performance' | 'stats' | 'shotMap' | null>(null);
   const [performanceFilter, setPerformanceFilter] = useState<'all' | 'home' | 'away'>('all');
   const [showStatsOverlay, setShowStatsOverlay] = useState(false);
   const [photoUploadPlayer, setPhotoUploadPlayer] = useState<Player | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   // Refresh player data when component mounts or when navigating back
   useEffect(() => {
     loadPlayers();
+    
+    // Subscribe to player updates from the centralized service
+    const unsubscribe = playerManagementService.onPlayersUpdated(() => {
+      console.log('[Players] Players updated, reloading...');
+      loadPlayers();
+    });
     
     // Add event listener for when user navigates back to this page
     const handleBeforeUnload = () => {
@@ -63,6 +76,7 @@ const Players = () => {
     window.addEventListener('focus', handleBeforeUnload);
     
     return () => {
+      unsubscribe();
       window.removeEventListener('focus', handleBeforeUnload);
     };
   }, []);
@@ -70,105 +84,79 @@ const Players = () => {
   const loadPlayers = async () => {
     try {
       setLoading(true);
-      const playersData = await dataManagementService.getPlayers();
+      console.log('[Players] Loading players from playerManagementService');
+      
+      // Use the centralized player management service
+      const playersData = await playerManagementService.getPlayers();
+      console.log('[Players] Loaded players:', playersData.length);
+      
       // Transform the data to match our Player interface
-      const transformedPlayers = playersData.map(player => {
-        // Create a new object with all properties
-        const transformedPlayer: Player = {
-          ...player,
-          number: player.number || Math.floor(Math.random() * 99) + 1,
-          nickname: (player as any).nickname || '',
-          secondaryPositions: (player as any).secondaryPositions || [],
-          dominantFoot: (player as any).dominantFoot || 'Right',
-          birthDate: player.date_of_birth ? new Date(player.date_of_birth) : new Date('1990-01-01'),
-          goals: player.goals || 0,
-          assists: player.assists || 0,
-          games: (player as any).games || 0,
-          yellowCards: (player as any).yellowCards || 0,
-          redCards: (player as any).redCards || 0,
-          minutes: player.minutes || 0,
-          shots: (player as any).shots || 0,
-          shotsOnTarget: (player as any).shotsOnTarget || 0,
-          passes: (player as any).passes || 0,
-          passAccuracy: (player as any).passAccuracy || 0,
-          foulsCommitted: (player as any).foulsCommitted || 0,
-          foulsReceived: (player as any).foulsReceived || 0,
-          ballsLost: (player as any).ballsLost || 0,
-          ballsRecovered: (player as any).ballsRecovered || 0,
-          duelsWon: (player as any).duelsWon || 0,
-          duelsLost: (player as any).duelsLost || 0,
-          crosses: (player as any).crosses || 0,
-          saves: (player as any).saves || 0,
-          photo: (player as any).photo || '/placeholder.svg',
-          shotMap: (player as any).shotMap || { 
-            'top-left': 0, 'top-center': 0, 'top-right': 0, 
-            'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
-            'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
-          }
-        };
-        return transformedPlayer;
-      });
+      const transformedPlayers: Player[] = playersData.map(player => ({
+        id: player.id || '',
+        name: player.name || 'Unknown',
+        position: player.position || 'MID',
+        age: player.age || 25,
+        nationality: player.nationality || 'Unknown',
+        number: player.jersey_number || Math.floor(Math.random() * 99) + 1,
+        nickname: player.nickname || '',
+        secondaryPositions: player.secondary_positions || [],
+        dominantFoot: player.preferred_foot || 'Right',
+        birthDate: player.date_of_birth ? new Date(player.date_of_birth) : new Date('1990-01-01'),
+        goals: player.goals || 0,
+        assists: player.assists || 0,
+        games: player.games || 0,
+        yellowCards: player.yellow_cards || 0,
+        redCards: player.red_cards || 0,
+        minutes: player.minutes || 0,
+        shots: player.shots || 0,
+        shotsOnTarget: player.shots_on_target || 0,
+        passes: player.passes || 0,
+        passAccuracy: player.pass_accuracy || 0,
+        foulsCommitted: player.fouls_committed || 0,
+        foulsReceived: player.fouls_received || 0,
+        ballsLost: player.balls_lost || 0,
+        ballsRecovered: player.balls_recovered || 0,
+        duelsWon: player.duels_won || 0,
+        duelsLost: player.duels_lost || 0,
+        crosses: player.crosses || 0,
+        saves: player.saves || 0,
+        photo: player.photo_url || '/placeholder.svg',
+        shotMap: player.shot_map || { 
+          'top-left': 0, 'top-center': 0, 'top-right': 0, 
+          'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
+          'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
+        }
+      }));
       setPlayers(transformedPlayers);
     } catch (error) {
-      console.error('Error loading players:', error);
+      console.error('[Players] Error loading players:', error);
       toast.error('Failed to load players');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddPlayer = async (newPlayerData: Omit<Player, 'id'>) => {
+  const handleAddPlayer = async (newPlayerData: Partial<Player>) => {
     try {
-      const playerData: Partial<DataPlayer> = {
-        name: newPlayerData.name,
-        position: newPlayerData.position,
-        age: newPlayerData.age ?? 0,
-        nationality: newPlayerData.nationality || ''
-        // Add other fields as needed
-      };
+      console.log('[Players] Adding new player:', newPlayerData);
       
-      const createdPlayer = await dataManagementService.createPlayer(playerData);
-      if (createdPlayer) {
-        // Transform to match our Player interface
-        const transformedPlayer: Player = {
-          ...createdPlayer,
-          number: createdPlayer.number || Math.floor(Math.random() * 99) + 1,
-          nickname: (createdPlayer as any).nickname || '',
-          secondaryPositions: (createdPlayer as any).secondaryPositions || [],
-          dominantFoot: (createdPlayer as any).dominantFoot || 'Right',
-          birthDate: createdPlayer.date_of_birth ? new Date(createdPlayer.date_of_birth) : new Date('1990-01-01'),
-          goals: createdPlayer.goals || 0,
-          assists: createdPlayer.assists || 0,
-          games: (createdPlayer as any).games || 0,
-          yellowCards: (createdPlayer as any).yellowCards || 0,
-          redCards: (createdPlayer as any).redCards || 0,
-          minutes: createdPlayer.minutes || 0,
-          shots: (createdPlayer as any).shots || 0,
-          shotsOnTarget: (createdPlayer as any).shotsOnTarget || 0,
-          passes: (createdPlayer as any).passes || 0,
-          passAccuracy: (createdPlayer as any).passAccuracy || 0,
-          foulsCommitted: (createdPlayer as any).foulsCommitted || 0,
-          foulsReceived: (createdPlayer as any).foulsReceived || 0,
-          ballsLost: (createdPlayer as any).ballsLost || 0,
-          ballsRecovered: (createdPlayer as any).ballsRecovered || 0,
-          duelsWon: (createdPlayer as any).duelsWon || 0,
-          duelsLost: (createdPlayer as any).duelsLost || 0,
-          crosses: (createdPlayer as any).crosses || 0,
-          saves: (createdPlayer as any).saves || 0,
-          photo: (createdPlayer as any).photo || '/placeholder.svg',
-          shotMap: (createdPlayer as any).shotMap || { 
-            'top-left': 0, 'top-center': 0, 'top-right': 0, 
-            'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
-            'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
-          }
-        } as Player;
+      // Use the centralized player management service
+      const result = await playerManagementService.createPlayer(newPlayerData as any);
+      
+      if (result.success && result.data) {
+        console.log('[Players] Player created successfully:', result.data);
+        setIsAddPlayerFormOpen(false);
         
-        setPlayers(prev => [...prev, transformedPlayer]);
-        toast.success('Player added successfully!');
+        // Reload players to ensure sync across all sections
+        await loadPlayers();
+      } else {
+        console.error('[Players] Failed to create player:', result.errors);
+        const errorMsg = result.errors?.map(e => e.message).join(', ') || 'Unknown error';
+        toast.error(`Failed to add player: ${errorMsg}`);
       }
     } catch (error) {
-      console.error('Error adding player:', error);
-      toast.error('Failed to add player');
+      console.error('[Players] Error adding player:', error);
+      toast.error(`Failed to add player: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -240,7 +228,7 @@ const Players = () => {
                       />
                     ) : (
                       <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-white text-4xl font-bold border-4 border-blue-300 mx-auto">
-                        {selectedPlayer.number}
+                        {selectedPlayer['number']}
                       </div>
                     )}
                     <button 
@@ -479,7 +467,7 @@ const Players = () => {
                       />
                     ) : (
                       <div className="w-64 h-64 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center text-white text-8xl font-bold border-4 border-white/20">
-                        {selectedPlayer.number}
+                        {selectedPlayer['number']}
                       </div>
                     )}
                   </div>
@@ -662,7 +650,7 @@ const Players = () => {
                     />
                   ) : (
                     <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                      {player.number}
+                      {player['number']}
                     </div>
                   )}
                 </div>

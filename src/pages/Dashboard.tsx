@@ -27,7 +27,6 @@ import { subscriptionService } from '../services/subscriptionService';
 import { InteractiveDashboard } from '../components/InteractiveDashboard';
 import { StatsCard } from '../components/StatsCard';
 import { dataManagementService } from '../services/dataManagementService';
-import { initializePlayers } from '../utils/playerSetupUtils';
 // NotificationDemo removed - no more automatic demo notifications
 
 interface Team {
@@ -77,16 +76,9 @@ const Dashboard: React.FC = () => {
     const loadDashboardData = async () => {
       setLoading(true);
       try {
-        // Initialize players if not already done
-        if (!playersInitialized) {
-          try {
-            await initializePlayers();
-            setPlayersInitialized(true);
-          } catch (initError) {
-            console.error('Error initializing players:', initError);
-          }
-        }
-
+        // REMOVED: Auto-initialization of 8 demo players
+        // Users should add their own players manually
+        
         // Load real data from backend
         const playerData = await dataManagementService.getPlayers();
         const clubData = await dataManagementService.getClubData();

@@ -10,7 +10,11 @@ interface AuthAPI {
   updateSportPreference: (sport: string) => Promise<any>;
   forgotPassword: (data: { email: string }) => Promise<any>;
   verifyResetCode: (data: { email: string; code: string }) => Promise<any>;
-  resetPassword: (data: { email: string; code: string; password: string }) => Promise<any>;
+  resetPassword: (data: {
+    email: string;
+    code: string;
+    password: string;
+  }) => Promise<any>;
   logout: (data?: { csrfToken?: string }) => Promise<any>;
   validateToken: (data: { token: string }) => Promise<any>;
   refreshToken: (data: { token: string }) => Promise<any>;
@@ -18,13 +22,13 @@ interface AuthAPI {
 
 // API Configuration - use production URL in production, localhost in development
 const isProduction = import.meta.env.PROD;
-const API_BASE_URL = isProduction 
-  ? (import.meta.env.VITE_API_URL || 'https://api.statsor.com')
-  : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
+const API_BASE_URL = isProduction
+  ? import.meta.env.VITE_API_URL || 'https://api.statsor.com'
+  : import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export const api = {
   baseURL: API_BASE_URL,
-  
+
   // Auth endpoints
   auth: {
     register: `${API_BASE_URL}/api/v1/auth/register`,
@@ -35,6 +39,9 @@ export const api = {
     forgotPassword: `${API_BASE_URL}/api/v1/auth/forgot-password`,
     verifyResetCode: `${API_BASE_URL}/api/v1/auth/verify-reset-code`,
     resetPassword: `${API_BASE_URL}/api/v1/auth/reset-password`,
+
+    validateToken: `${API_BASE_URL}/api/v1/auth/validate-token`,
+    refreshToken: `${API_BASE_URL}/api/v1/auth/refresh-token`,
   },
 
   // Teams endpoints
@@ -115,95 +122,188 @@ export const api = {
 export const authAPI: AuthAPI = {
   register: async (data: any) => {
     try {
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            location: data.location,
-          }
-        }
+      console.log('[API] Register request to:', api.auth.register);
+      console.log('[API] Register data:', { ...data, password: '***' });
+
+      const response = await axios.post(api.auth.register, data, {
+        timeout: 30000, // 30 second timeout
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        validateStatus: (status) => status < 500, // Don't throw on 4xx errors
       });
 
-      if (error) {
-        console.error('Registration error:', error);
+      console.log('[API] Register response status:', response.status);
+      console.log('[API] Register response data:', response.data);
+
+      // Check if response indicates success
+      if (response.status >= 200 && response.status < 300) {
+        const authData = response.data;
+
+        // Backend returns: { message, user, tokens: { accessToken, refreshToken } }
+        // Convert to expected format
+        return {
+          data: {
+            success: true,
+            data: {
+              user: authData.user,
+              session: authData.tokens ? {
+                access_token: authData.tokens.accessToken,
+                refresh_token: authData.tokens.refreshToken
+              } : null,
+            },
+            message: authData.message || 'Registration successful!',
+          },
+        };
+      } else {
+        // Handle error response
+        const errorMessage = response.data?.error?.message || 
+                            response.data?.error ||
+                            response.data?.message ||
+                            `Registration failed with status ${response.status}`;
         return {
           data: {
             success: false,
-            error: error.message,
-            message: error.message || 'Registration failed'
-          }
+            error: errorMessage,
+            message: 'Registration failed',
+          },
+        };
+      }
+    } catch (error: any) {
+      console.error('[API] Registration exception:', error);
+      
+      // Handle network errors specifically
+      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        const apiUrl = api.auth.register;
+        return {
+          data: {
+            success: false,
+            error: `Cannot connect to server at ${apiUrl}. Please make sure the backend server is running.`,
+            message: 'Network Error - Backend server not reachable',
+          },
+        };
+      }
+      
+      if (error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+        return {
+          data: {
+            success: false,
+            error: 'Request timed out. Please check your internet connection and try again.',
+            message: 'Request Timeout',
+          },
         };
       }
 
-      return {
-        data: {
-          success: true,
-          data: {
-            user: authData.user,
-            session: authData.session
-          },
-          message: 'Registration successful!'
-        }
-      };
-    } catch (error: any) {
-      console.error('Registration exception:', error);
+      const errorMessage = error?.response?.data?.error?.message || 
+                          error?.response?.data?.error ||
+                          error?.response?.data?.message ||
+                          error.message ||
+                          'Registration failed';
       return {
         data: {
           success: false,
-          error: error.message,
-          message: 'Registration failed'
-        }
+          error: errorMessage,
+          message: 'Registration failed',
+        },
       };
     }
   },
-  
+
   login: async (data: any) => {
     try {
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password
+      console.log('[API] Login request to:', api.auth.login);
+      console.log('[API] Login data:', { email: data.email, password: '***' });
+
+      const response = await axios.post(api.auth.login, data, {
+        timeout: 30000, // 30 second timeout
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        validateStatus: (status) => status < 500, // Don't throw on 4xx errors
       });
 
-      if (error) {
-        console.error('Login error:', error);
+      console.log('[API] Login response status:', response.status);
+      console.log('[API] Login response data:', response.data);
+
+      // Check if response indicates success
+      if (response.status >= 200 && response.status < 300) {
+        const authData = response.data;
+
+        // Backend returns: { message, user, tokens: { accessToken, refreshToken } }
+        // Convert to expected format
+        return {
+          data: {
+            success: true,
+            data: {
+              user: authData.user,
+              session: authData.tokens ? {
+                access_token: authData.tokens.accessToken,
+                refresh_token: authData.tokens.refreshToken
+              } : null,
+            },
+            message: authData.message || 'Login successful',
+          },
+        };
+      } else {
+        // Handle error response
+        const errorMessage = response.data?.error?.message ||
+                            response.data?.error ||
+                            response.data?.message ||
+                            `Login failed with status ${response.status}`;
         return {
           data: {
             success: false,
-            error: error.message,
-            message: error.message || 'Login failed'
-          }
+            error: errorMessage,
+            message: 'Login failed',
+          },
+        };
+      }
+    } catch (error: any) {
+      console.error('[API] Login exception:', error);
+      
+      // Handle network errors specifically
+      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        const apiUrl = api.auth.login;
+        return {
+          data: {
+            success: false,
+            error: `Cannot connect to server at ${apiUrl}. Please make sure the backend server is running.`,
+            message: 'Network Error - Backend server not reachable',
+          },
+        };
+      }
+      
+      if (error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+        return {
+          data: {
+            success: false,
+            error: 'Request timed out. Please check your internet connection and try again.',
+            message: 'Request Timeout',
+          },
         };
       }
 
-      return {
-        data: {
-          success: true,
-          data: {
-            user: authData.user,
-            session: authData.session
-          },
-          message: 'Login successful'
-        }
-      };
-    } catch (error: any) {
-      console.error('Login exception:', error);
+      const errorMessage = error?.response?.data?.error?.message ||
+                          error?.response?.data?.error ||
+                          error?.response?.data?.message ||
+                          error.message ||
+                          'Login failed';
       return {
         data: {
           success: false,
-          error: error.message,
-          message: 'Login failed'
-        }
+          error: errorMessage,
+          message: 'Login failed',
+        },
       };
     }
   },
-  
+
   verifyGoogleToken: async (code: string, codeVerifier: string) => {
     try {
       const redirectUri = `${window.location.origin}/auth/google/callback`;
 
-      const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data: authData, error } =
+        await supabase.auth.exchangeCodeForSession(code);
 
       if (error) {
         console.error('Google OAuth error:', error);
@@ -211,8 +311,8 @@ export const authAPI: AuthAPI = {
           data: {
             success: false,
             message: error.message || 'Google authentication failed',
-            error: error.message || 'Unknown error'
-          }
+            error: error.message || 'Unknown error',
+          },
         };
       }
 
@@ -221,9 +321,9 @@ export const authAPI: AuthAPI = {
           success: true,
           data: {
             user: authData.user,
-            token: authData.session?.access_token
-          }
-        }
+            token: authData.session?.access_token,
+          },
+        },
       };
     } catch (error: any) {
       console.error('Google token verification exception:', error);
@@ -231,16 +331,16 @@ export const authAPI: AuthAPI = {
         data: {
           success: false,
           message: error.message || 'Google authentication failed',
-          error: error.message || 'Unknown error'
-        }
+          error: error.message || 'Unknown error',
+        },
       };
     }
   },
-  
+
   updateSportPreference: async (sport: string) => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     // Update user in localStorage
     const savedUser = localStorage.getItem('statsor_user');
     if (savedUser) {
@@ -249,181 +349,146 @@ export const authAPI: AuthAPI = {
       user.sportSelected = true;
       localStorage.setItem('statsor_user', JSON.stringify(user));
     }
-    
+
     return {
       data: {
         success: true,
         data: { sport },
-        message: 'Sport preference updated successfully'
-      }
+        message: 'Sport preference updated successfully',
+      },
     };
   },
 
   forgotPassword: async (data: { email: string }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/forgot-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
+      const response = await axios.post(api.auth.forgotPassword, data);
+      const result = response.data;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to send reset email');
-      }
+      console.log(result);
 
-      const result = await response.json();
       return {
         data: {
           success: true,
           data: result,
-          message: result.message || 'If the email exists, a reset link has been sent.'
-        }
+          message:
+            result.message ||
+            'Reset code has been sent to your email.',
+        },
+        error: null,
       };
     } catch (error: any) {
+      console.log(error);
+      const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.error || error?.response?.data?.message || error.message || 'Failed to send reset email';
       return {
-        data: {
-          success: false,
-          error: error.message,
-          message: 'Failed to send reset email'
-        }
+        data: null,
+        error: errorMessage,
       };
     }
   },
 
   verifyResetCode: async (data: { email: string; code: string }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/verify-reset-code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
+      const response = await axios.post(api.auth.verifyResetCode, data);
+      const result = response.data;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Invalid reset code');
-      }
-
-      const result = await response.json();
       return {
         data: {
-          success: true,
-          data: result,
-          message: result.message || 'Reset code verified successfully'
-        }
+          valid: result.valid || true,
+          message:
+            result?.data?.message ||
+            result.message ||
+            'Reset code verified successfully',
+        },
+        error: null,
       };
     } catch (error: any) {
+      const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.error || error?.response?.data?.message || error.message || 'Invalid or expired reset code';
       return {
-        data: {
-          success: false,
-          error: error.message,
-          message: 'Invalid or expired reset code'
-        }
+        data: { valid: false },
+        error: errorMessage,
       };
     }
   },
 
-  resetPassword: async (data: { email: string; code: string; password: string }) => {
+  resetPassword: async (data: {
+    email: string;
+    code: string;
+    password: string;
+  }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/reset-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
+      const response = await axios.post(api.auth.resetPassword, data);
+      const result = response.data;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to reset password');
-      }
-
-      const result = await response.json();
       return {
         data: {
           success: true,
-          data: result,
-          message: result.message || 'Password reset successful'
-        }
+          message: result.message || 'Password reset successful',
+        },
+        error: null,
       };
     } catch (error: any) {
+      const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.error || error?.response?.data?.message || error.message || 'Failed to reset password. Please try again.';
       return {
-        data: {
-          success: false,
-          error: error.message,
-          message: 'Failed to reset password. Please try again.'
-        }
+        data: null,
+        error: errorMessage,
       };
     }
   },
-  
+
   logout: async (data?: { csrfToken?: string }) => {
     try {
       const token = localStorage.getItem('auth_token');
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       };
-      
+
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      
+
       if (data?.csrfToken) {
         headers['X-CSRF-Token'] = data.csrfToken;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ refreshToken: localStorage.getItem('refresh_token') })
-      });
+      const response = await axios.post(api.auth.logout, {}, { headers, withCredentials: true });
 
-      if (!response.ok) {
-        console.warn('Logout API call failed, but proceeding with local logout');
-      }
+      const result = response.data;
 
-      return { success: true };
+      return result;
     } catch (error) {
       console.warn('Logout API error:', error);
       return { success: true }; // Always succeed locally
     }
   },
-  
+
   // Token validation method
   validateToken: async (data: { token: string }) => {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // In a real implementation, this would validate with your backend
-      console.log('Token validation would happen here');
-      
-      return { data: { valid: true } };
+      const response = await axios.post(api.auth.validateToken, data);
+
+      const result = response.data;
+
+
+      return result;
     } catch (error) {
       console.error('Token validation error:', error);
       return { data: { valid: false } };
     }
   },
-  
+
   // Token refresh method
   refreshToken: async (data: { token: string }) => {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // In a real implementation, this would refresh with your backend
-      console.log('Token refresh would happen here');
-      
-      return { data: { token: 'new_mock_token_' + Date.now() } };
+      const response = await axios.post(api.auth.refreshToken, data);
+
+      const result = response.data;
+
+      return result;
     } catch (error) {
       console.error('Token refresh error:', error);
       return { data: { token: null } };
     }
-  }
+  },
 };
 
 // Chatbot API
@@ -432,19 +497,27 @@ export const chatbotAPI = {
     try {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
+
+      alert("Message: " + message);
+
       // In a real implementation, this would call your chatbot backend
       console.log('Chat message would be sent:', message);
-      
+
       // Return mock response
       return {
         data: {
           success: true,
           data: {
-            response: "This is a mock response from the AI assistant. In a real deployment, this would connect to your AI service.",
-            suggestions: ["Try asking about player statistics", "Ask about team performance", "Request match analysis"]
-          }
-        }
+            response:
+              'This is a mock response from the AI assistant. In a real deployment, this would connect to your AI service.',
+            suggestions: [
+              'Try asking about player statistics',
+              'Ask about team performance',
+              'Request match analysis',
+            ],
+          },
+        },
       };
     } catch (error) {
       console.error('Chat API error:', error);
@@ -452,15 +525,21 @@ export const chatbotAPI = {
       return {
         data: {
           success: false,
-          error: 'AI chat service is currently unavailable. Please try again later.',
+          error:
+            'AI chat service is currently unavailable. Please try again later.',
           data: {
-            response: 'I apologize, but the AI chat service is temporarily unavailable. Please try again in a few moments.',
-            suggestions: ['Check your internet connection', 'Try refreshing the page', 'Contact support if the issue persists']
-          }
-        }
+            response:
+              'I apologize, but the AI chat service is temporarily unavailable. Please try again in a few moments.',
+            suggestions: [
+              'Check your internet connection',
+              'Try refreshing the page',
+              'Contact support if the issue persists',
+            ],
+          },
+        },
       };
     }
-  }
+  },
 };
 
 export default api;

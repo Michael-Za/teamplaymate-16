@@ -249,6 +249,10 @@ export const secureStorage = {
       ? secureStorage.decrypt(storedData, encryptionKey)
       : storedData;
   },
+  
+  removeItem: (key: string): void => {
+    localStorage.removeItem(key);
+  },
 };
 
 // Input validation middleware

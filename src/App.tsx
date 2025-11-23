@@ -39,6 +39,7 @@ const AdvancedAnalytics = lazy(() => import("./pages/AdvancedAnalytics"));
 const CommunityHub = lazy(() => import("./pages/CommunityHub"));
 const DatabaseStatusPage = lazy(() => import("./pages/DatabaseStatusPage"));
 const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
+const AuthCallback = lazy(() => import("./pages/AuthCallbackSimple"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
 const PayPalPayment = lazy(() => import("./pages/PayPalPayment"));
@@ -48,6 +49,7 @@ const MatchTracking = lazy(() => import("./pages/MatchTracking"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const AIAssistant = lazy(() => import("./pages/AIAssistant"));
 const AIAssistantDirect = lazy(() => import("./pages/AIAssistantDirect"));
+const TestRender = lazy(() => import("./pages/TestRender"));
 const TestAIAssistant = lazy(() => import("./pages/TestAIAssistant"));
 const DataManagement = lazy(() => import("./pages/DataManagement"));
 const Suggestions = lazy(() => import("./pages/Suggestions"));
@@ -56,6 +58,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const GeneralNotepad = lazy(() => import("./pages/GeneralNotepad"));
 const TestPlayerIntegration = lazy(() => import("./pages/TestPlayerIntegration"));
 const DemoPlayerTest = lazy(() => import("./pages/DemoPlayerTest"));
+const SubscriptionGate = lazy(() => import("./components/SubscriptionGate"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,7 +71,7 @@ const queryClient = new QueryClient({
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -76,27 +79,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-  
-  // Check if this is a demo account
-  const isDemo = localStorage.getItem('user_type') === 'demo';
-  
-  // For demo accounts, skip all checks and go directly to dashboard
-  if (isDemo) {
-    // Set a default sport in localStorage so the platform works
-    if (!localStorage.getItem('statsor_sport')) {
-      localStorage.setItem('statsor_sport', 'soccer');
-    }
-    if (!localStorage.getItem('statsor_sport_selection_completed')) {
-      localStorage.setItem('statsor_sport_selection_completed', 'true');
-    }
-    return <>{children}</>;
-  }
-  
-  // For real accounts, require sign in
+
+  // Require authentication - NO DEMO MODE
   if (!user) {
+    console.log('[ProtectedRoute] No authenticated user - redirecting to signin');
     return <Navigate to="/signin" />;
   }
-  
+
+  console.log('[ProtectedRoute] User authenticated:', user.email);
   return <>{children}</>;
 };
 
@@ -127,11 +117,32 @@ const AppProviders = ({ children }: { children: React.ReactNode }) => (
   </LanguageProvider>
 );
 
+// Root route handler - redirects based on auth status
+const RootRoute = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If user is logged in, redirect to dashboard
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Otherwise show landing page
+  return <Index />;
+};
+
 function App() {
   // Clear demo data on app initialization if mock auth is disabled
   useEffect(() => {
     const enableMockAuth = import.meta.env['VITE_ENABLE_MOCK_AUTH'] === 'true';
-    
+
     // If mock auth is disabled, clear any demo authentication data
     if (!enableMockAuth) {
       // Check if current user is a demo user
@@ -170,264 +181,286 @@ function App() {
             <Sonner />
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/" element={<RootRoute />} />
+                <Route path="/landing" element={<Index />} />
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/google-callback" element={<GoogleCallback />} />
-                <Route path="/payment/success" element={<PaymentSuccess />} />
-                <Route path="/payment/cancel" element={<PaymentCancel />} />
-                <Route path="/paypal" element={<PayPalPayment />} />
-                
+                <Route path="/select-sport" element={<SelectSport />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/payment-cancel" element={<PaymentCancel />} />
+                <Route path="/paypal-payment" element={<PayPalPayment />} />
+                <Route path="/test" element={<TestPage />} />
+
                 {/* Protected Routes */}
-                <Route 
-                  path="/dashboard" 
+                <Route
+                  path="/dashboard"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <Dashboard />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/players" 
+                <Route
+                  path="/dashboard/:userId"
+                  element={
+                    <ProtectedRoute>
+                      <ResponsiveLayout>
+                        <Dashboard />
+                      </ResponsiveLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/players"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <PlayerManagement />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/player-test" 
+                <Route
+                  path="/player-test"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <TestPlayerIntegration />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/demo-player-test" 
+                <Route
+                  path="/demo-player-test"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <DemoPlayerTest />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/players/:id" 
+                <Route
+                  path="/players/:id"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <PlayerProfile />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/matches" 
+                <Route
+                  path="/matches"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <Matches />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/match-tracking" 
+                <Route
+                  path="/match-tracking"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <MatchTracking />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/general-stats" 
+                <Route
+                  path="/general-stats"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <GeneralStats />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/attendance" 
+                <Route
+                  path="/attendance"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <Attendance />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/manual-actions" 
+                <Route
+                  path="/manual-actions"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <ManualActions />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/command-table" 
+                <Route
+                  path="/command-table"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <CommandTable />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/data-management" 
+                <Route
+                  path="/data-management"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <DataManagement />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/training" 
+                <Route
+                  path="/training"
                   element={
                     <ProtectedRoute>
-                      <ResponsiveLayout>
-                        <Training />
-                      </ResponsiveLayout>
+                      <SubscriptionGate feature="training" requiredPlan="pro">
+                        <ResponsiveLayout>
+                          <Training />
+                        </ResponsiveLayout>
+                      </SubscriptionGate>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/tactical-chat" 
+                <Route
+                  path="/tactical-chat"
                   element={
                     <ProtectedRoute>
-                      <ResponsiveLayout>
-                        <TacticalChat />
-                      </ResponsiveLayout>
+                      <SubscriptionGate feature="tactical_chat" requiredPlan="pro">
+                        <ResponsiveLayout>
+                          <TacticalChat />
+                        </ResponsiveLayout>
+                      </SubscriptionGate>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/advanced-analytics" 
+                <Route
+                  path="/advanced-analytics"
                   element={
                     <ProtectedRoute>
-                      <ResponsiveLayout>
-                        <AdvancedAnalytics />
-                      </ResponsiveLayout>
+                      <SubscriptionGate feature="advanced_analytics" requiredPlan="pro">
+                        <ResponsiveLayout>
+                          <AdvancedAnalytics />
+                        </ResponsiveLayout>
+                      </SubscriptionGate>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/community" 
+                <Route
+                  path="/community"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <CommunityHub />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/database-status" 
+                <Route
+                  path="/database-status"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <DatabaseStatusPage />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/player-management" 
+                <Route
+                  path="/player-management"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <PlayerManagement />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/analytics" 
+                <Route
+                  path="/analytics"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <GeneralNotepad />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/ai-assistant-direct" 
+                <Route
+                  path="/ai-assistant-direct"
                   element={
                     <ProtectedRoute>
                       <AIAssistantDirect />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/ai-assistant-test" 
+                <Route
+                  path="/ai-assistant-test"
                   element={
                     <ProtectedRoute>
                       <TestAIAssistant />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/ai-assistant" 
+                <Route
+                  path="/ai-assistant"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <AIAssistant />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/suggestions" 
+                <Route
+                  path="/suggestions"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <Suggestions />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/settings" 
+                <Route
+                  path="/settings"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <Settings />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/profile" 
+                <Route
+                  path="/profile"
                   element={
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <Profile />
                       </ResponsiveLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
+                <Route path="/auth/google/callback" element={<AuthCallback />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/test-render" element={<TestRender />} />
               </Routes>
             </Suspense>
           </AppProviders>

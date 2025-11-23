@@ -389,180 +389,180 @@ const Index = () => {
                   accent: 'red'
                 }
               ].map((feature, index) => {
-                const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
-                const [isHovered, setIsHovered] = React.useState(false);
-                const cardRef = React.useRef<HTMLDivElement>(null);
+                const FeatureCard = () => {
+                  const [isHovered, setIsHovered] = useState(false);
+                  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-                const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-                  if (!cardRef.current) return;
-                  const rect = cardRef.current.getBoundingClientRect();
-                  const x = e.clientX - rect.left;
-                  const y = e.clientY - rect.top;
-                  setMousePosition({ x, y });
-                };
+                  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    setMousePosition({ x, y });
+                  };
 
-                const handleMouseEnter = () => setIsHovered(true);
-                const handleMouseLeave = () => {
-                  setIsHovered(false);
-                  setMousePosition({ x: 0, y: 0 });
-                };
+                  const handleMouseEnter = () => setIsHovered(true);
+                  const handleMouseLeave = () => {
+                    setIsHovered(false);
+                    setMousePosition({ x: 0, y: 0 });
+                  };
 
-                const tiltX = isHovered ? (mousePosition.y - 150) / 10 : 0;
-                const tiltY = isHovered ? (mousePosition.x - 150) / -10 : 0;
+                  const tiltX = isHovered ? (mousePosition.y - 150) / 10 : 0;
+                  const tiltY = isHovered ? (mousePosition.x - 150) / -10 : 0;
 
-                return (
-                <motion.div
-                  key={index}
-                  ref={cardRef}
-                  className="group relative p-8 rounded-2xl border-2 transition-all duration-500 cursor-pointer overflow-hidden bg-gray-900/50 border-gray-800 hover:border-gray-600 hover:bg-gray-800/70"
-                  variants={cardVariants}
-                  initial="hidden"
-                  whileInView="visible"
-                  whileHover={{
-                    scale: 1.05,
-                    rotateX: tiltX,
-                    rotateY: tiltY,
-                    z: 50
-                  }}
-                  viewport={{ once: true }}
-                  transition={{ 
-                    delay: index * 0.1,
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 20
-                  }}
-                  style={{
-                    transformStyle: 'preserve-3d',
-                    perspective: 1000
-                  }}
-                  onMouseMove={handleMouseMove}
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  {/* 3D Cursor Follower */}
-                  <motion.div
-                    className="absolute pointer-events-none z-10"
-                    animate={{
-                      x: mousePosition.x - 10,
-                      y: mousePosition.y - 10,
-                      opacity: isHovered ? 1 : 0
-                    }}
-                    transition={{ type: "spring", stiffness: 500, damping: 28 }}
-                  >
-                    <div className={`w-5 h-5 rounded-full bg-gradient-to-r ${feature.color} blur-sm`} />
-                  </motion.div>
-
-                  {/* Interactive Light Effect */}
-                  <motion.div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background: isHovered 
-                        ? `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255,255,255,0.1), transparent 40%)`
-                        : 'none'
-                    }}
-                  />
-
-                  {/* Animated background glow */}
-                  <motion.div
-                    className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-r ${feature.color} blur-xl`}
-                    initial={{ scale: 0 }}
-                    whileHover={{ scale: 1.2 }}
-                    transition={{ duration: 0.5 }}
-                  />
-                  
-                  <motion.div 
-                    className={`relative w-16 h-16 rounded-xl bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 shadow-lg`}
-                    animate={{
-                      rotateX: isHovered ? tiltX * 0.5 : 0,
-                      rotateY: isHovered ? tiltY * 0.5 : 0,
-                      scale: isHovered ? 1.1 : 1,
-                      z: isHovered ? 30 : 0
-                    }}
-                    transition={{ 
-                      type: "spring", 
-                      stiffness: 400, 
-                      damping: 25 
-                    }}
-                    style={{ transformStyle: 'preserve-3d' }}
-                  >
+                  return (
                     <motion.div
-                      animate={{
-                        rotate: isHovered ? [0, -10, 10, 0] : 0
+                      className="group relative p-8 rounded-2xl border-2 transition-all duration-500 cursor-pointer overflow-hidden bg-gray-900/50 border-gray-800 hover:border-gray-600 hover:bg-gray-800/70"
+                      variants={cardVariants}
+                      initial="hidden"
+                      whileInView="visible"
+                      whileHover={{
+                        scale: 1.05,
+                        rotateX: tiltX,
+                        rotateY: tiltY,
+                        z: 50
                       }}
-                      transition={{ duration: 0.6, repeat: isHovered ? Infinity : 0 }}
+                      viewport={{ once: true }}
+                      transition={{ 
+                        delay: index * 0.1,
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 20
+                      }}
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        perspective: 1000
+                      }}
+                      onMouseMove={handleMouseMove}
+                      onMouseEnter={handleMouseEnter}
+                      onMouseLeave={handleMouseLeave}
                     >
-                      <feature.icon className="h-8 w-8 text-white drop-shadow-lg" />
-                    </motion.div>
-                  </motion.div>
-                  
-                  <motion.h3 
-                    className="text-xl font-bold mb-4 text-white"
-                    animate={{
-                      x: isHovered ? 5 : 0,
-                      z: isHovered ? 20 : 0
-                    }}
-                    transition={{ duration: 0.3 }}
-                    style={{ transformStyle: 'preserve-3d' }}
-                  >
-                    {feature.title}
-                  </motion.h3>
-                  
-                  <motion.p 
-                    className="leading-relaxed text-gray-400"
-                    animate={{
-                      x: isHovered ? 5 : 0,
-                      z: isHovered ? 15 : 0
-                    }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    style={{ transformStyle: 'preserve-3d' }}
-                  >
-                    {feature.description}
-                  </motion.p>
-                  
-                  {/* Enhanced 3D Hover arrow indicator */}
-                  <motion.div
-                    className={`absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-                    animate={{
-                      x: isHovered ? 0 : -10,
-                      z: isHovered ? 25 : 0,
-                      rotateZ: isHovered ? 360 : 0
-                    }}
-                    transition={{ 
-                      duration: 0.5,
-                      rotateZ: { duration: 2, repeat: isHovered ? Infinity : 0, ease: "linear" }
-                    }}
-                    style={{ transformStyle: 'preserve-3d' }}
-                  >
-                    <ArrowRight className="h-5 w-5 text-gray-400 drop-shadow-lg" />
-                  </motion.div>
+                      {/* 3D Cursor Follower */}
+                      <motion.div
+                        className="absolute pointer-events-none z-10"
+                        animate={{
+                          x: mousePosition.x - 10,
+                          y: mousePosition.y - 10,
+                          opacity: isHovered ? 1 : 0
+                        }}
+                        transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-gradient-to-r ${feature.color} blur-sm`} />
+                      </motion.div>
 
-                  {/* 3D Floating Particles */}
-                  {isHovered && [
-                    { x: 20, y: 30, delay: 0 },
-                    { x: 80, y: 50, delay: 0.2 },
-                    { x: 150, y: 40, delay: 0.4 },
-                    { x: 200, y: 60, delay: 0.6 }
-                  ].map((particle, i) => (
-                    <motion.div
-                      key={i}
-                      className={`absolute w-2 h-2 rounded-full bg-gradient-to-r ${feature.color} opacity-60`}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{
-                        opacity: [0, 1, 0],
-                        scale: [0, 1, 0],
-                        y: [particle.y, particle.y - 20, particle.y],
-                        x: particle.x
-                      }}
-                      transition={{
-                        duration: 2,
-                        delay: particle.delay,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  ))}
-                </motion.div>
-                );
+                      {/* Interactive Light Effect */}
+                      <motion.div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          background: isHovered 
+                            ? `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(255,255,255,0.1), transparent 40%)`
+                            : 'none'
+                        }}
+                      />
+
+                      {/* Animated background glow */}
+                      <motion.div
+                        className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 bg-gradient-to-r ${feature.color} blur-xl`}
+                        initial={{ scale: 0 }}
+                        whileHover={{ scale: 1.2 }}
+                        transition={{ duration: 0.5 }}
+                      />
+                      
+                      <motion.div 
+                        className={`relative w-16 h-16 rounded-xl bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 shadow-lg`}
+                        animate={{
+                          rotateX: isHovered ? tiltX * 0.5 : 0,
+                          rotateY: isHovered ? tiltY * 0.5 : 0,
+                          scale: isHovered ? 1.1 : 1,
+                          z: isHovered ? 30 : 0
+                        }}
+                        transition={{ 
+                          type: "spring", 
+                          stiffness: 400, 
+                          damping: 25 
+                        }}
+                        style={{ transformStyle: 'preserve-3d' }}
+                      >
+                        <motion.div
+                          animate={{
+                            rotate: isHovered ? [0, -10, 10, 0] : 0
+                          }}
+                          transition={{ duration: 0.6, repeat: isHovered ? Infinity : 0 }}
+                        >
+                          <feature.icon className="h-8 w-8 text-white drop-shadow-lg" />
+                        </motion.div>
+                      </motion.div>
+                      
+                      <motion.h3 
+                        className="text-xl font-bold mb-4 text-white"
+                        animate={{
+                          x: isHovered ? 5 : 0,
+                          z: isHovered ? 20 : 0
+                        }}
+                        transition={{ duration: 0.3 }}
+                        style={{ transformStyle: 'preserve-3d' }}
+                      >
+                        {feature.title}
+                      </motion.h3>
+                      
+                      <motion.p 
+                        className="leading-relaxed text-gray-400"
+                        animate={{
+                          x: isHovered ? 5 : 0,
+                          z: isHovered ? 15 : 0
+                        }}
+                        transition={{ duration: 0.3, delay: 0.1 }}
+                        style={{ transformStyle: 'preserve-3d' }}
+                      >
+                        {feature.description}
+                      </motion.p>
+                      
+                      {/* Enhanced 3D Hover arrow indicator */}
+                      <motion.div
+                        className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        animate={{
+                          x: isHovered ? 0 : -10,
+                          z: isHovered ? 25 : 0,
+                          rotateZ: isHovered ? 360 : 0
+                        }}
+                        transition={{ 
+                          duration: 0.5,
+                          rotateZ: { duration: 2, repeat: isHovered ? Infinity : 0, ease: "linear" }
+                        }}
+                        style={{ transformStyle: 'preserve-3d' }}
+                      >
+                        <ArrowRight className="h-5 w-5 text-gray-400 drop-shadow-lg" />
+                      </motion.div>
+
+                      {/* 3D Floating Particles */}
+                      {isHovered && [
+                        { x: 20, y: 30, delay: 0 },
+                        { x: 80, y: 50, delay: 0.2 },
+                        { x: 150, y: 40, delay: 0.4 },
+                        { x: 200, y: 60, delay: 0.6 }
+                      ].map((particle, i) => (
+                        <motion.div
+                          key={i}
+                          className={`absolute w-2 h-2 rounded-full bg-gradient-to-r ${feature.color} opacity-60`}
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{
+                            opacity: [0, 1, 0],
+                            scale: [0, 1, 0],
+                            y: [particle.y, particle.y - 20, particle.y],
+                            x: particle.x
+                          }}
+                          transition={{
+                            duration: 2,
+                            delay: particle.delay,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      ))}
+                    </motion.div>
+                  );
+                };
+
+                return <FeatureCard key={index} />;
               })}
             </motion.div>
           </div>
@@ -647,10 +647,10 @@ const Index = () => {
               variants={itemVariants}
             >
               <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-blue-300 to-slate-300 bg-clip-text text-transparent">
-                Loved by coaches
+                Trusted by coaches worldwide
               </h2>
               <p className="text-xl max-w-2xl mx-auto text-gray-400">
-                See what coaches around the world are saying about Statsor
+                Real feedback from coaches using Statsor every day
               </p>
             </motion.div>
 
@@ -681,46 +681,52 @@ const Index = () => {
                 {/* Duplicate testimonials for seamless loop */}
                 {[...Array(2)].map((_, duplicateIndex) => [
                   {
-                    name: 'Sarah Chen',
-                    role: 'Head Coach, FC Barcelona Women',
-                    quote: 'Statsor has completely transformed how we analyze our games. The AI insights are incredibly accurate.',
+                    name: 'Coach Martinez',
+                    role: 'Youth Academy Director',
+                    quote: 'Statsor helped us track player development more effectively. The analytics are straightforward and actionable.',
+                    avatar: 'CM',
+                    gradient: 'from-blue-500 to-purple-500',
+                    verified: true
+                  },
+                  {
+                    name: 'James Wilson',
+                    role: 'Semi-Pro Coach',
+                    quote: 'Great tool for organizing match data and training sessions. Makes my job much easier.',
+                    avatar: 'JW',
+                    gradient: 'from-green-500 to-blue-500',
+                    verified: true
+                  },
+                  {
+                    name: 'Ana Silva',
+                    role: 'Performance Analyst',
+                    quote: 'The reporting features save me hours every week. Clean interface and reliable data.',
+                    avatar: 'AS',
+                    gradient: 'from-purple-500 to-pink-500',
+                    verified: true
+                  },
+                  {
+                    name: 'Tom Richards',
+                    role: 'Grassroots Coach',
+                    quote: 'Easy to use even for someone not tech-savvy. My players love seeing their progress.',
+                    avatar: 'TR',
+                    gradient: 'from-orange-500 to-red-500',
+                    verified: true
+                  },
+                  {
+                    name: 'Sophie Chen',
+                    role: 'Assistant Coach',
+                    quote: 'Solid platform for match analysis. The AI suggestions are surprisingly helpful.',
                     avatar: 'SC',
-                    gradient: 'from-blue-500 to-purple-500'
+                    gradient: 'from-teal-500 to-green-500',
+                    verified: true
                   },
                   {
-                    name: 'Marcus Johnson',
-                    role: 'Technical Director, Manchester City',
-                    quote: 'The most intuitive football analytics platform I\'ve ever used. Our decision-making has improved dramatically.',
-                    avatar: 'MJ',
-                    gradient: 'from-green-500 to-blue-500'
-                  },
-                  {
-                    name: 'Elena Rodriguez',
-                    role: 'Performance Analyst, Real Madrid',
-                    quote: 'The real-time data and predictive analytics give us a competitive edge that\'s simply unmatched.',
-                    avatar: 'ER',
-                    gradient: 'from-purple-500 to-pink-500'
-                  },
-                  {
-                    name: 'David Kim',
-                    role: 'Youth Coach, Bayern Munich',
-                    quote: 'Perfect for developing young talent. The player development insights are game-changing.',
-                    avatar: 'DK',
-                    gradient: 'from-orange-500 to-red-500'
-                  },
-                  {
-                    name: 'Lisa Thompson',
-                    role: 'Assistant Coach, Chelsea FC',
-                    quote: 'The simplicity and power of Statsor makes it essential for modern football coaching.',
-                    avatar: 'LT',
-                    gradient: 'from-teal-500 to-green-500'
-                  },
-                  {
-                    name: 'Roberto Silva',
-                    role: 'Head of Analytics, PSG',
-                    quote: 'Finally, a platform that understands what coaches actually need. Brilliant execution.',
-                    avatar: 'RS',
-                    gradient: 'from-indigo-500 to-purple-500'
+                    name: 'Carlos Mendez',
+                    role: 'Technical Director',
+                    quote: 'We switched to Statsor last season and haven\'t looked back. Worth every penny.',
+                    avatar: 'CM',
+                    gradient: 'from-indigo-500 to-purple-500',
+                    verified: true
                   }
                 ].map((testimonial, index) => (
                   <motion.div
@@ -748,37 +754,63 @@ const Index = () => {
                     <div className={`absolute inset-0 opacity-5 bg-gradient-to-t ${testimonial.gradient} rounded-2xl`} />
                     
                     <div className="relative z-10">
-                      <div className="flex items-center mb-6">
-                        <motion.div 
-                          className={`w-14 h-14 rounded-full flex items-center justify-center mr-4 bg-gradient-to-r ${testimonial.gradient} shadow-lg`}
-                          whileHover={{ 
-                            rotate: 360,
-                            scale: 1.1
-                          }}
-                          transition={{ duration: 0.6 }}
-                        >
-                          <span className="font-bold text-white text-lg">{testimonial.avatar}</span>
-                        </motion.div>
-                        <div>
-                          <motion.h4 
-                            className="font-semibold text-lg text-white"
-                            whileHover={{ x: 5 }}
-                            transition={{ duration: 0.3 }}
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center">
+                          <motion.div 
+                            className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 bg-gradient-to-r ${testimonial.gradient} shadow-lg`}
+                            whileHover={{ 
+                              rotate: 360,
+                              scale: 1.1
+                            }}
+                            transition={{ duration: 0.6 }}
                           >
-                            {testimonial.name}
-                          </motion.h4>
-                          <motion.p 
-                            className="text-sm text-gray-400"
-                            whileHover={{ x: 5 }}
-                            transition={{ duration: 0.3, delay: 0.1 }}
-                          >
-                            {testimonial.role}
-                          </motion.p>
+                            <span className="font-bold text-white text-base">{testimonial.avatar}</span>
+                          </motion.div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <motion.h4 
+                                className="font-semibold text-base text-white"
+                                whileHover={{ x: 5 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                {testimonial.name}
+                              </motion.h4>
+                              {testimonial.verified && (
+                                <motion.div
+                                  className="flex items-center justify-center w-4 h-4 rounded-full bg-blue-500"
+                                  whileHover={{ scale: 1.2, rotate: 360 }}
+                                  transition={{ duration: 0.3 }}
+                                  title="Verified User"
+                                >
+                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </motion.div>
+                              )}
+                            </div>
+                            <motion.p 
+                              className="text-xs text-gray-400 mt-0.5"
+                              whileHover={{ x: 5 }}
+                              transition={{ duration: 0.3, delay: 0.1 }}
+                            >
+                              {testimonial.role}
+                            </motion.p>
+                          </div>
                         </div>
+                        
+                        <motion.div 
+                          className="flex gap-0.5"
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                          ))}
+                        </motion.div>
                       </div>
                       
                       <motion.p 
-                        className="leading-relaxed text-lg mb-4 text-gray-300"
+                        className="leading-relaxed text-base mb-4 text-gray-300"
                         whileHover={{ x: 5 }}
                         transition={{ duration: 0.3, delay: 0.2 }}
                       >
@@ -786,25 +818,13 @@ const Index = () => {
                       </motion.p>
                       
                       <motion.div 
-                        className="flex"
-                        whileHover={{ scale: 1.05 }}
+                        className="flex items-center gap-2 text-xs text-gray-500"
+                        whileHover={{ x: 5 }}
                         transition={{ duration: 0.3 }}
                       >
-                        {[...Array(5)].map((_, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ opacity: 0, scale: 0 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: i * 0.1, duration: 0.3 }}
-                            whileHover={{ 
-                              scale: 1.2,
-                              rotate: 360,
-                              transition: { duration: 0.3 }
-                            }}
-                          >
-                            <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                          </motion.div>
-                        ))}
+                        <span>Verified Statsor User</span>
+                        <span>•</span>
+                        <span>Active Coach</span>
                       </motion.div>
                     </div>
                     
@@ -954,63 +974,6 @@ const Index = () => {
                       <ArrowRight className="h-5 w-5" />
                     </motion.div>
                   </Button>
-                </motion.div>
-              </motion.div>
-              
-              {/* Animated Trust Indicators */}
-              <motion.div
-                className="flex flex-wrap justify-center items-center gap-8 opacity-60"
-                variants={itemVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-              >
-                <motion.div 
-                  className="flex items-center gap-2"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                  >
-                    <Shield className="h-5 w-5 text-green-500" />
-                  </motion.div>
-                  <span className="text-sm font-medium">
-                    Secure & Private
-                  </span>
-                </motion.div>
-                
-                <motion.div 
-                  className="flex items-center gap-2"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <Users className="h-5 w-5 text-blue-500" />
-                  </motion.div>
-                  <span className="text-sm font-medium">
-                    10,000+ Coaches
-                  </span>
-                </motion.div>
-                
-                <motion.div 
-                  className="flex items-center gap-2"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <motion.div
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <Zap className="h-5 w-5 text-yellow-500" />
-                  </motion.div>
-                  <span className="text-sm font-medium">
-                    AI-Powered
-                  </span>
                 </motion.div>
               </motion.div>
             </motion.div>

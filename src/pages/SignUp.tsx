@@ -12,7 +12,17 @@ import { emailService } from '../services/emailService';
 import { motion } from 'framer-motion';
 
 import { toast } from 'sonner';
-import { Loader2, Mail, Lock, Eye, EyeOff, User, MapPin, Target, Play } from 'lucide-react';
+import {
+  Loader2,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  User,
+  MapPin,
+  Target,
+  Play,
+} from 'lucide-react';
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -20,7 +30,7 @@ const SignUp = () => {
     password: '',
     confirmPassword: '',
     name: '',
-    location: ''
+    location: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -39,14 +49,15 @@ const SignUp = () => {
         e.preventDefault();
       };
       window.addEventListener('beforeunload', handleBeforeUnload);
-      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+      return () =>
+        window.removeEventListener('beforeunload', handleBeforeUnload);
     }
   }, [loading, googleLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
@@ -72,15 +83,26 @@ const SignUp = () => {
 
     try {
       console.log('[SignUp] Attempting email registration...');
+      console.log({
+        name: formData.name,
+        location: formData.location,
+        confirmPassword: formData.confirmPassword,
+        created_at: new Date().toISOString(),
+      });
       const result = await signUp(formData.email, formData.password, {
         name: formData.name,
         location: formData.location,
-        created_at: new Date().toISOString()
+        confirmPassword: formData.confirmPassword,
+        created_at: new Date().toISOString(),
       });
 
       if (result.error) {
         console.error('[SignUp] Registration error:', result.error);
-        toast.error(typeof result.error === 'string' ? result.error : 'Registration failed. Please try again.');
+        toast.error(
+          typeof result.error === 'string'
+            ? result.error
+            : 'Registration failed. Please try again.'
+        );
       } else {
         console.log('[SignUp] Registration successful');
         // Initialize subscription for new user
@@ -90,7 +112,7 @@ const SignUp = () => {
         try {
           await emailService.sendWelcomeEmail({
             name: formData.name,
-            email: formData.email
+            email: formData.email,
           });
         } catch (emailError) {
           console.warn('[SignUp] Failed to send welcome email:', emailError);
@@ -103,16 +125,22 @@ const SignUp = () => {
             await notificationService.sendWelcomeNotification(userId, {
               name: formData.name,
               email: formData.email,
-              isDemoAccount: false
+              isDemoAccount: false,
             });
           } catch (notificationError) {
-            console.warn('[SignUp] Failed to send welcome notification:', notificationError);
+            console.warn(
+              '[SignUp] Failed to send welcome notification:',
+              notificationError
+            );
             // Don't fail the entire signup process for notification errors
           }
         }
 
-        toast.success('Account created successfully! Check your email for a welcome message.');
-        navigate('/dashboard');
+        toast.success(
+          'Account created successfully! Please select your sport.'
+        );
+        // New users need to select sport first
+        navigate('/select-sport');
       }
     } catch (error) {
       console.error('[SignUp] Unexpected signup error:', error);
@@ -125,17 +153,17 @@ const SignUp = () => {
   const handleDemoAccount = async () => {
     // Always allow demo account creation in all environments
     // Removed the check for VITE_ENABLE_MOCK_AUTH to make demo accounts available in production
-    
+
     if (loading || googleLoading || demoLoading) {
       toast.error('Please wait, authentication in progress...');
       return;
     }
 
     setDemoLoading(true);
-    
+
     try {
       toast.info('Creating demo account...', { duration: 2000 });
-      
+
       // Create demo user object
       const demoUser: any = {
         id: 'demo_' + Date.now(),
@@ -143,15 +171,15 @@ const SignUp = () => {
         name: 'Demo User',
         provider: 'demo',
         sportSelected: true, // Set to true to bypass sport selection
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
-      
+
       // Initialize demo account data
       const demoData = demoAccountService.initializeDemoAccount();
-       
+
       // Set user in auth context
       setUser(demoUser);
-       
+
       // Store auth data
       const mockToken = 'demo-token-' + Date.now();
       localStorage.setItem('auth_token', mockToken);
@@ -160,27 +188,30 @@ const SignUp = () => {
       // For demo accounts, set default sport immediately so no selection is needed
       localStorage.setItem('statsor_sport', 'soccer');
       localStorage.setItem('statsor_sport_selection_completed', 'true');
-       
+
       const result = { user: demoUser, error: null };
-      
+
       if (result.error) {
         toast.error('Failed to create demo account. Please try again.');
       } else {
         // Initialize subscription for demo user
         subscriptionService.initializeUserSubscription(result.user.email);
-        
+
         // Send welcome notification - use the demo user ID we created
         try {
           await notificationService.sendWelcomeNotification(demoUser.id, {
             name: demoUser.name,
             email: demoUser.email,
-            isDemoAccount: true
+            isDemoAccount: true,
           });
         } catch (notificationError) {
-          console.warn('Failed to send demo welcome notification:', notificationError);
+          console.warn(
+            'Failed to send demo welcome notification:',
+            notificationError
+          );
           // Don't fail the demo account creation for notification errors
         }
-        
+
         toast.success('Demo account created! Welcome to Statsor.');
         navigate('/dashboard');
       }
@@ -202,30 +233,43 @@ const SignUp = () => {
 
     try {
       console.log('[SignUp] Initiating Google OAuth...');
-      toast.info('Redirecting to Google for registration...', { duration: 2000 });
+      toast.info('Redirecting to Google for registration...', {
+        duration: 2000,
+      });
 
       const result = await signInWithGoogle();
 
       console.log('[SignUp] Google OAuth result:', result);
 
-      if (result.error && !result.error.includes('Authentication in progress')) {
+      if (
+        result.error &&
+        !result.error.includes('Authentication in progress')
+      ) {
         // Only show error if it's not a redirect (which is expected)
         if (!window.location.href.includes('accounts.google.com')) {
           console.error('[SignUp] Google OAuth error:', result.error);
-          toast.error(typeof result.error === 'string' ? result.error : 'Google registration failed');
+          toast.error(
+            typeof result.error === 'string'
+              ? result.error
+              : 'Google registration failed'
+          );
         }
       } else if (result.data?.user) {
         // This handles the mock/demo case
         console.log('[SignUp] Google OAuth successful');
         // Initialize subscription for new user
         if (result.data.user.email) {
-          subscriptionService.initializeUserSubscription(result.data.user.email);
+          subscriptionService.initializeUserSubscription(
+            result.data.user.email
+          );
 
           // Send welcome email
           try {
             await emailService.sendWelcomeEmail({
-              name: result.data.user.user_metadata?.name || result.data.user.email.split('@')[0],
-              email: result.data.user.email
+              name:
+                result.data.user.user_metadata?.name ||
+                result.data.user.email.split('@')[0],
+              email: result.data.user.email,
             });
           } catch (emailError) {
             console.warn('[SignUp] Failed to send welcome email:', emailError);
@@ -233,22 +277,33 @@ const SignUp = () => {
 
           // Send welcome notification
           try {
-            await notificationService.sendWelcomeNotification(result.data.user.id, {
-              name: result.data.user.user_metadata?.name || result.data.user.email,
-              email: result.data.user.email,
-              isDemoAccount: false
-            });
+            await notificationService.sendWelcomeNotification(
+              result.data.user.id,
+              {
+                name:
+                  result.data.user.user_metadata?.name ||
+                  result.data.user.email,
+                email: result.data.user.email,
+                isDemoAccount: false,
+              }
+            );
           } catch (notificationError) {
-            console.warn('[SignUp] Failed to send welcome notification:', notificationError);
+            console.warn(
+              '[SignUp] Failed to send welcome notification:',
+              notificationError
+            );
           }
         }
-        toast.success('Welcome! Account created successfully with Google. Check your email!');
+        toast.success(
+          'Welcome! Account created successfully with Google. Check your email!'
+        );
         // Navigation is handled in the auth context
       }
-
     } catch (error) {
       console.error('[SignUp] Unexpected Google registration error:', error);
-      toast.error('Network error during Google registration. Please check your connection.');
+      toast.error(
+        'Network error during Google registration. Please check your connection.'
+      );
     } finally {
       // Only clear loading if we're still on the same page
       // (not redirected to Google)
@@ -269,9 +324,9 @@ const SignUp = () => {
       transition: {
         duration: 4,
         repeat: Infinity,
-        ease: "easeInOut"
-      }
-    }
+        ease: 'easeInOut',
+      },
+    },
   };
 
   const backgroundParticles = {
@@ -283,204 +338,200 @@ const SignUp = () => {
       transition: {
         duration: 8,
         repeat: Infinity,
-        ease: "easeInOut",
-        repeatDelay: 2
-      }
-    }
+        ease: 'easeInOut',
+        repeatDelay: 2,
+      },
+    },
   };
 
   return (
-      <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-all duration-500 relative overflow-hidden bg-black">
-        
-        {/* Enhanced Animated Starry Background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Large Stars */}
-          {[...Array(100)].map((_, i) => (
-            <motion.div
-              key={`star-${i}`}
-              className="absolute rounded-full bg-white"
-              style={{
-                width: Math.random() * 3 + 1,
-                height: Math.random() * 3 + 1,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                opacity: [0.2, 1, 0.2],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: Math.random() * 3 + 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 2
-              }}
-            />
-          ))}
-          
-          {/* Small Stars */}
-          {[...Array(150)].map((_, i) => (
-            <motion.div
-              key={`small-star-${i}`}
-              className="absolute rounded-full bg-white"
-              style={{
-                width: Math.random() * 2 + 0.5,
-                height: Math.random() * 2 + 0.5,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                opacity: [0.1, 0.8, 0.1],
-              }}
-              transition={{
-                duration: Math.random() * 4 + 1,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 3
-              }}
-            />
-          ))}
-          
-          {/* Twinkling Points */}
-          {[...Array(50)].map((_, i) => (
-            <motion.div
-              key={`point-${i}`}
-              className="absolute rounded-full bg-blue-400"
-              style={{
-                width: Math.random() * 4 + 1,
-                height: Math.random() * 4 + 1,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                opacity: [0, 1, 0],
-                scale: [0.5, 1.5, 0.5],
-              }}
-              transition={{
-                duration: Math.random() * 5 + 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 4
-              }}
-            />
-          ))}
-          
-          {/* Shooting Stars */}
-          {[...Array(5)].map((_, i) => (
-            <motion.div
-              key={`shooting-star-${i}`}
-              className="absolute rounded-full bg-white"
-              style={{
-                width: Math.random() * 10 + 5,
-                height: 2,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                x: [0, Math.random() * 200 + 100],
-                y: [0, Math.random() * 100 + 50],
-                opacity: [0, 1, 0],
-              }}
-              transition={{
-                duration: Math.random() * 2 + 1,
-                repeat: Infinity,
-                repeatDelay: Math.random() * 10 + 5,
-                ease: "easeOut",
-                delay: Math.random() * 5
-              }}
-            />
-          ))}
-          
-          {/* Floating Black Points */}
-          {[...Array(30)].map((_, i) => (
-            <motion.div
-              key={`black-point-${i}`}
-              className="absolute rounded-full bg-gray-800"
-              style={{
-                width: Math.random() * 20 + 5,
-                height: Math.random() * 20 + 5,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, Math.random() * 30 - 15],
-                x: [0, Math.random() * 20 - 10],
-                opacity: [0.3, 0.7, 0.3],
-              }}
-              transition={{
-                duration: Math.random() * 6 + 4,
-                repeat: Infinity,
-                repeatType: "reverse",
-                ease: "easeInOut",
-                delay: Math.random() * 3
-              }}
-            />
-          ))}
-          
-          {/* Pulsating Nebulas */}
-          {[...Array(8)].map((_, i) => (
-            <motion.div
-              key={`nebula-${i}`}
-              className="absolute rounded-full bg-purple-500/20 blur-xl"
-              style={{
-                width: Math.random() * 100 + 50,
-                height: Math.random() * 100 + 50,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                scale: [1, 1.5, 1],
-                opacity: [0.1, 0.3, 0.1],
-              }}
-              transition={{
-                duration: Math.random() * 10 + 10,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 5
-              }}
-            />
-          ))}
-          
-          {/* Drifting Constellations */}
-          {[...Array(12)].map((_, i) => (
-            <motion.div
-              key={`constellation-${i}`}
-              className="absolute"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                rotate: [0, 360],
-                y: [0, Math.random() * 20 - 10],
-              }}
-              transition={{
-                duration: Math.random() * 20 + 20,
-                repeat: Infinity,
-                ease: "linear",
-                delay: Math.random() * 10
-              }}
-            >
-              {/* Small constellation of dots */}
-              {[...Array(5)].map((_, j) => (
-                <div
-                  key={`constellation-dot-${j}`}
-                  className="absolute rounded-full bg-yellow-300"
-                  style={{
-                    width: Math.random() * 2 + 1,
-                    height: Math.random() * 2 + 1,
-                    left: `${Math.random() * 20 - 10}px`,
-                    top: `${Math.random() * 20 - 10}px`,
-                  }}
-                />
-              ))}
-            </motion.div>
-          ))}
-        </div>
+    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-all duration-500 relative overflow-hidden bg-black">
+      {/* Enhanced Animated Starry Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Large Stars */}
+        {[...Array(100)].map((_, i) => (
+          <motion.div
+            key={`star-${i}`}
+            className="absolute rounded-full bg-white"
+            style={{
+              width: Math.random() * 3 + 1,
+              height: Math.random() * 3 + 1,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              opacity: [0.2, 1, 0.2],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{
+              duration: Math.random() * 3 + 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
 
+        {/* Small Stars */}
+        {[...Array(150)].map((_, i) => (
+          <motion.div
+            key={`small-star-${i}`}
+            className="absolute rounded-full bg-white"
+            style={{
+              width: Math.random() * 2 + 0.5,
+              height: Math.random() * 2 + 0.5,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              opacity: [0.1, 0.8, 0.1],
+            }}
+            transition={{
+              duration: Math.random() * 4 + 1,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: Math.random() * 3,
+            }}
+          />
+        ))}
 
+        {/* Twinkling Points */}
+        {[...Array(50)].map((_, i) => (
+          <motion.div
+            key={`point-${i}`}
+            className="absolute rounded-full bg-blue-400"
+            style={{
+              width: Math.random() * 4 + 1,
+              height: Math.random() * 4 + 1,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              opacity: [0, 1, 0],
+              scale: [0.5, 1.5, 0.5],
+            }}
+            transition={{
+              duration: Math.random() * 5 + 3,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: Math.random() * 4,
+            }}
+          />
+        ))}
 
-      
+        {/* Shooting Stars */}
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={`shooting-star-${i}`}
+            className="absolute rounded-full bg-white"
+            style={{
+              width: Math.random() * 10 + 5,
+              height: 2,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              x: [0, Math.random() * 200 + 100],
+              y: [0, Math.random() * 100 + 50],
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: Math.random() * 2 + 1,
+              repeat: Infinity,
+              repeatDelay: Math.random() * 10 + 5,
+              ease: 'easeOut',
+              delay: Math.random() * 5,
+            }}
+          />
+        ))}
+
+        {/* Floating Black Points */}
+        {[...Array(30)].map((_, i) => (
+          <motion.div
+            key={`black-point-${i}`}
+            className="absolute rounded-full bg-gray-800"
+            style={{
+              width: Math.random() * 20 + 5,
+              height: Math.random() * 20 + 5,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              y: [0, Math.random() * 30 - 15],
+              x: [0, Math.random() * 20 - 10],
+              opacity: [0.3, 0.7, 0.3],
+            }}
+            transition={{
+              duration: Math.random() * 6 + 4,
+              repeat: Infinity,
+              repeatType: 'reverse',
+              ease: 'easeInOut',
+              delay: Math.random() * 3,
+            }}
+          />
+        ))}
+
+        {/* Pulsating Nebulas */}
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={`nebula-${i}`}
+            className="absolute rounded-full bg-purple-500/20 blur-xl"
+            style={{
+              width: Math.random() * 100 + 50,
+              height: Math.random() * 100 + 50,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              scale: [1, 1.5, 1],
+              opacity: [0.1, 0.3, 0.1],
+            }}
+            transition={{
+              duration: Math.random() * 10 + 10,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: Math.random() * 5,
+            }}
+          />
+        ))}
+
+        {/* Drifting Constellations */}
+        {[...Array(12)].map((_, i) => (
+          <motion.div
+            key={`constellation-${i}`}
+            className="absolute"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              rotate: [0, 360],
+              y: [0, Math.random() * 20 - 10],
+            }}
+            transition={{
+              duration: Math.random() * 20 + 20,
+              repeat: Infinity,
+              ease: 'linear',
+              delay: Math.random() * 10,
+            }}
+          >
+            {/* Small constellation of dots */}
+            {[...Array(5)].map((_, j) => (
+              <div
+                key={`constellation-dot-${j}`}
+                className="absolute rounded-full bg-yellow-300"
+                style={{
+                  width: Math.random() * 2 + 1,
+                  height: Math.random() * 2 + 1,
+                  left: `${Math.random() * 20 - 10}px`,
+                  top: `${Math.random() * 20 - 10}px`,
+                }}
+              />
+            ))}
+          </motion.div>
+        ))}
+      </div>
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center items-center space-x-3">
           <div className="w-16 h-16 rounded-xl flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/25">
@@ -497,12 +548,10 @@ const SignUp = () => {
             <span className="text-3xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">
               Statsor
             </span>
-            <span className="text-xs opacity-70 -mt-1">
-              Football Analytics
-            </span>
+            <span className="text-xs opacity-70 -mt-1">Football Analytics</span>
           </div>
         </div>
-        <motion.h2 
+        <motion.h2
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
@@ -510,7 +559,7 @@ const SignUp = () => {
         >
           Create Account
         </motion.h2>
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
@@ -538,17 +587,33 @@ const SignUp = () => {
               {googleLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-3 animate-spin text-blue-600" />
-                  <span className="text-gray-700">Creating account with Google...</span>
+                  <span className="text-gray-700">
+                    Creating account with Google...
+                  </span>
                 </>
               ) : (
                 <>
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-3.15.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-3.15.81-.62z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
                   </svg>
-                  <span className="font-medium">Create account with Google</span>
+                  <span className="font-medium">
+                    Create account with Google
+                  </span>
                 </>
               )}
             </Button>
@@ -564,7 +629,7 @@ const SignUp = () => {
           <div className="mb-8 relative">
             {/* Background */}
             <div className="absolute inset-0 bg-gray-800/20 rounded-xl" />
-            
+
             {/* Demo Button */}
             <div className="relative">
               <Button
@@ -574,11 +639,13 @@ const SignUp = () => {
               >
                 {/* Background */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-                
+
                 {demoLoading ? (
                   <>
                     <Loader2 className="w-6 h-6 mr-3 animate-spin text-purple-400" />
-                    <span className="text-gray-200">Creating demo experience...</span>
+                    <span className="text-gray-200">
+                      Creating demo experience...
+                    </span>
                   </>
                 ) : (
                   <>
@@ -599,13 +666,18 @@ const SignUp = () => {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-900 text-gray-400">Or create your account with email</span>
+              <span className="px-2 bg-gray-900 text-gray-400">
+                Or create your account with email
+              </span>
             </div>
           </div>
 
           <form className="space-y-6" onSubmit={handleSignUp}>
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Full Name
               </label>
               <div className="relative">
@@ -624,7 +696,10 @@ const SignUp = () => {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Email
               </label>
               <div className="relative">
@@ -644,7 +719,10 @@ const SignUp = () => {
             </div>
 
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="location"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Location (optional)
               </label>
               <div className="relative">
@@ -662,7 +740,10 @@ const SignUp = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
@@ -670,7 +751,7 @@ const SignUp = () => {
                 <Input
                   id="password"
                   name="password"
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
                   value={formData.password}
@@ -683,13 +764,20 @@ const SignUp = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
                 Confirm Password
               </label>
               <div className="relative">
@@ -697,7 +785,7 @@ const SignUp = () => {
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
+                  type={showConfirmPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   required
                   value={formData.confirmPassword}
@@ -710,7 +798,11 @@ const SignUp = () => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -721,16 +813,25 @@ const SignUp = () => {
                 name="accept-terms"
                 type="checkbox"
                 checked={acceptTerms}
-                onChange={(e) => setAcceptTerms(e.target.checked)}
+                onChange={e => setAcceptTerms(e.target.checked)}
                 className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-500 bg-gray-800 rounded mt-1"
               />
-              <label htmlFor="accept-terms" className="ml-2 block text-sm text-gray-300">
+              <label
+                htmlFor="accept-terms"
+                className="ml-2 block text-sm text-gray-300"
+              >
                 I accept the{' '}
-                <Link to="/terms" className="text-blue-400 hover:text-blue-300 font-medium">
+                <Link
+                  to="/terms"
+                  className="text-blue-400 hover:text-blue-300 font-medium"
+                >
                   terms and conditions
                 </Link>{' '}
                 and the{' '}
-                <Link to="/privacy" className="text-blue-400 hover:text-blue-300 font-medium">
+                <Link
+                  to="/privacy"
+                  className="text-blue-400 hover:text-blue-300 font-medium"
+                >
                   privacy policy
                 </Link>
               </label>
@@ -757,7 +858,10 @@ const SignUp = () => {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-400">
               Already have an account?{' '}
-              <Link to="/signin" className="font-medium text-blue-400 hover:text-blue-300 transition-colors">
+              <Link
+                to="/signin"
+                className="font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              >
                 Sign in
               </Link>
             </p>
@@ -775,13 +879,14 @@ const SignUp = () => {
                 <li>• Language preferences</li>
               </ul>
               <p className="mt-2 font-medium text-blue-200">
-                All data is encrypted and protected according to GDPR and privacy regulations.
+                All data is encrypted and protected according to GDPR and
+                privacy regulations.
               </p>
             </div>
           </div>
         </div>
       </motion.div>
-      </div>
+    </div>
   );
 };
 

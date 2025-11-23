@@ -75,11 +75,24 @@ export default defineConfig({
     port: 3008,
     host: true,
   },
+  define: {
+    // Production domain configuration
+    'import.meta.env.VITE_APP_URL': JSON.stringify(process.env.VITE_APP_URL || 'https://statsor.com'),
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://api.statsor.com'),
+    'import.meta.env.VITE_WS_URL': JSON.stringify(process.env.VITE_WS_URL || 'wss://api.statsor.com'),
+    // Supabase configuration - CRITICAL for production
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || 'https://kieihchqtyqquvispker.supabase.co'),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZWloY2hxdHlxcXV2aXNwa2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MzIyOTEsImV4cCI6MjA3NjIwODI5MX0.RTyUZcmdKv5Q24GBCsQPmYkyALAI4uz8y1m1ezh5g0g'),
+    // Google OAuth
+    'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(process.env.VITE_GOOGLE_CLIENT_ID || '418379516613-1695v51lvdao41iebs7k06954i6o5221.apps.googleusercontent.com'),
+    // Groq API
+    'import.meta.env.VITE_GROQ_API_KEY': JSON.stringify(process.env.VITE_GROQ_API_KEY || process.env.GROQ_API_KEY || ''),
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,
     minify: 'terser',
-    chunkSizeWarningLimit: 1000, // Increase limit to 1000KB to address chunk size warnings
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -90,10 +103,6 @@ export default defineConfig({
         }
       }
     }
-  },
-  define: {
-    'process.env.VITE_API_URL': JSON.stringify('http://localhost:3001'),
-    'process.env.VITE_APP_URL': JSON.stringify('http://localhost:3006')
   },
   test: {
     globals: true,

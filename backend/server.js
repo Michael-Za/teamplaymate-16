@@ -43,6 +43,7 @@ import subscriptionsRoutes from './routes/subscriptions.js';
 import reportsRoutes from './routes/reports.js';
 import aiChatRoutes from './routes/aiChat.js';
 import aiChatProxyRoutes from './src/routes/aiChatProxy.js';
+import aiAssistantRoutes from './src/routes/aiAssistant.js';
 
 // Import security middleware (silent background protection)
 import { securityCheck, inputSanitization, sqlInjectionProtection } from './middleware/security.js';
@@ -128,12 +129,29 @@ class Server {
       crossOriginEmbedderPolicy: false,
     }));
 
-    // CORS configuration
+    // CORS configuration - allow common development ports
+    const defaultOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3006',
+      'http://localhost:3008',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3006',
+      'http://127.0.0.1:3008',
+      'http://127.0.0.1:5173'
+    ];
+    
     const corsOptions = {
-      origin: config.CORS_ORIGIN === '*' ? true : (config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : ['http://localhost:3006']),
+      origin: config.CORS_ORIGIN === '*' 
+        ? true 
+        : (config.CORS_ORIGIN 
+          ? config.CORS_ORIGIN.split(',').map(o => o.trim())
+          : defaultOrigins),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
       exposedHeaders: ['X-Total-Count', 'X-Page-Count']
     };
     this.app.use(cors(corsOptions));
@@ -271,37 +289,10 @@ class Server {
     apiRouter.use('/reports', reportsRoutes);
     apiRouter.use('/aichat', aiChatRoutes);
     apiRouter.use('/ai-proxy', aiChatProxyRoutes);
+    apiRouter.use('/ai-assistant', aiAssistantRoutes);
 
     // Mount API router
     this.app.use('/api/v1', apiRouter);
-
-    // Proxy route to AI assistant backend status
-    this.app.get('/api/v1/ai-assistant/status', async (req, res) => {
-      try {
-        // Get AI assistant backend URL from environment variables
-        const aiAssistantUrl = config.AI_ASSISTANT_BACKEND_URL || 'http://localhost:5000';
-        
-        // Forward the request to the AI assistant backend
-        const response = await fetch(`${aiAssistantUrl}/health`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          res.json(data);
-        } else {
-          res.status(response.status).json({
-            success: false,
-            error: 'AI assistant backend is not available'
-          });
-        }
-      } catch (error) {
-        logger.error('Error connecting to AI assistant backend:', error);
-        res.status(503).json({
-          success: false,
-          error: 'Failed to connect to AI assistant backend',
-          details: error.message
-        });
-      }
-    });
 
     // API documentation route
     this.app.get('/api/docs', (req, res) => {

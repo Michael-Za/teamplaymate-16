@@ -226,18 +226,21 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ player, isOpen, onClose, 
     setFormData(prev => ({ ...prev, photo: '' }));
   };
 
-  const handleSave = () => {
-    if (!formData.name || !formData.position || !formData.number || !formData.birthDate) {
-      alert('Por favor, completa los campos obligatorios: nombre, posición, número y fecha de nacimiento.');
+  const handleSave = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
+    if (!formData.name || !formData.position || !formData.number) {
+      alert('Por favor, completa los campos obligatorios: nombre, posición y número.');
       return;
     }
 
-    const age = formData.birthDate ? calculateAge(formData.birthDate) : 0;
+    const age = formData.birthDate ? calculateAge(formData.birthDate) : 25;
     const firstName = formData.first_name || formData.name.split(' ')[0] || '';
     const lastName = formData.last_name || formData.name.split(' ').slice(1).join(' ') || '';
     
-    const playerData: Partial<Player> = {
-      id: player?.id,
+    const playerData: any = {
+      ...(player?.id ? { id: player.id } : {}),
       first_name: firstName,
       last_name: lastName,
       name: formData.name,
@@ -769,6 +772,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ player, isOpen, onClose, 
         {/* Botones de acción */}
         <div className="flex justify-end space-x-4 p-6 border-t">
           <Button
+            type="button"
             variant="outline"
             onClick={handleCancel}
             className="px-6"
@@ -776,7 +780,8 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ player, isOpen, onClose, 
             Cancelar
           </Button>
           <Button
-            onClick={handleSave}
+            type="button"
+            onClick={(e) => handleSave(e)}
             className="px-6 bg-blue-600 hover:bg-blue-700"
           >
             {player ? 'Actualizar jugador' : 'Guardar jugador'}

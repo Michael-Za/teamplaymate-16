@@ -4,68 +4,47 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Loader2, Lock, Eye, EyeOff, ArrowLeft, Shield, CheckCircle } from 'lucide-react';
 
 const ResetPassword = () => {
-  const [email, setEmail] = useState('');
-  const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [verifyingCode, setVerifyingCode] = useState(false);
-  const [codeVerified, setCodeVerified] = useState(false);
   const [passwordReset, setPasswordReset] = useState(false);
+  const [hasAccessToken, setHasAccessToken] = useState(false);
   
-  const { verifyResetCode, resetPasswordWithCode } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Get email from navigation state if available
-    if (location.state?.email) {
-      setEmail(location.state.email);
-    }
-  }, [location.state]);
-
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !resetCode) {
-      toast.error('Please enter your email and reset code');
-      return;
-    }
-
-    if (resetCode.length !== 6) {
-      toast.error('Reset code must be 6 digits');
-      return;
-    }
-
-    setVerifyingCode(true);
-    
-    try {
-      // Use the verifyResetCode function from AuthContext
-      const result = await verifyResetCode(email, resetCode);
-      
-      if (result?.error) {
-        toast.error(result.error);
-      } else if (result?.data?.valid === false) {
-        toast.error('Invalid or expired reset code. Please try again.');
+    // Check if we have an access token from the password reset link
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setHasAccessToken(true);
       } else {
-        setCodeVerified(true);
-        toast.success('Code verified! Now set your new password.');
+        // Check URL hash for access token
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const type = hashParams.get('type');
+        
+        if (accessToken && type === 'recovery') {
+          setHasAccessToken(true);
+        } else {
+          toast.error('Invalid or expired reset link. Please request a new one.');
+          setTimeout(() => navigate('/forgot-password'), 2000);
+        }
       }
-    } catch (error: any) {
-      console.error('Code verification error:', error);
-      toast.error('Invalid or expired reset code. Please try again.');
-    } finally {
-      setVerifyingCode(false);
-    }
-  };
+    };
+    
+    checkSession();
+  }, [navigate]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,29 +74,34 @@ const ResetPassword = () => {
     setLoading(true);
     
     try {
-      // Use the resetPasswordWithCode function from AuthContext
-      const result = await resetPasswordWithCode(email, resetCode, newPassword);
+      console.log('[ResetPassword] Updating password...');
       
-      if (result?.error) {
-        toast.error(result.error);
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) {
+        console.error('[ResetPassword] Error:', error);
+        toast.error(error.message);
       } else {
+        console.log('[ResetPassword] Password updated successfully');
         setPasswordReset(true);
         toast.success('Password reset successfully!');
+        
+        // Sign out to clear the recovery session
+        await supabase.auth.signOut();
+        
         // Redirect to sign in after 3 seconds
         setTimeout(() => {
           navigate('/signin');
         }, 3000);
       }
     } catch (error: any) {
-      console.error('Password reset error:', error);
+      console.error('[ResetPassword] Unexpected error:', error);
       toast.error('Failed to reset password. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleBackToForgot = () => {
-    navigate('/forgot-password');
   };
 
   const handleBackToLogin = () => {
@@ -159,6 +143,17 @@ const ResetPassword = () => {
     );
   }
 
+  if (!hasAccessToken && !passwordReset) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-gray-600">Verifying reset link...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
       <motion.div
@@ -173,85 +168,14 @@ const ResetPassword = () => {
               <Shield className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {codeVerified ? 'Set New Password' : 'Enter Reset Code'}
+              Set New Password
             </h1>
             <p className="text-gray-600">
-              {codeVerified 
-                ? 'Create a strong password for your account'
-                : 'Enter the 6-digit code sent to your email'
-              }
+              Create a strong password for your account
             </p>
           </div>
 
-          {!codeVerified ? (
-            // Code verification form
-            <form onSubmit={handleVerifyCode} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 border-2 focus:border-primary transition-colors"
-                  placeholder="Enter your email address"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="resetCode" className="block text-sm font-medium text-gray-700 mb-2">
-                  Reset Code
-                </label>
-                <Input
-                  id="resetCode"
-                  name="resetCode"
-                  type="text"
-                  required
-                  maxLength={6}
-                  value={resetCode}
-                  onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
-                  className="h-12 border-2 focus:border-primary transition-colors text-center text-2xl font-mono tracking-widest"
-                  placeholder="000000"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter the 6-digit code from your email
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <Button
-                  type="submit"
-                  disabled={verifyingCode}
-                  className="w-full h-12 bg-primary hover:bg-primary/90 transition-all duration-200 font-semibold"
-                >
-                  {verifyingCode ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Verifying Code...
-                    </>
-                  ) : (
-                    'Verify Code'
-                  )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleBackToForgot}
-                  className="w-full h-12 transition-all duration-200"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Email Entry
-                </Button>
-              </div>
-            </form>
-          ) : (
-            // Password reset form
-            <form onSubmit={handleResetPassword} className="space-y-6">
+          <form onSubmit={handleResetPassword} className="space-y-6">
               <div>
                 <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
                   New Password
@@ -352,7 +276,6 @@ const ResetPassword = () => {
                 </Button>
               </div>
             </form>
-          )}
 
           <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="text-xs text-yellow-700">

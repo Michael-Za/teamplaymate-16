@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import { NotificationProvider, useNotifications } from '../contexts/NotificationContext';
 import { toast } from 'sonner';
 import NotificationPanel from './NotificationPanel';
@@ -61,6 +62,7 @@ const ResponsiveLayoutContent: React.FC<ResponsiveLayoutProps> = ({ children }) 
   const { t, currentLanguage, setLanguage } = useLanguage();
   const { theme } = useTheme();
   const { unreadCount } = useNotifications();
+  const { currentPlan } = useSubscription();
 
   const handleLogout = async () => {
     try {
@@ -134,80 +136,103 @@ const ResponsiveLayoutContent: React.FC<ResponsiveLayoutProps> = ({ children }) 
   // Show player dropdown when on players page
   // const showPlayerDropdown = location.pathname.startsWith('/players') && !sidebarCollapsed;
 
-  const navigationItems = [
+  // Check if user has access to premium features
+  const isPro = currentPlan && (currentPlan.id === 'pro' || currentPlan.id === 'pro_plus');
+
+  const allNavigationItems = [
     { 
       name: t('sidebar.dashboard'), 
       icon: Home, 
       path: '/dashboard',
-      badge: null 
+      badge: null,
+      requiresPro: false
     },
     { 
       name: t('sidebar.players'), 
       icon: Users, 
       path: '/players',
-      badge: null 
+      badge: null,
+      requiresPro: false
     },
     { 
       name: t('sidebar.matches'), 
       icon: Calendar, 
       path: '/matches',
-      badge: null 
+      badge: null,
+      requiresPro: false
     },
     { 
       name: t('sidebar.stats'), 
       icon: BarChart3, 
       path: '/general-stats',
-      badge: null 
+      badge: null,
+      requiresPro: false
     },
     { 
       name: 'Attendance', 
       icon: Users, 
       path: '/attendance',
-      badge: null 
+      badge: null,
+      requiresPro: false
     },
     { 
       name: 'Actions', 
       icon: Target, 
       path: '/manual-actions',
-      badge: null 
+      badge: null,
+      requiresPro: false
     },
     { 
       name: 'Command Table', 
       icon: Table, 
       path: '/command-table',
-      badge: null 
+      badge: null,
+      requiresPro: false
     },
     { 
       name: 'Notepad', 
       icon: Notebook, 
       path: '/analytics',
-      badge: null 
+      badge: null,
+      requiresPro: false
     },
     { 
       name: t('sidebar.training'), 
       icon: TrendingUp, 
       path: '/training',
-      badge: null 
+      badge: 'PRO',
+      requiresPro: true
     },
     { 
       name: 'Data Management', 
       icon: Database, 
       path: '/data-management',
-      badge: null 
+      badge: null,
+      requiresPro: false
     },
     { 
       name: t('sidebar.aiAssistant'), 
       icon: Bot, 
       path: '/ai-assistant',
-      badge: 'AI' 
+      badge: 'AI',
+      requiresPro: false
     },
     { 
       name: t('sidebar.settings'), 
       icon: Settings, 
       path: '/settings',
-      badge: null 
+      badge: null,
+      requiresPro: false
     }
   ];
+
+  // Filter navigation items based on subscription
+  const navigationItems = allNavigationItems.filter(item => {
+    if (item.requiresPro && !isPro) {
+      return false; // Hide premium features from free users
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen pwa-safe-area bg-white text-gray-900">

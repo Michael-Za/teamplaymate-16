@@ -38,10 +38,12 @@ import {
   ThumbsDown,
   Clock,
   TrendingUp,
-  X
+  X,
+  Pencil
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { dataManagementService, Player, ClubData } from '../services/dataManagementService';
+import { playerManagementService } from '../services/playerManagementService';
 import { analyticsExportService } from '../services/analyticsExportService';
 import { toast } from 'sonner';
 import AddPlayerForm from './AddPlayerForm';
@@ -119,15 +121,15 @@ export const DataManagementSection: React.FC = () => {
   useEffect(() => {
     loadData();
     
-    // Subscribe to player updates
-    dataManagementService.setPlayersUpdateCallback((updatedPlayers) => {
-      setPlayers(updatedPlayers);
-      setFilteredPlayers(updatedPlayers);
+    // Subscribe to player updates from centralized service
+    const unsubscribe = playerManagementService.onPlayersUpdated(() => {
+      console.log('[DataManagement] Players updated, reloading...');
+      loadData();
     });
     
-    // Return cleanup function that only clears the player update callback
+    // Return cleanup function
     return () => {
-      dataManagementService.setPlayersUpdateCallback(null);
+      unsubscribe();
     };
   }, []);
 
@@ -149,16 +151,18 @@ export const DataManagementSection: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('[DataManagement] Loading data...');
       
-      // Fetch data from the service
-      const fetchedPlayers = await dataManagementService.getPlayers();
+      // Fetch data from the centralized player management service
+      const fetchedPlayers = await playerManagementService.getPlayers();
       const fetchedClubData = await dataManagementService.getClubData();
       
-      setPlayers(fetchedPlayers);
-      setFilteredPlayers(fetchedPlayers);
+      console.log('[DataManagement] Loaded players:', fetchedPlayers.length);
+      setPlayers(fetchedPlayers as any);
+      setFilteredPlayers(fetchedPlayers as any);
       setClubData(fetchedClubData);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('[DataManagement] Error loading data:', error);
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
@@ -168,39 +172,47 @@ export const DataManagementSection: React.FC = () => {
   const handleSavePlayer = async (playerData: Partial<Player>) => {
     try {
       if (selectedPlayer && isEditing) {
-        // Update existing player
-        const updatedPlayer = await dataManagementService.updatePlayer(selectedPlayer.id!, playerData);
-        if (updatedPlayer) {
-          setPlayers(players.map(p => p.id === updatedPlayer.id ? updatedPlayer : p));
-          toast.success('Player updated successfully!');
+        // Update existing player using centralized service
+        console.log('[DataManagement] Updating player:', selectedPlayer.id, playerData);
+        const result = await playerManagementService.updatePlayer(selectedPlayer.id!, playerData as any);
+        if (result.success && result.data) {
+          setPlayers(players.map(p => p.id === result.data!.id ? result.data! : p));
+          // Service already shows success toast
+        } else {
+          console.error('[DataManagement] Update failed:', result.errors);
         }
       } else {
-        // Add new player
-        const newPlayer = await dataManagementService.addPlayer(playerData as Player);
-        if (newPlayer) {
-          setPlayers([...players, newPlayer]);
-          toast.success('Player added successfully!');
+        // Add new player using centralized service
+        console.log('[DataManagement] Creating player:', playerData);
+        const result = await playerManagementService.createPlayer(playerData as any);
+        if (result.success && result.data) {
+          setPlayers([...players, result.data as any]);
+          // Service already shows success toast
+        } else {
+          console.error('[DataManagement] Create failed:', result.errors);
         }
       }
       setShowAddForm(false);
       setIsEditing(false);
       setSelectedPlayer(null);
     } catch (error) {
-      console.error('Error saving player:', error);
+      console.error('[DataManagement] Error saving player:', error);
       toast.error('Failed to save player');
     }
   };
 
   const handleDeletePlayer = async (playerId: string) => {
     try {
-      const success = await dataManagementService.deletePlayer(playerId);
-      if (success) {
+      console.log('[DataManagement] Deleting player:', playerId);
+      const result = await playerManagementService.deletePlayer(playerId);
+      if (result.success) {
         setPlayers(players.filter(p => p.id !== playerId));
-        // Note: filteredPlayers will be updated automatically by the useEffect when players change
-        toast.success('Player deleted successfully!');
+        // Service already shows success toast
+      } else {
+        console.error('[DataManagement] Delete failed:', result.errors);
       }
     } catch (error) {
-      console.error('Error deleting player:', error);
+      console.error('[DataManagement] Error deleting player:', error);
       toast.error('Failed to delete player');
     }
   };
@@ -518,6 +530,19 @@ export const DataManagementSection: React.FC = () => {
     }
     setShowAddMatchForm(false);
     setEditingMatch(null);
+  };
+
+  const handleEditTrainingSession = (sessionId: number) => {
+    const session = trainingSessions.find(s => s.id === sessionId);
+    if (session) {
+      // TODO: Implement edit training session dialog
+      toast.info('Edit training session feature coming soon');
+    }
+  };
+
+  const handleDeleteTrainingSession = (sessionId: number) => {
+    setTrainingSessions(prevSessions => prevSessions.filter(session => session.id !== sessionId));
+    toast.success('Training session deleted successfully!');
   };
 
   // PDF Generation Handlers
@@ -1102,14 +1127,14 @@ export const DataManagementSection: React.FC = () => {
                         </CardHeader>
                         <CardContent>
                           <AddPlayerForm
-                            player={selectedPlayer}
+                            player={selectedPlayer as any}
                             isOpen={true}
                             onClose={() => {
                               setShowAddForm(false);
                               setIsEditing(false);
                               setSelectedPlayer(null);
                             }}
-                            onSave={(playerData) => {
+                            onSave={(playerData: any) => {
                               handleSavePlayer(playerData);
                               setShowAddForm(false);
                               setIsEditing(false);
@@ -1192,20 +1217,20 @@ export const DataManagementSection: React.FC = () => {
                               </div>
                             )}
 
-                            {player.notes && (
+                            {player['notes'] && (
                               <div className="mb-4">
                                 <div className={`text-xs mb-1 ${
                                   theme === 'midnight' ? 'text-gray-500' : 'text-gray-500'
                                 }`}>Notes</div>
                                 <p className={`text-xs ${
                                   theme === 'midnight' ? 'text-gray-700' : 'text-gray-700'
-                                }`}>{player.notes}</p>
+                                }`}>{player['notes']}</p>
                               </div>
                             )}
 
                             <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                               <div className="flex items-center space-x-1">
-                                {player.medicalClearance ? (
+                                {player['medicalClearance'] ? (
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                 ) : (
                                   <AlertCircle className="h-4 w-4 text-red-500" />

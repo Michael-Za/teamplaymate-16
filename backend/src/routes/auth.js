@@ -8,13 +8,13 @@ const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
 const Joi = require('joi');
 const rateLimit = require('express-rate-limit');
 const { APIService } = require('../services/apiService');
-const { 
-  asyncHandler, 
-  validateRequest, 
-  ValidationError, 
-  AuthenticationError, 
+const {
+  asyncHandler,
+  validateRequest,
+  ValidationError,
+  AuthenticationError,
   ConflictError,
-  NotFoundError 
+  NotFoundError
 } = require('../middleware/errorHandler');
 const { authenticateToken, generateTokens } = require('../middleware/auth');
 const db = require('../services/database');
@@ -43,17 +43,17 @@ const generalLimiter = rateLimit({
 const registerSchema = Joi.object({
   body: Joi.object({
     email: Joi.string().email().required(),
-    password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/).required()
+    password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&+\-_.])[A-Za-z\d@$!%*?&+\-_.]/).required()
       .messages({
-        'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+        'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&+-_.)'
       }),
     firstName: Joi.string().min(2).max(50).required(),
     lastName: Joi.string().min(2).max(50).required(),
-    role: Joi.string().valid('player', 'coach', 'manager', 'admin').default('player'),
+    role: Joi.string().valid('player', 'coach', 'manager', 'admin').default('manager'),
     teamCode: Joi.string().optional(),
     position: Joi.string().when('role', {
       is: 'player',
-      then: Joi.string().valid('goalkeeper', 'defender', 'midfielder', 'forward').required(),
+      then: Joi.string().valid('goalkeeper', 'defender', 'midfielder', 'forward').default('midfielder'),
       otherwise: Joi.optional()
     }),
     phoneNumber: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).optional(),
@@ -80,7 +80,10 @@ const resetPasswordSchema = Joi.object({
   body: Joi.object({
     email: Joi.string().email().required(),
     code: Joi.string().length(6).pattern(/^\d{6}$/).required(),
-    password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/).required()
+    password: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&+\-_.])[A-Za-z\d@$!%*?&+\-_.]/).required()
+      .messages({
+        'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&+-_.)'
+      })
   })
 });
 
@@ -94,7 +97,10 @@ const verifyResetCodeSchema = Joi.object({
 const changePasswordSchema = Joi.object({
   body: Joi.object({
     currentPassword: Joi.string().required(),
-    newPassword: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/).required()
+    newPassword: Joi.string().min(8).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&+\-_.])[A-Za-z\d@$!%*?&+\-_.]/).required()
+      .messages({
+        'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&+-_.)'
+      })
   })
 });
 
@@ -105,45 +111,45 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: 'https://statsor.com/api/v1/auth/google/callback'
   }, async (accessToken, refreshToken, profile, done) => {
-  try {
-    // Check if user exists
-    let user = await db.findMany('users', { google_id: profile.id });
-    if (user && user.length > 0) {
-      user = user[0]; // Get the first user
-      return done(null, user);
-    }
+    try {
+      // Check if user exists
+      let user = await db.findMany('users', { google_id: profile.id });
+      if (user && user.length > 0) {
+        user = user[0]; // Get the first user
+        return done(null, user);
+      }
 
-    // Check if user exists with same email
-    user = await db.findMany('users', { email: profile.emails[0].value });
-    if (user && user.length > 0) {
-      user = user[0]; // Get the first user
-      // Link Google account to existing user
-      await db.update('users', user.id, {
+      // Check if user exists with same email
+      user = await db.findMany('users', { email: profile.emails[0].value });
+      if (user && user.length > 0) {
+        user = user[0]; // Get the first user
+        // Link Google account to existing user
+        await db.update('users', user.id, {
+          google_id: profile.id,
+          avatar_url: profile.photos[0]?.value,
+          updated_at: new Date().toISOString()
+        });
+        return done(null, user);
+      }
+
+      // Create new user
+      const newUser = await db.create('users', {
         google_id: profile.id,
+        email: profile.emails[0].value,
+        first_name: profile.name.givenName,
+        last_name: profile.name.familyName,
         avatar_url: profile.photos[0]?.value,
+        email_verified: true,
+        role: 'player',
+        status: 'active',
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
-      return done(null, user);
+
+      return done(null, newUser);
+    } catch (error) {
+      return done(error, null);
     }
-
-    // Create new user
-    const newUser = await db.create('users', {
-      google_id: profile.id,
-      email: profile.emails[0].value,
-      first_name: profile.name.givenName,
-      last_name: profile.name.familyName,
-      avatar_url: profile.photos[0]?.value,
-      email_verified: true,
-      role: 'player',
-      status: 'active',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-
-    return done(null, newUser);
-  } catch (error) {
-    return done(error, null);
-  }
   }));
 }
 
@@ -152,15 +158,15 @@ if (process.env.JWT_SECRET) {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
     secretOrKey: process.env.JWT_SECRET
   }, async (payload, done) => {
-  try {
-    const user = await db.findById('users', payload.userId);
-    if (user && user.status === 'active') {
-      return done(null, user);
+    try {
+      const user = await db.findById('users', payload.userId);
+      if (user && user.status === 'active') {
+        return done(null, user);
+      }
+      return done(null, false);
+    } catch (error) {
+      return done(error, false);
     }
-    return done(null, false);
-  } catch (error) {
-    return done(error, false);
-  }
   }));
 }
 
@@ -207,16 +213,18 @@ const sendPasswordResetEmail = async (user, resetCode) => {
 
 const sendWelcomeEmail = async (user) => {
   try {
-    await emailService.sendWelcomeEmail(user.email, {
-      firstName: user.first_name,
+    const result = await emailService.sendWelcomeEmail({
       email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
       role: user.role,
-      sport: 'Football',
-      appUrl: process.env.FRONTEND_URL,
-      supportEmail: process.env.SUPPORT_EMAIL || 'support@statsor.com'
+      sport: 'football'
     });
+    console.log('Welcome email sent:', result);
+    return result;
   } catch (error) {
     console.error('Failed to send welcome email:', error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -225,7 +233,7 @@ const sendWelcomeEmail = async (user) => {
 // @route   POST /api/auth/register
 // @desc    Register new user
 // @access  Public
-router.post('/register', 
+router.post('/register',
   generalLimiter,
   validateRequest(registerSchema),
   asyncHandler(async (req, res) => {
@@ -353,7 +361,7 @@ router.post('/logout',
   authenticateToken,
   asyncHandler(async (req, res) => {
     const { refreshToken } = req.body;
-    
+
     // Remove refresh token from Redis
     if (refreshToken) {
       await redis.deleteRefreshToken(req.user.id, refreshToken);
@@ -376,7 +384,7 @@ router.post('/refresh',
   generalLimiter,
   asyncHandler(async (req, res) => {
     const { refreshToken } = req.body;
-    
+
     if (!refreshToken) {
       throw new AuthenticationError('Refresh token required');
     }
@@ -384,40 +392,28 @@ router.post('/refresh',
     try {
       // Verify refresh token
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-      
+
       // Check if token exists in Redis
       const storedToken = await redis.getRefreshToken(decoded.userId);
       if (!storedToken || storedToken !== refreshToken) {
         throw new AuthenticationError('Invalid refresh token');
       }
 
-      // Get user
-      const user = await db.findById('users', decoded.userId);
-      if (!user || user.status !== 'active') {
-        throw new AuthenticationError('User not found or inactive');
-      }
-
       // Generate new tokens
-      const tokens = generateTokens(user.id, user.role);
+      const tokens = generateTokens(decoded.userId, decoded.role);
 
-      // Update refresh token in Redis
-      await redis.setRefreshToken(user.id, tokens.refreshToken);
+      // Store new refresh token
+      await redis.setRefreshToken(decoded.userId, tokens.refreshToken);
 
-      res.json({
-        message: 'Token refreshed successfully',
-        tokens
-      });
+      res.json({ tokens });
     } catch (error) {
-      if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-        throw new AuthenticationError('Invalid or expired refresh token');
-      }
-      throw error;
+      throw new AuthenticationError('Invalid refresh token');
     }
   })
 );
 
 // @route   POST /api/auth/forgot-password
-// @desc    Send password reset email
+// @desc    Request password reset
 // @access  Public
 router.post('/forgot-password',
   generalLimiter,
@@ -427,29 +423,22 @@ router.post('/forgot-password',
 
     const users = await db.findMany('users', { email });
     const user = users && users.length > 0 ? users[0] : null;
+
     if (!user) {
-      // Don't reveal if email exists
-      return res.json({ message: 'If the email exists, a reset link has been sent.' });
+      return res.json({ message: 'If an account exists with this email, a password reset code has been sent.' });
     }
 
-    // Generate reset code
     const resetCode = generateResetCode();
-    const resetCodeExpiry = new Date(Date.now() + 900000); // 15 minutes
 
-    // Store reset code
     await db.update('users', user.id, {
-      password_reset_code: resetCode,
-      password_reset_expires: resetCodeExpiry,
-      updated_at: new Date()
+      password_reset_token: resetCode,
+      password_reset_expires: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      updated_at: new Date().toISOString()
     });
 
-    // Send reset email
-    const emailResult = await sendPasswordResetEmail(user, resetCode);
-    
-    // Log email sending result for debugging
-    console.log('Password reset email sending result:', emailResult);
+    await sendPasswordResetEmail(user, resetCode);
 
-    res.json({ message: 'If the email exists, a reset link has been sent.' });
+    res.json({ message: 'If an account exists with this email, a password reset code has been sent.' });
   })
 );
 
@@ -462,27 +451,22 @@ router.post('/verify-reset-code',
   asyncHandler(async (req, res) => {
     const { email, code } = req.body;
 
-    const users = await db.findMany('users', {
-      email,
-      password_reset_code: code
-    });
-    
-    // Filter users by expiration manually since the database service doesn't support complex queries
-    const user = users && users.length > 0 ? users.find(u => u.password_reset_expires && new Date(u.password_reset_expires) > new Date()) : null;
+    const users = await db.findMany('users', { email });
+    const user = users && users.length > 0 ? users[0] : null;
 
-    if (!user) {
+    if (!user ||
+      user.password_reset_token !== code ||
+      !user.password_reset_expires ||
+      new Date() > new Date(user.password_reset_expires)) {
       throw new ValidationError('Invalid or expired reset code');
     }
 
-    res.json({ 
-      message: 'Reset code verified successfully',
-      valid: true 
-    });
+    res.json({ message: 'Code verified successfully' });
   })
 );
 
 // @route   POST /api/auth/reset-password
-// @desc    Reset password with verified code
+// @desc    Reset password
 // @access  Public
 router.post('/reset-password',
   generalLimiter,
@@ -490,30 +474,25 @@ router.post('/reset-password',
   asyncHandler(async (req, res) => {
     const { email, code, password } = req.body;
 
-    const users = await db.findMany('users', {
-      email,
-      password_reset_code: code
-    });
-    
-    // Filter users by expiration manually since the database service doesn't support complex queries
-    const user = users && users.length > 0 ? users.find(u => u.password_reset_expires && new Date(u.password_reset_expires) > new Date()) : null;
+    const users = await db.findMany('users', { email });
+    const user = users && users.length > 0 ? users[0] : null;
 
-    if (!user) {
+    if (!user ||
+      user.password_reset_token !== code ||
+      !user.password_reset_expires ||
+      new Date() > new Date(user.password_reset_expires)) {
       throw new ValidationError('Invalid or expired reset code');
     }
 
-    // Hash new password
     const hashedPassword = await hashPassword(password);
 
-    // Update user
     await db.update('users', user.id, {
       password_hash: hashedPassword,
-      password_reset_code: null,
+      password_reset_token: null,
       password_reset_expires: null,
-      updated_at: new Date()
+      updated_at: new Date().toISOString()
     });
 
-    // Invalidate all refresh tokens
     await redis.deleteAllRefreshTokens(user.id);
 
     res.json({ message: 'Password reset successful' });
@@ -629,20 +608,6 @@ router.get('/google/callback',
     const tokens = generateTokens(req.user.id, req.user.role);
 
     // Store refresh token
-    await redis.setRefreshToken(req.user.id, tokens.refreshToken);
-
-    // Redirect to frontend with tokens
-    const frontendUrl = process.env.FRONTEND_URL || 'https://statsor.com';
-    res.redirect(`${frontendUrl}/auth/callback?token=${tokens.accessToken}&refresh=${tokens.refreshToken}`);
-  })
-);
-
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
-router.get('/me',
-  authenticateToken,
-  asyncHandler(async (req, res) => {
     const user = await db.findById('users', req.user.id);
     if (!user) {
       throw new NotFoundError('User not found');
@@ -665,7 +630,7 @@ router.put('/profile',
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const allowedFields = ['first_name', 'last_name', 'phone_number', 'date_of_birth', 'nationality', 'position'];
-    
+
     const updateData = {};
     Object.keys(req.body).forEach(key => {
       if (allowedFields.includes(key)) {
@@ -680,7 +645,7 @@ router.put('/profile',
     updateData.updated_at = new Date().toISOString();
 
     const updatedUser = await db.update('users', userId, updateData);
-    
+
     // Remove sensitive data
     delete updatedUser.password_hash;
     delete updatedUser.email_verification_token;

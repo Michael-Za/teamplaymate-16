@@ -17,7 +17,30 @@ const Pricing: React.FC = () => {
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('yearly');
 
   const handleContactSales = () => {
-    window.location.href = 'mailto:info@statsor.com?subject=Pro Plus Plan Inquiry&body=Hello Statsor Team,%0D%0A%0D%0AI am interested in the Pro Plus plan and would like to discuss enterprise solutions for my organization.%0D%0A%0D%0APlease contact me to discuss:%0D%0A- Custom pricing%0D%0A- Specific feature requirements%0D%0A- Implementation timeline%0D%0A- Training and support options%0D%0A%0D%0ABest regards';
+    const email = 'statsor1@gmail.com';
+    const subject = 'Pro Plus Plan Inquiry';
+    const body = `Hello Statsor Team,
+
+I am interested in the Pro Plus plan and would like to discuss enterprise solutions for my organization.
+
+Please contact me to discuss:
+- Custom pricing
+- Specific feature requirements
+- Implementation timeline
+- Training and support options
+
+Best regards`;
+
+    // Create mailto link with proper encoding
+    const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    // Show confirmation toast
+    toast.success(`Opening email to ${email}`, {
+      description: 'If your email client doesn\'t open, please email us directly at statsor1@gmail.com'
+    });
+    
+    // Redirect to mailto link (this will open the email client)
+    window.location.href = mailtoLink;
   };
 
   const handleGetStarted = (planId: string) => {
@@ -98,8 +121,8 @@ const Pricing: React.FC = () => {
       icon: <Users className="w-6 h-6 text-blue-600" />,
       title: language === 'en' ? 'Team Management' : 'Gestión de Equipos',
       description: language === 'en'
-        ? 'Manage multiple teams, players, and track their progress over time'
-        : 'Gestiona múltiples equipos, jugadores y rastrea su progreso en el tiempo'
+        ? 'Manage your team, players, and track their progress over time for Football and Futsal'
+        : 'Gestiona tu equipo, jugadores y rastrea su progreso en el tiempo para Fútbol y Futsal'
     },
     {
       icon: <TrendingUp className="w-6 h-6 text-blue-600" />,
@@ -315,7 +338,7 @@ const Pricing: React.FC = () => {
               },
               {
                 q: language === 'en' ? 'What makes the Pro plan worth it?' : '¿Qué hace que el plan Pro valga la pena?',
-                a: language === 'en' ? 'Pro unlocks AI-powered insights, unlimited player tracking, advanced analytics, multi-sport support, and priority support - everything you need for professional team management.' : 'Pro desbloquea información con IA, seguimiento ilimitado de jugadores, análisis avanzados, soporte multideporte y soporte prioritario: todo lo que necesitas para la gestión profesional del equipo.'
+                a: language === 'en' ? 'Pro unlocks AI-powered insights, unlimited player tracking, advanced analytics, and priority support - everything you need for professional team management in Football and Futsal.' : 'Pro desbloquea información con IA, seguimiento ilimitado de jugadores, análisis avanzados y soporte prioritario: todo lo que necesitas para la gestión profesional del equipo en Fútbol y Futsal.'
               },
               {
                 q: language === 'en' ? 'How does the AI Assistant work?' : '¿Cómo funciona el Asistente de IA?',

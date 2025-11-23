@@ -1,41 +1,79 @@
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { playerManagementService } from './playerManagementService';
 
 export interface Player {
   id?: string;
   name: string;
+  first_name?: string;
+  last_name?: string;
+  nickname?: string;
   position: string;
   jersey_number?: number;
+  number?: number;
   age?: number;
   nationality?: string;
   photo_url?: string;
+  photo?: string;
   height?: number;
   weight?: number;
   preferred_foot?: string;
+  dominantFoot?: string;
+  secondaryPositions?: string[];
+  birthDate?: Date;
+  date_of_birth?: string;
   status?: string;
   team_id?: string;
   user_id?: string;
   goals?: number;
   assists?: number;
   shots?: number;
+  shotsOnTarget?: number;
   shots_on_target?: number;
   passes?: number;
   pass_accuracy?: number;
+  passAccuracy?: number;
   fouls_committed?: number;
+  foulsCommitted?: number;
   fouls_received?: number;
+  foulsReceived?: number;
   balls_lost?: number;
+  ballsLost?: number;
   balls_recovered?: number;
+  ballsRecovered?: number;
   duels_won?: number;
+  duelsWon?: number;
   duels_lost?: number;
+  duelsLost?: number;
   crosses?: number;
   saves?: number;
   minutes?: number;
   games?: number;
   yellow_cards?: number;
+  yellowCards?: number;
   red_cards?: number;
+  redCards?: number;
+  email?: string;
+  phone?: string;
+  address?: string;
+  contract_end?: string;
+  salary?: number;
+  fitness?: number;
+  injuries?: string[];
+  notes?: string;
+  skills?: {
+    technical: number;
+    physical: number;
+    tactical: number;
+    mental: number;
+  };
+  medicalClearance?: boolean;
+  lastMedicalCheck?: string;
+  joinDate?: string;
+  shotMap?: { [key: string]: number };
   created_at?: string;
   updated_at?: string;
-  [key: string]: any; // Allow additional dynamic properties
+  [key: string]: any;
 }
 
 export interface Team {
@@ -81,247 +119,58 @@ export interface ClubData {
   budget?: number;
   trophies?: number;
   notes?: string;
+  president?: string;
+  headCoach?: string;
+  website?: string;
+  staff?: {
+    coaches?: number;
+    medical?: number;
+    administrative?: number;
+  };
+  facilities?: {
+    trainingGrounds?: number;
+    medicalCenter?: boolean;
+    gym?: boolean;
+    restaurant?: boolean;
+  };
+  [key: string]: any;
 }
 
 class DataManagementService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private cacheTimeout = 5 * 60 * 1000;
-  private playersUpdateCallback: ((players: Player[]) => void) | null = null;
 
-  setPlayersUpdateCallback(callback: ((players: Player[]) => void) | null) {
-    this.playersUpdateCallback = callback;
-  }
-
-  private getCachedData(key: string): any | null {
-    // Disable cache in production to ensure fresh data
-    const isProduction = import.meta.env.PROD;
-    if (isProduction) {
-      return null;
-    }
-    
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data;
-    }
-    this.cache.delete(key);
-    return null;
-  }
-
-  private setCachedData(key: string, data: any): void {
-    // Disable cache in production to ensure fresh data
-    const isProduction = import.meta.env.PROD;
-    if (isProduction) {
-      return;
-    }
-    
-    this.cache.set(key, { data, timestamp: Date.now() });
-  }
-
+  // Delegate player operations to PlayerManagementService
   async getPlayers(teamId?: string): Promise<Player[]> {
-    try {
-      // Check if this is a demo account
-      const isDemo = localStorage.getItem('user_type') === 'demo';
-      
-      if (isDemo) {
-        // For demo accounts, return demo players
-        const { demoAccountService } = await import('../services/demoAccountService');
-        return demoAccountService.getDemoPlayers();
-      }
-
-      const cacheKey = `players_${teamId || 'all'}`;
-      const cached = this.getCachedData(cacheKey);
-      if (cached) return cached;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('No authenticated user');
-        return [];
-      }
-
-      let query = supabase
-        .from('players')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (teamId) {
-        query = query.eq('team_id', teamId);
-      }
-
-      const { data: players, error } = await query;
-
-      if (error) {
-        console.error('Error fetching players:', error);
-        return [];
-      }
-
-      this.setCachedData(cacheKey, players || []);
-      return players || [];
-    } catch (error) {
-      console.error('Error fetching players:', error);
-      return [];
-    }
+    return playerManagementService.getPlayers(teamId) as Promise<Player[]>;
   }
 
   async getPlayer(id: string): Promise<Player | null> {
-    try {
-      // Check if this is a demo account
-      const isDemo = localStorage.getItem('user_type') === 'demo';
-      
-      if (isDemo) {
-        // For demo accounts, return demo player
-        const { demoAccountService } = await import('../services/demoAccountService');
-        const demoPlayers = demoAccountService.getDemoPlayers();
-        const player = demoPlayers.find(p => p.id === id);
-        return player || null;
-      }
-
-      const { data: player, error } = await supabase
-        .from('players')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching player:', error);
-        return null;
-      }
-
-      return player;
-    } catch (error) {
-      console.error('Error fetching player:', error);
-      return null;
-    }
+    return playerManagementService.getPlayer(id) as Promise<Player | null>;
   }
 
   async addPlayer(player: Player): Promise<Player | null> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Please sign in to add players');
-        return null;
-      }
-
-      const { data, error } = await supabase
-        .from('players')
-        .insert([{
-          ...player,
-          user_id: user.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error adding player:', error);
-        toast.error('Failed to add player');
-        return null;
-      }
-
-      this.cache.clear();
-      toast.success('Player added successfully');
-
-      if (this.playersUpdateCallback) {
-        const updatedPlayers = await this.getPlayers();
-        this.playersUpdateCallback(updatedPlayers);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error adding player:', error);
-      toast.error('Failed to add player');
-      return null;
+    const result = await playerManagementService.createPlayer(player as any);
+    if (result.success) {
+      return result.data as Player;
     }
+    return null;
   }
 
   async updatePlayer(id: string, updates: Partial<Player>): Promise<Player | null> {
-    try {
-      if (!id) {
-        throw new Error('Player ID is required');
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Please sign in to update players');
-        return null;
-      }
-
-      const cleanUpdates = {
-        ...updates,
-        updated_at: new Date().toISOString()
-      };
-
-      delete cleanUpdates.id;
-      delete cleanUpdates.created_at;
-
-      console.log('Updating player with data:', { id, updates: cleanUpdates });
-
-      const { data, error } = await supabase
-        .from('players')
-        .update(cleanUpdates)
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        console.error('Supabase error updating player:', error);
-        toast.error(`Failed to update player: ${error.message}`);
-        return null;
-      }
-
-      if (!data) {
-        console.error('No data returned from update');
-        toast.error('Player update failed - no data returned');
-        return null;
-      }
-
-      this.cache.clear();
-      toast.success('Player updated successfully');
-
-      if (this.playersUpdateCallback) {
-        const updatedPlayers = await this.getPlayers();
-        this.playersUpdateCallback(updatedPlayers);
-      }
-
-      return data;
-    } catch (error: any) {
-      console.error('Exception updating player:', error);
-      const errorMessage = error?.message || 'Failed to update player';
-      toast.error(errorMessage);
-      return null;
+    const result = await playerManagementService.updatePlayer(id, updates as any);
+    if (result.success) {
+      return result.data as Player;
     }
+    return null;
   }
 
   async deletePlayer(id: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('players')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting player:', error);
-        toast.error('Failed to delete player');
-        return false;
-      }
-
-      this.cache.clear();
-      toast.success('Player deleted successfully');
-
-      if (this.playersUpdateCallback) {
-        const updatedPlayers = await this.getPlayers();
-        this.playersUpdateCallback(updatedPlayers);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error deleting player:', error);
-      toast.error('Failed to delete player');
-      return false;
-    }
+    const result = await playerManagementService.deletePlayer(id);
+    return result.success;
   }
 
+  // Team operations
   async getTeams(): Promise<Team[]> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -398,52 +247,77 @@ class DataManagementService {
     }
   }
 
+  // Match operations
   async getMatches(teamId?: string): Promise<Match[]> {
     try {
-      // Check if this is a demo account
-      const isDemo = localStorage.getItem('user_type') === 'demo';
-      
-      if (isDemo) {
-        // For demo accounts, return demo matches
-        const { demoAccountService } = await import('../services/demoAccountService');
+      const userType = localStorage.getItem('user_type');
+
+      if (userType === 'demo') {
+        console.log('[DataService] Loading demo matches');
+        const { demoAccountService } = await import('./demoAccountService');
         const demoMatches = demoAccountService.getDemoMatches();
-        
-        // Transform DemoMatch to Match interface
-        return demoMatches.map(match => ({
-          id: match.id,
-          opponent_name: match.opponent,
-          match_date: match.date,
-          location: match.venue,
-          match_type: match.competition,
-          home_score: match.result === 'win' || match.result === 'draw' ? 
-            parseInt(match.score.split('-')[0]) : 
-            parseInt(match.score.split('-')[1]),
-          away_score: match.result === 'loss' || match.result === 'draw' ? 
-            parseInt(match.score.split('-')[1]) : 
-            parseInt(match.score.split('-')[0]),
-          is_home: match.venue === 'home',
-          status: 'completed',
-          notes: '',
-          weather: '',
-          user_id: 'demo-user',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }));
+
+        return demoMatches.map(match => {
+          const scores = match.score.split('-');
+          return {
+            id: match.id,
+            opponent_name: match.opponent,
+            match_date: match.date,
+            location: match.venue,
+            match_type: match.competition,
+            home_score: parseInt(scores[0] || '0'),
+            away_score: parseInt(scores[1] || '0'),
+            is_home: match.venue === 'home',
+            status: 'completed',
+            notes: '',
+            weather: '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+        });
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!user) {
+        console.log('[DataService] No authenticated user');
+        return [];
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        console.error('[DataService] Profile lookup error:', profileError);
+        return [];
+      }
+
+      console.log('[DataService] Loading matches for profile:', profile.id);
+
+      const { data: teams } = await supabase
+        .from('teams')
+        .select('id')
+        .eq('manager_id', profile.id);
+
+      if (!teams || teams.length === 0) {
+        console.log('[DataService] No teams found for user');
+        return [];
+      }
+
+      const teamIds = teams.map((t: any) => t.id);
 
       let query = supabase
         .from('matches')
         .select('*')
-        .eq('user_id', user.id);
+        .in('team_id', teamIds);
 
       if (teamId) {
         query = query.eq('team_id', teamId);
       }
 
-      const { data: matches, error } = await query.order('match_date', { ascending: false });
+      const { data: matches, error } = await query;
 
       if (error) {
         console.error('Error fetching matches:', error);
@@ -518,56 +392,109 @@ class DataManagementService {
     }
   }
 
+  // Club data operations
   async getClubData(): Promise<ClubData | null> {
     try {
-      // Check if this is a demo account
-      const isDemo = localStorage.getItem('user_type') === 'demo';
-      
-      if (isDemo) {
-        // For demo accounts, return demo club data
-        const { demoAccountService } = await import('../services/demoAccountService');
+      const userType = localStorage.getItem('user_type');
+
+      if (userType === 'demo') {
+        console.log('[DataService] Loading demo club data');
+        const { demoAccountService } = await import('./demoAccountService');
         return demoAccountService.getDemoClubData();
       }
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data: teams } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('owner_id', user.id)
-        .limit(1)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
         .maybeSingle();
 
-      if (!teams) return null;
+      if (!profile) return null;
 
-      return {
-        id: teams.id,
-        name: teams.name,
-        notes: teams.description || ''
-      };
+      const { data: teams } = await supabase
+        .from('teams')
+        .select('id')
+        .eq('manager_id', profile.id);
+
+      if (!teams || teams.length === 0) return null;
+
+      const { data: clubData, error } = await supabase
+        .from('club_data')
+        .select('*')
+        .eq('team_id', teams[0].id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching club data:', error);
+        return null;
+      }
+
+      return clubData;
     } catch (error) {
       console.error('Error fetching club data:', error);
       return null;
     }
   }
 
+  async updateClubData(clubData: ClubData): Promise<ClubData | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please sign in to update club data');
+        return null;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        console.error('[DataService] Profile error:', profileError);
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('club_data')
+        .upsert({
+          ...clubData,
+          profile_id: profile.id,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error updating club data:', error);
+        toast.error('Failed to update club data');
+        return null;
+      }
+
+      toast.success('Club data updated successfully');
+      return data;
+    } catch (error) {
+      console.error('Error updating club data:', error);
+      toast.error('Failed to update club data');
+      return null;
+    }
+  }
+
   async exportToJSON(): Promise<string> {
     try {
-      const players = await this.getPlayers();
-      const teams = await this.getTeams();
-      const matches = await this.getMatches();
-
       const exportData = {
-        players,
-        teams,
-        matches,
+        players: await this.getPlayers(),
+        teams: await this.getTeams(),
+        matches: await this.getMatches(),
         exportedAt: new Date().toISOString()
       };
 
       return JSON.stringify(exportData, null, 2);
     } catch (error) {
-      console.error('Error exporting to JSON:', error);
+      console.error('Error exporting data:', error);
       throw error;
     }
   }
@@ -597,7 +524,7 @@ class DataManagementService {
       toast.success('Data imported successfully');
       return true;
     } catch (error) {
-      console.error('Error importing JSON:', error);
+      console.error('Error importing data:', error);
       toast.error('Failed to import data');
       return false;
     }

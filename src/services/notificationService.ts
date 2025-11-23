@@ -1,223 +1,245 @@
+import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
+
 export interface Notification {
   id: string;
+  user_id: string;
+  type: 'welcome' | 'match_created' | 'player_added' | 'system' | 'info';
   title: string;
   message: string;
-  type: 'success' | 'info' | 'warning' | 'error' | 'welcome';
-  timestamp: Date;
   read: boolean;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
+  created_at: string;
+  action_url?: string;
+  metadata?: Record<string, any>;
 }
 
 class NotificationService {
-  private static instance: NotificationService;
-  private notifications: Notification[] = [];
-  private listeners: ((notifications: Notification[]) => void)[] = [];
+  private userId: string | null = null;
+  private listeners: Set<(notifications: Notification[]) => void> = new Set();
 
-  public static getInstance(): NotificationService {
-    if (!NotificationService.instance) {
-      NotificationService.instance = new NotificationService();
-    }
-    return NotificationService.instance;
-  }
-
-  private constructor() {
-    // Load notifications from localStorage
-    this.loadNotifications();
-  }
-
-  private loadNotifications() {
-    try {
-      const stored = localStorage.getItem('user_notifications');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        this.notifications = parsed.map((n: any) => ({
-          ...n,
-          timestamp: new Date(n.timestamp)
-        }));
-      }
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-      this.notifications = [];
+  setUserId(userId: string | null) {
+    this.userId = userId;
+    if (userId) {
+      this.subscribeToNotifications();
     }
   }
 
-  private saveNotifications() {
-    try {
-      localStorage.setItem('user_notifications', JSON.stringify(this.notifications));
-    } catch (error) {
-      console.error('Error saving notifications:', error);
-    }
+  private subscribeToNotifications() {
+    if (!this.userId) return;
+
+    // Subscribe to real-time notifications
+    const channel = supabase
+      .channel(`notifications:${this.userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${this.userId}`,
+        },
+        (payload) => {
+          const notification = payload.new as Notification;
+          this.handleNewNotification(notification);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }
+
+  private handleNewNotification(notification: Notification) {
+    // Show toast notification
+    toast.info(notification.title, {
+      description: notification.message,
+      action: notification.action_url
+        ? {
+            label: 'View',
+            onClick: () => {
+              window.location.href = notification.action_url!;
+            },
+          }
+        : undefined,
+    });
+
+    // Notify all listeners
+    this.notifyListeners();
   }
 
   private notifyListeners() {
-    this.listeners.forEach(listener => listener([...this.notifications]));
+    this.getNotifications().then((notifications) => {
+      this.listeners.forEach((listener) => listener(notifications));
+    });
   }
 
-  addNotification(notification: Omit<Notification, 'id' | 'timestamp' | 'read'>): string {
-    const newNotification: Notification = {
-      ...notification,
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date(),
-      read: false
-    };
+  async createNotification(
+    userId: string,
+    type: Notification['type'],
+    title: string,
+    message: string,
+    actionUrl?: string,
+    metadata?: Record<string, any>
+  ): Promise<Notification | null> {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: userId,
+          type,
+          title,
+          message,
+          action_url: actionUrl,
+          metadata,
+          read: false,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
 
-    this.notifications.unshift(newNotification);
-    
-    // Keep only last 50 notifications
-    if (this.notifications.length > 50) {
-      this.notifications = this.notifications.slice(0, 50);
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Failed to create notification:', error);
+      return null;
     }
-
-    this.saveNotifications();
-    this.notifyListeners();
-    
-    return newNotification.id;
   }
 
-  markAsRead(notificationId: string) {
-    const notification = this.notifications.find(n => n.id === notificationId);
-    if (notification) {
-      notification.read = true;
-      this.saveNotifications();
+  async sendWelcomeNotification(userId: string): Promise<void> {
+    await this.createNotification(
+      userId,
+      'welcome',
+      'Welcome to Statsor!',
+      'Get started by adding your first player to begin tracking performance.',
+      '/players'
+    );
+  }
+
+  async sendMatchCreatedNotification(
+    userId: string,
+    matchId: string,
+    matchTitle: string
+  ): Promise<void> {
+    await this.createNotification(
+      userId,
+      'match_created',
+      'Match Created!',
+      `${matchTitle} has been created. View your match summary.`,
+      `/matches/${matchId}`
+    );
+  }
+
+  async sendPlayerAddedNotification(
+    userId: string,
+    playerName: string
+  ): Promise<void> {
+    await this.createNotification(
+      userId,
+      'player_added',
+      'Player Added',
+      `${playerName} has been successfully added to your team.`,
+      '/players'
+    );
+  }
+
+  async getNotifications(): Promise<Notification[]> {
+    if (!this.userId) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', this.userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+      return [];
+    }
+  }
+
+  async getUnreadCount(): Promise<number> {
+    if (!this.userId) return 0;
+
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', this.userId)
+        .eq('read', false);
+
+      if (error) throw error;
+      return count || 0;
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+      return 0;
+    }
+  }
+
+  async markAsRead(notificationId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId);
+
+      if (error) throw error;
       this.notifyListeners();
+      return true;
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      return false;
     }
   }
 
-  markAllAsRead() {
-    this.notifications.forEach(n => n.read = true);
-    this.saveNotifications();
-    this.notifyListeners();
+  async markAllAsRead(): Promise<boolean> {
+    if (!this.userId) return false;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', this.userId)
+        .eq('read', false);
+
+      if (error) throw error;
+      this.notifyListeners();
+      return true;
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      return false;
+    }
   }
 
-  removeNotification(notificationId: string) {
-    this.notifications = this.notifications.filter(n => n.id !== notificationId);
-    this.saveNotifications();
-    this.notifyListeners();
+  async deleteNotification(notificationId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+      this.notifyListeners();
+      return true;
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      return false;
+    }
   }
 
-  clearAllNotifications() {
-    this.notifications = [];
-    this.saveNotifications();
-    this.notifyListeners();
-  }
+  subscribe(listener: (notifications: Notification[]) => void) {
+    this.listeners.add(listener);
+    // Immediately call with current notifications
+    this.getNotifications().then(listener);
 
-  getNotifications(): Notification[] {
-    return [...this.notifications];
-  }
-
-  getUnreadCount(): number {
-    return this.notifications.filter(n => !n.read).length;
-  }
-
-  subscribe(listener: (notifications: Notification[]) => void): () => void {
-    this.listeners.push(listener);
-    
-    // Return unsubscribe function
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.listeners.delete(listener);
     };
-  }
-
-  // Welcome notifications for new users
-  showWelcomeNotifications(isDemo: boolean = false) {
-    if (isDemo) {
-      this.addNotification({
-        title: '🎉 Welcome to Statsor Demo!',
-        message: 'You\'re now exploring our demo account with sample data. Feel free to test all features!',
-        type: 'welcome'
-      });
-
-      this.addNotification({
-        title: '📊 Explore Sample Data',
-        message: 'Check out the pre-loaded players, matches, and analytics to see what Statsor can do.',
-        type: 'info'
-      });
-
-      this.addNotification({
-        title: '🔄 Ready to Start Fresh?',
-        message: 'When you\'re ready, create a real account to manage your own team data.',
-        type: 'info'
-      });
-    } else {
-      this.addNotification({
-        title: '🎉 Welcome to Statsor!',
-        message: 'Your account has been created successfully. Start by adding your team and players.',
-        type: 'welcome'
-      });
-
-      this.addNotification({
-        title: '📝 Complete Your Setup',
-        message: 'Add your club information and first players to get the most out of Statsor.',
-        type: 'info'
-      });
-
-      this.addNotification({
-        title: '💡 Pro Tip',
-        message: 'Use the Data Management section to track everything from player stats to financial records.',
-        type: 'info'
-      });
-    }
-  }
-
-  // Success notifications for actions
-  showSuccessNotification(title: string, message: string) {
-    this.addNotification({
-      title,
-      message,
-      type: 'success'
-    });
-  }
-
-  // Error notifications
-  showErrorNotification(title: string, message: string) {
-    this.addNotification({
-      title,
-      message,
-      type: 'error'
-    });
-  }
-
-  // Info notifications
-  showInfoNotification(title: string, message: string) {
-    this.addNotification({
-      title,
-      message,
-      type: 'info'
-    });
-  }
-
-  // Warning notifications
-  showWarningNotification(title: string, message: string) {
-    this.addNotification({
-      title,
-      message,
-      type: 'warning'
-    });
-  }
-
-  // Welcome notification for new users
-  async sendWelcomeNotification(userId: string, userData: { name: string; email: string; isDemoAccount?: boolean }) {
-    const welcomeTitle = userData.isDemoAccount ? '🎉 Welcome to Statsor Demo!' : '🎉 Welcome to Statsor!';
-    const welcomeMessage = userData.isDemoAccount 
-      ? `Hi ${userData.name}! You're now exploring Statsor with demo data. Feel free to test all features!`
-      : `Hi ${userData.name}! Your account has been created successfully. Let's get started with managing your sports data!`;
-    
-    this.addNotification({
-      title: welcomeTitle,
-      message: welcomeMessage,
-      type: 'welcome'
-    });
-
-    // Add setup tips for new users
-    if (!userData.isDemoAccount) {
-      setTimeout(() => {
-        this.showSetupTips();
-      }, 2000);
-    }
   }
 }
 
-export const notificationService = NotificationService.getInstance();
+export const notificationService = new NotificationService();

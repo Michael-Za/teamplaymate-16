@@ -32,6 +32,9 @@ const chatRoutes = require('./routes/chat');
 const subscriptionsRoutes = require('./routes/subscriptions');
 const reportsRoutes = require('./routes/reports');
 const aiChatRoutes = require('./routes/aiChat');
+const aiAssistantRoutes = require('./routes/aiAssistant');
+const emailRoutes = require('./routes/email');
+const notificationsRoutes = require('./routes/notifications');
 
 // Import security middleware (silent background protection)
 const { securityCheck, inputSanitization, sqlInjectionProtection } = require('./middleware/security');
@@ -46,7 +49,7 @@ class Server {
     this.server = http.createServer(this.app);
     this.port = config.PORT;
     this.socketService = null;
-    
+
     // Remove initialization from constructor - will be done in initialize() method
   }
 
@@ -55,23 +58,23 @@ class Server {
       // Initialize external services
       logger.info('Step 1: Initializing services...');
       await this.initializeServices();
-      
+
       // Configure middleware
       logger.info('Step 2: Configuring middleware...');
       this.configureMiddleware();
-      
+
       // Setup routes
       logger.info('Step 3: Setting up routes...');
       this.setupRoutes();
-      
+
       // Setup error handling
       logger.info('Step 4: Setting up error handling...');
       this.setupErrorHandling();
-      
+
       // Initialize Socket.io
       logger.info('Step 5: Initializing Socket.io...');
       this.initializeSocket();
-      
+
       logger.info('Server initialized successfully');
     } catch (error) {
       logger.error('Failed to initialize server:', error.message);
@@ -107,82 +110,101 @@ class Server {
     try {
       // Security middleware
       this.app.use(helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: ["'self'", "wss:", "ws:"],
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "wss:", "ws:"],
+          },
         },
-      },
-      crossOriginEmbedderPolicy: false,
-    }));
+        crossOriginEmbedderPolicy: false,
+      }));
 
-    // CORS configuration
-    const corsOptions = {
-      origin: config.CORS_ORIGIN === '*' ? true : (config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : ['http://localhost:3006']),
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-      exposedHeaders: ['X-Total-Count', 'X-Page-Count']
-    };
-    this.app.use(cors(corsOptions));
+      // CORS configuration - allow common development ports and production domain
+      const defaultOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3006',
+        'http://localhost:3008',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+        'http://127.0.0.1:3006',
+        'http://127.0.0.1:3008',
+        'http://127.0.0.1:5173',
+        'https://statsor.com',
+        'https://www.statsor.com'
+      ];
 
-    // Compression
-    this.app.use(compression());
+      const corsOptions = {
+        origin: config.CORS_ORIGIN === '*'
+          ? true
+          : (config.CORS_ORIGIN
+            ? config.CORS_ORIGIN.split(',').map(o => o.trim())
+            : defaultOrigins),
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
+        exposedHeaders: ['X-Total-Count', 'X-Page-Count']
+      };
+      this.app.use(cors(corsOptions));
 
-    // Body parsing
-    this.app.use(express.json({ limit: config.UPLOAD_MAX_SIZE }));
-    this.app.use(express.urlencoded({ extended: true, limit: config.UPLOAD_MAX_SIZE }));
+      // Compression
+      this.app.use(compression());
 
-    // Security middleware (integrated threat detection)
-    this.app.use(inputSanitization);
-    this.app.use(sqlInjectionProtection);
-    this.app.use(securityCheck);
+      // Body parsing
+      this.app.use(express.json({ limit: config.UPLOAD_MAX_SIZE }));
+      this.app.use(express.urlencoded({ extended: true, limit: config.UPLOAD_MAX_SIZE }));
 
-    // Rate limiting
-    const limiter = rateLimit({
-      windowMs: config.RATE_LIMIT_WINDOW_MS,
-      max: config.RATE_LIMIT_MAX_REQUESTS,
-      message: {
-        error: 'Too many requests from this IP, please try again later.',
-        retryAfter: Math.ceil(config.RATE_LIMIT_WINDOW_MS / 1000)
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-    });
-    this.app.use('/api/', limiter);
+      // Security middleware (integrated threat detection)
+      this.app.use(inputSanitization);
+      this.app.use(sqlInjectionProtection);
+      this.app.use(securityCheck);
 
-    // Request logging
-    this.app.use((req, res, next) => {
-      const start = Date.now();
-      res.on('finish', () => {
-        const duration = Date.now() - start;
-        logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`, {
-          method: req.method,
-          url: req.originalUrl,
-          status: res.statusCode,
-          duration,
-          ip: req.ip,
-          userAgent: req.get('User-Agent')
+      // Rate limiting
+      const limiter = rateLimit({
+        windowMs: config.RATE_LIMIT_WINDOW_MS,
+        max: config.RATE_LIMIT_MAX_REQUESTS,
+        message: {
+          error: 'Too many requests from this IP, please try again later.',
+          retryAfter: Math.ceil(config.RATE_LIMIT_WINDOW_MS / 1000)
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
+      this.app.use('/api/', limiter);
+
+      // Request logging
+      this.app.use((req, res, next) => {
+        const start = Date.now();
+        res.on('finish', () => {
+          const duration = Date.now() - start;
+          logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`, {
+            method: req.method,
+            url: req.originalUrl,
+            status: res.statusCode,
+            duration,
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+          });
+        });
+        next();
+      });
+
+      // Static files
+      this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+      // Health check endpoint
+      this.app.get('/health', (req, res) => {
+        res.status(200).json({
+          status: 'OK',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: process.env.NODE_ENV || 'development'
         });
       });
-      next();
-    });
-
-    // Static files
-    this.app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-    // Health check endpoint
-    this.app.get('/health', (req, res) => {
-      res.status(200).json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development'
-      });
-    });
     } catch (error) {
       logger.error('Error configuring middleware:', error.message);
       logger.error('Stack trace:', error.stack);
@@ -193,202 +215,183 @@ class Server {
 
   setupRoutes() {
     try {
-    // Health check endpoint
-    this.app.get('/health', (req, res) => {
-      res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: config.NODE_ENV,
-        version: process.env.npm_package_version || '1.0.0'
-      });
-    });
-
-    // Database health check
-    this.app.get('/health/db', async (req, res) => {
-      try {
-        const { supabase } = require('./config/database');
-        const { data, error } = await supabase
-          .from('users')
-          .select('count')
-          .limit(1);
-        
-        if (error) throw error;
-        
-        res.json({ status: 'OK', database: 'connected' });
-      } catch (error) {
-        logger.error('Database health check failed:', error);
-        res.status(503).json({ status: 'ERROR', database: 'disconnected', error: error.message });
-      }
-    });
-
-    // Redis health check
-    this.app.get('/health/redis', async (req, res) => {
-      try {
-        const RedisService = require('./services/redis');
-        await RedisService.ping();
-        res.json({ status: 'OK', redis: 'connected' });
-      } catch (error) {
-        logger.error('Redis health check failed:', error);
-        res.status(503).json({ status: 'ERROR', redis: 'disconnected', error: error.message });
-      }
-    });
-
-    // API routes
-    const apiRouter = express.Router();
-    
-    // Health check endpoint for Railway
-    apiRouter.get('/health', (req, res) => {
-      res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: config.NODE_ENV,
-        version: process.env.npm_package_version || '1.0.0'
-      });
-    });
-    
-    // Mount route modules
-    apiRouter.use('/auth', authRoutes);
-    apiRouter.use('/teams', teamsRoutes);
-    apiRouter.use('/players', playersRoutes);
-    apiRouter.use('/players-enhanced', require('./routes/playersEnhanced')); // Enhanced player routes
-    apiRouter.use('/matches', matchesRoutes);
-    apiRouter.use('/analytics', analyticsRoutes);
-    apiRouter.use('/analytics-enhanced', require('./routes/analyticsEnhanced')); // Enhanced analytics routes
-    apiRouter.use('/training', trainingRoutes);
-    apiRouter.use('/chat', chatRoutes);
-    apiRouter.use('/subscriptions', subscriptionsRoutes);
-    apiRouter.use('/reports', reportsRoutes);
-    apiRouter.use('/aichat', aiChatRoutes);
-
-    // Mount API router
-    this.app.use('/api/v1', apiRouter);
-
-    // Proxy route to AI assistant backend status
-    this.app.get('/api/v1/ai-assistant/status', async (req, res) => {
-      try {
-        // Get AI assistant backend URL from environment variables
-        const aiAssistantUrl = process.env.AI_ASSISTANT_BACKEND_URL || 'http://localhost:8080';
-        
-        // Forward the request to the AI assistant backend
-        const response = await fetch(`${aiAssistantUrl}/api/v1/ai/status`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          res.json(data);
-        } else {
-          res.status(response.status).json({
-            success: false,
-            error: 'AI assistant backend is not available'
-          });
-        }
-      } catch (error) {
-        logger.error('Error connecting to AI assistant backend:', error);
-        res.status(503).json({
-          success: false,
-          error: 'Failed to connect to AI assistant backend',
-          details: error.message
+      // Health check endpoint
+      this.app.get('/health', (req, res) => {
+        res.json({
+          status: 'OK',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: config.NODE_ENV,
+          version: process.env.npm_package_version || '1.0.0'
         });
-      }
-    });
+      });
 
-    // API documentation route
-    this.app.get('/api/docs', (req, res) => {
-      res.json({
-        title: 'StatSor API Documentation',
-        version: '1.0.0',
-        description: 'Football Management Platform API',
-        baseUrl: `/api/v1`,
-        endpoints: {
-          authentication: {
-            'POST /auth/register': 'User registration',
-            'POST /auth/login': 'User login',
-            'POST /auth/refresh': 'Refresh JWT token',
-            'POST /auth/logout': 'User logout',
-            'POST /auth/forgot-password': 'Password reset request',
-            'POST /auth/reset-password': 'Password reset confirmation',
-            'GET /auth/google': 'Google OAuth login',
-            'GET /auth/google/callback': 'Google OAuth callback'
-          },
-          teams: {
-            'GET /teams': 'List teams with filtering and pagination',
-            'POST /teams': 'Create new team',
-            'GET /teams/:id': 'Get team details with players',
-            'PUT /teams/:id': 'Update team information',
-            'DELETE /teams/:id': 'Delete team (if no active players)',
-            'GET /teams/:id/statistics': 'Get team performance statistics'
-          },
-          players: {
-            'GET /players': 'List players with advanced filtering',
-            'POST /players': 'Create player',
-            'GET /players/:id': 'Get player details',
-            'PUT /players/:id': 'Update player',
-            'DELETE /players/:id': 'Delete player',
-            'POST /players/search': 'Advanced player search with facets',
-            'POST /players/batch': 'Batch create players',
-            'PUT /players/batch': 'Batch update players',
-            'POST /players/compare': 'Compare multiple players',
-            'POST /players/:id/upload': 'Upload player files',
-            'GET /players/:id/statistics': 'Get player performance statistics',
-            'GET /players/:id/matches': 'Get player match history'
-          },
-          matches: {
-            'GET /matches': 'List matches',
-            'POST /matches': 'Create match',
-            'GET /matches/:id': 'Get match details',
-            'PUT /matches/:id': 'Update match',
-            'POST /matches/:id/events': 'Add match event'
-          },
-          analytics: {
-            'GET /analytics/overview': 'Dashboard analytics',
-            'GET /analytics/players/:id': 'Player performance',
-            'GET /analytics/teams/:id': 'Team statistics',
-            'GET /analytics/dashboard': 'Comprehensive dashboard analytics',
-            'GET /analytics/real-time/:teamId': 'Real-time analytics stream (SSE)',
-            'POST /analytics/custom-report': 'Generate custom analytics report',
-            'GET /analytics/reports': 'Get user custom reports',
-            'GET /analytics/reports/:reportId': 'Get specific report data',
-            'DELETE /analytics/reports/:reportId': 'Delete custom report',
-            'GET /analytics/performance-trends': 'Get performance trends analysis',
-            'GET /analytics/heatmaps/:matchId': 'Get match heatmap data',
-            'POST /analytics/compare-players': 'Compare multiple players performance',
-            'GET /analytics/predictive/:type': 'Get predictive analytics'
-          },
-          training: {
-            'GET /training': 'List training sessions',
-            'POST /training': 'Create training session',
-            'PUT /training/:id': 'Update training session'
-          },
-          chat: {
-            'GET /chat/channels': 'List chat channels',
-            'POST /chat/channels': 'Create chat channel',
-            'GET /chat/messages/:channelId': 'Get messages',
-            'POST /chat/messages': 'Send message'
-          },
-          subscriptions: {
-            'GET /subscriptions/plans': 'List subscription plans',
-            'POST /subscriptions': 'Create subscription',
-            'PUT /subscriptions/:id': 'Update subscription'
-          },
-          reports: {
-            'POST /reports/match': 'Send match report for specific match',
-            'POST /reports/bulk': 'Send match reports for multiple matches',
-            'GET /reports/stats': 'Get match report statistics',
-            'GET /reports/test-email': 'Test email service configuration'
-          }
+      // Database health check
+      this.app.get('/health/db', async (req, res) => {
+        try {
+          const { supabase } = require('./config/database');
+          const { data, error } = await supabase
+            .from('users')
+            .select('count')
+            .limit(1);
+
+          if (error) throw error;
+
+          res.json({ status: 'OK', database: 'connected' });
+        } catch (error) {
+          logger.error('Database health check failed:', error);
+          res.status(503).json({ status: 'ERROR', database: 'disconnected', error: error.message });
         }
       });
-    });
 
-    // Catch-all route for undefined endpoints
-    this.app.use('*', (req, res) => {
-      res.status(404).json({
-        error: 'Endpoint not found',
-        message: `The requested endpoint ${req.method} ${req.originalUrl} was not found.`,
-        availableEndpoints: '/api/docs'
+      // Redis health check
+      this.app.get('/health/redis', async (req, res) => {
+        try {
+          const RedisService = require('./services/redis');
+          await RedisService.ping();
+          res.json({ status: 'OK', redis: 'connected' });
+        } catch (error) {
+          logger.error('Redis health check failed:', error);
+          res.status(503).json({ status: 'ERROR', redis: 'disconnected', error: error.message });
+        }
       });
-    });
+
+      // API routes
+      const apiRouter = express.Router();
+
+      // Health check endpoint for Railway
+      apiRouter.get('/health', (req, res) => {
+        res.json({
+          status: 'OK',
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: config.NODE_ENV,
+          version: process.env.npm_package_version || '1.0.0'
+        });
+      });
+
+      // Mount route modules
+      apiRouter.use('/auth', authRoutes);
+      apiRouter.use('/teams', teamsRoutes);
+      apiRouter.use('/players', playersRoutes);
+      apiRouter.use('/players-enhanced', require('./routes/playersEnhanced')); // Enhanced player routes
+      apiRouter.use('/matches', matchesRoutes);
+      apiRouter.use('/analytics', analyticsRoutes);
+      apiRouter.use('/analytics-enhanced', require('./routes/analyticsEnhanced')); // Enhanced analytics routes
+      apiRouter.use('/training', trainingRoutes);
+      apiRouter.use('/chat', chatRoutes);
+      apiRouter.use('/subscriptions', subscriptionsRoutes);
+      apiRouter.use('/reports', reportsRoutes);
+      apiRouter.use('/aichat', aiChatRoutes);
+      apiRouter.use('/ai-assistant', aiAssistantRoutes);
+      apiRouter.use('/email', emailRoutes);
+      apiRouter.use('/notifications', notificationsRoutes);
+
+      // Mount API router
+      this.app.use('/api/v1', apiRouter);
+
+      // API documentation route
+      this.app.get('/api/docs', (req, res) => {
+        res.json({
+          title: 'StatSor API Documentation',
+          version: '1.0.0',
+          description: 'Football Management Platform API',
+          baseUrl: `/api/v1`,
+          endpoints: {
+            authentication: {
+              'POST /auth/register': 'User registration',
+              'POST /auth/login': 'User login',
+              'POST /auth/refresh': 'Refresh JWT token',
+              'POST /auth/logout': 'User logout',
+              'POST /auth/forgot-password': 'Password reset request',
+              'POST /auth/reset-password': 'Password reset confirmation',
+              'GET /auth/google': 'Google OAuth login',
+              'GET /auth/google/callback': 'Google OAuth callback'
+            },
+            teams: {
+              'GET /teams': 'List teams with filtering and pagination',
+              'POST /teams': 'Create new team',
+              'GET /teams/:id': 'Get team details with players',
+              'PUT /teams/:id': 'Update team information',
+              'DELETE /teams/:id': 'Delete team (if no active players)',
+              'GET /teams/:id/statistics': 'Get team performance statistics'
+            },
+            players: {
+              'GET /players': 'List players with advanced filtering',
+              'POST /players': 'Create player',
+              'GET /players/:id': 'Get player details',
+              'PUT /players/:id': 'Update player',
+              'DELETE /players/:id': 'Delete player',
+              'POST /players/search': 'Advanced player search with facets',
+              'POST /players/batch': 'Batch create players',
+              'PUT /players/batch': 'Batch update players',
+              'POST /players/compare': 'Compare multiple players',
+              'POST /players/:id/upload': 'Upload player files',
+              'GET /players/:id/statistics': 'Get player performance statistics',
+              'GET /players/:id/matches': 'Get player match history'
+            },
+            matches: {
+              'GET /matches': 'List matches',
+              'POST /matches': 'Create match',
+              'GET /matches/:id': 'Get match details',
+              'PUT /matches/:id': 'Update match',
+              'POST /matches/:id/events': 'Add match event'
+            },
+            analytics: {
+              'GET /analytics/overview': 'Dashboard analytics',
+              'GET /analytics/players/:id': 'Player performance',
+              'GET /analytics/teams/:id': 'Team statistics',
+              'GET /analytics/dashboard': 'Comprehensive dashboard analytics',
+              'GET /analytics/real-time/:teamId': 'Real-time analytics stream (SSE)',
+              'POST /analytics/custom-report': 'Generate custom analytics report',
+              'GET /analytics/reports': 'Get user custom reports',
+              'GET /analytics/reports/:reportId': 'Get specific report data',
+              'DELETE /analytics/reports/:reportId': 'Delete custom report',
+              'GET /analytics/performance-trends': 'Get performance trends analysis',
+              'GET /analytics/heatmaps/:matchId': 'Get match heatmap data',
+              'POST /analytics/compare-players': 'Compare multiple players performance',
+              'GET /analytics/predictive/:type': 'Get predictive analytics'
+            },
+            training: {
+              'GET /training': 'List training sessions',
+              'POST /training': 'Create training session',
+              'PUT /training/:id': 'Update training session'
+            },
+            chat: {
+              'GET /chat/channels': 'List chat channels',
+              'POST /chat/channels': 'Create chat channel',
+              'GET /chat/messages/:channelId': 'Get messages',
+              'POST /chat/messages': 'Send message'
+            },
+            subscriptions: {
+              'GET /subscriptions/plans': 'List subscription plans',
+              'POST /subscriptions': 'Create subscription',
+              'PUT /subscriptions/:id': 'Update subscription'
+            },
+            reports: {
+              'POST /reports/match': 'Send match report for specific match',
+              'POST /reports/bulk': 'Send match reports for multiple matches',
+              'GET /reports/stats': 'Get match report statistics',
+              'GET /reports/test-email': 'Test email service configuration'
+            },
+            email: {
+              'GET /email/status': 'Check email service configuration status',
+              'GET /email/test': 'Send test email (query param: email)',
+              'POST /email/welcome': 'Send welcome email to user',
+              'POST /email/send': 'Send custom email'
+            }
+          }
+        });
+      });
+
+      // Catch-all route for undefined endpoints
+      this.app.use('*', (req, res) => {
+        res.status(404).json({
+          error: 'Endpoint not found',
+          message: `The requested endpoint ${req.method} ${req.originalUrl} was not found.`,
+          availableEndpoints: '/api/docs'
+        });
+      });
     } catch (error) {
       logger.error('Error setting up routes:', error.message);
       logger.error('Stack trace:', error.stack);
@@ -419,7 +422,7 @@ class Server {
       // Graceful shutdown signals
       process.on('SIGTERM', () => this.gracefulShutdown('SIGTERM'));
       process.on('SIGINT', () => this.gracefulShutdown('SIGINT'));
-      
+
       logger.info('Error handling setup completed successfully');
     } catch (error) {
       logger.error('Error setting up error handling:', error.message);
@@ -433,22 +436,22 @@ class Server {
     try {
       console.log('[DEBUG] Starting Socket.io initialization...');
       console.log('[DEBUG] Creating SocketIOServer instance...');
-      
+
       this.io = new SocketIOServer(this.server, {
         cors: {
           origin: config.CORS_ORIGIN === '*' ? true : (config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : ['http://localhost:3006']),
           credentials: true
         }
       });
-      
+
       console.log('[DEBUG] SocketIOServer created successfully');
       console.log('[DEBUG] Using SocketService instance...');
-      
+
       this.socketService = SocketService;
-      
+
       console.log('[DEBUG] SocketService instance obtained, initializing...');
       this.socketService.initialize(this.io);
-      
+
       console.log('[DEBUG] Socket.io initialization completed');
       logger.info('Socket.io initialized successfully');
     } catch (error) {
@@ -466,7 +469,7 @@ class Server {
   setupSocketIO() {
     this.io.on('connection', (socket) => {
       logger.info(`Client connected: ${socket.id}`);
-      
+
       socket.on('disconnect', () => {
         logger.info(`Client disconnected: ${socket.id}`);
       });
@@ -475,11 +478,11 @@ class Server {
 
   async gracefulShutdown(signal) {
     logger.info(`Received ${signal}. Starting graceful shutdown...`);
-    
+
     // Stop accepting new connections
     this.server.close(async () => {
       logger.info('HTTP server closed');
-      
+
       try {
         // Close Socket.io connections
         if (this.socketService) {
@@ -515,13 +518,13 @@ class Server {
   async start() {
     try {
       await this.initialize();
-      
+
       this.server.listen(this.port, () => {
         logger.info(`🚀 Server running on port ${this.port}`);
         logger.info(`📚 API Documentation: http://localhost:${this.port}/api/docs`);
         logger.info(`🏥 Health Check: http://localhost:${this.port}/health`);
         logger.info(`🌍 Environment: ${config.NODE_ENV}`);
-        
+
         if (config.NODE_ENV === 'development') {
           logger.info(`🔧 Development mode - Hot reload enabled`);
         }

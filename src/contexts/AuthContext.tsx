@@ -1,109 +1,102 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
-import { authAPI } from '../lib/api'
-import { supabase } from '../lib/supabase'
-import { csrfToken, rateLimiter, secureStorage } from '../utils/security'
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { authAPI } from '../lib/api';
+import { supabase } from '../lib/supabase';
+import { csrfToken, rateLimiter, secureStorage } from '../utils/security';
+import { userInitializationService } from '../services/userInitializationService';
+import { sessionManager } from '../utils/sessionManager';
+import { emailService } from '../services/emailService';
 
-// PKCE utility functions for enhanced OAuth security
-const generateCodeVerifier = (): string => {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return btoa(String.fromCharCode(...array))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-};
-
-const generateCodeChallenge = async (codeVerifier: string): Promise<string> => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(codeVerifier);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-};
-
-const generateRandomState = (): string => {
-  const array = new Uint8Array(16);
-  crypto.getRandomValues(array);
-  return btoa(String.fromCharCode(...array))
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-};
-
-// Security rate limiters
-const authRateLimiter = rateLimiter.create(5, 60000); // 5 attempts per minute
+// Security rate limiter for password reset
 const passwordResetLimiter = rateLimiter.create(3, 300000); // 3 attempts per 5 minutes
 
 interface UserProfile {
-  id: string
-  email: string
-  name: string
-  picture?: string | undefined
-  avatar?: string | undefined
-  given_name?: string | undefined
-  family_name?: string | undefined
-  locale?: string | undefined
-  verified_email?: boolean | undefined
-  created_at?: string | undefined
-  location?: string | undefined
-  provider: 'google' | 'email'
-  sport?: 'soccer' | 'futsal' | undefined
-  sportSelected?: boolean | undefined
-  display_name?: string | undefined
-  phone?: string | undefined
-  bio?: string | undefined
+  id: string;
+  email: string;
+  name: string;
+  picture?: string | undefined;
+  avatar?: string | undefined;
+  given_name?: string | undefined;
+  family_name?: string | undefined;
+  locale?: string | undefined;
+  verified_email?: boolean | undefined;
+  created_at?: string | undefined;
+  location?: string | undefined;
+  provider: 'google' | 'email';
+  sport?: 'soccer' | 'futsal' | undefined;
+  sportSelected?: boolean | undefined;
+  display_name?: string | undefined;
+  phone?: string | undefined;
+  bio?: string | undefined;
+  userNumber?: number | undefined;
+}
+
+interface AuthResponse<T = unknown> {
+  data: T;
+  error: string | null;
 }
 
 interface AuthContextType {
-  user: UserProfile | null
-  loading: boolean
-  isNewUser: boolean
-  hasCompletedOnboarding: boolean
-  isInitialized: boolean
-  setUser: (user: UserProfile | null) => void
-  signUp: (email: string, password: string, additionalData?: any) => Promise<any>
-  signIn: (email: string, password: string) => Promise<any>
-  signInWithGoogle: () => Promise<any>
-  handleGoogleCallback: (token: string) => Promise<any>
-  signOut: () => Promise<any>
-  logout: () => Promise<any>
-  updateSportPreference: (sport: 'soccer' | 'futsal') => Promise<any>
-  completeOnboarding: () => void
-  skipOnboarding: () => void
-  login: (email: string, password: string) => Promise<any>
-  register: (email: string, password: string, additionalData?: any) => Promise<any>
-  resetPassword?: (email: string) => Promise<any>
-  verifyResetCode?: (email: string, code: string) => Promise<any>
-  resetPasswordWithCode?: (email: string, code: string, newPassword: string) => Promise<any>
-  updateProfile?: (data: Partial<UserProfile>) => Promise<any>
-  updateUser?: (data: Partial<UserProfile>) => Promise<any>
+  user: UserProfile | null;
+  loading: boolean;
+  isNewUser: boolean;
+  hasCompletedOnboarding: boolean;
+  isInitialized: boolean;
+  setUser: (user: UserProfile | null) => void;
+  signUp: (
+    email: string,
+    password: string,
+    additionalData?: Record<string, unknown>
+  ) => Promise<AuthResponse>;
+  signIn: (email: string, password: string) => Promise<AuthResponse>;
+  signInWithGoogle: () => Promise<{ data: unknown; error: string | null }>;
+  handleGoogleCallback: (code: string, state?: string) => Promise<AuthResponse>;
+  signOut: () => Promise<{ error: string | null }>;
+  logout: () => Promise<void>;
+  updateSportPreference: (sport: 'soccer' | 'futsal') => Promise<AuthResponse>;
+  completeOnboarding: () => void;
+  skipOnboarding: () => void;
+  login: (email: string, password: string) => Promise<AuthResponse>;
+  register: (
+    email: string,
+    password: string,
+    additionalData?: Record<string, unknown>
+  ) => Promise<AuthResponse>;
+  resetPassword?: (email: string) => Promise<AuthResponse>;
+  verifyResetCode?: (email: string, code: string) => Promise<{ data: { valid: boolean; message?: string }; error: string | null }>;
+  resetPasswordWithCode?: (
+    email: string,
+    code: string,
+    newPassword: string
+  ) => Promise<AuthResponse>;
+  updateProfile?: (data: Partial<UserProfile>) => Promise<{ data: UserProfile | null; error: string | null }>;
+  updateUser?: (data: Partial<UserProfile>) => Promise<{ data: UserProfile | null; error: string | null }>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const useAuth = () => {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
-}
+  return context;
+};
 
 export { useAuth };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [isNewUser, setIsNewUser] = useState(false)
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false)
-  const [isSigningIn, setIsSigningIn] = useState(false)
-  const [isInitialized, setIsInitialized] = useState(false)
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // Session validation and token refresh
   const validateSession = async (): Promise<boolean> => {
@@ -113,6 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Validate token with backend
       const response = await authAPI.validateToken({ token });
+
       return response.data.valid;
     } catch (error) {
       console.error('Session validation failed:', error);
@@ -141,71 +135,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Check if mock auth is enabled
-        const enableMockAuth = import.meta.env['VITE_ENABLE_MOCK_AUTH'] === 'true';
-        
-        // If mock auth is disabled, clear any demo authentication data
-        if (!enableMockAuth) {
-          // Check if current user is a demo user
-          const userProfile = localStorage.getItem('statsor_user');
-          if (userProfile) {
-            const parsedUser = JSON.parse(userProfile);
-            if (parsedUser.provider === 'demo') {
-              // Clear demo authentication data
-              localStorage.removeItem('auth_token');
-              localStorage.removeItem('statsor_user');
-              localStorage.removeItem('statsor_onboarding_completed');
-              localStorage.removeItem('user_type');
-              localStorage.removeItem('demo_account_data');
-              sessionStorage.clear();
-              csrfToken.clear();
+        console.log('[AuthContext] Initializing authentication...');
+
+        // Always clean up demo data on init
+        userInitializationService.cleanupDemoData();
+
+        // Try to restore session from Supabase first
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (session && !error) {
+          console.log('[AuthContext] Active Supabase session found');
+
+          // Get user profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('auth_user_id', session.user.id)
+            .maybeSingle();
+
+          if (profile) {
+            // Ensure user has complete data space
+            await userInitializationService.ensureDataSpace(session.user.id);
+
+            const sportValue = profile['sport'];
+            const userName = profile['first_name'] && profile['last_name']
+              ? `${profile['first_name']} ${profile['last_name']}`.trim()
+              : session.user.email!.split('@')[0];
+            const userProfile: UserProfile = {
+              id: session.user.id,
+              email: session.user.email!,
+              name: userName || 'User',
+              provider: 'email' as const,
+              sportSelected: profile['sport_selected'] || false
+            };
+            if (sportValue === 'soccer' || sportValue === 'futsal') {
+              userProfile.sport = sportValue;
+            }
+
+            setUser(userProfile);
+            setHasCompletedOnboarding(profile.sport_selected || false);
+            setIsNewUser(false);
+
+            // Save session
+            const sessionData = {
+              token: session.access_token,
+              refreshToken: session.refresh_token ?? undefined,
+              expiresAt: new Date(session.expires_at ?? Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
+              userId: session.user.id,
+              profileId: profile.id
+            };
+            sessionManager.saveSession(sessionData);
+            secureStorage.setItem('statsor_user', JSON.stringify(userProfile));
+
+            console.log('[AuthContext] Session restored successfully');
+          } else {
+            console.warn('[AuthContext] Session found but no profile - creating profile');
+            // Initialize data space for user without profile
+            const dataSpace = await userInitializationService.initializeUserDataSpace(
+              session.user.id,
+              session.user.email!,
+              session.user.user_metadata?.['first_name'] || session.user.email!.split('@')[0],
+              session.user.user_metadata?.['last_name'] || '',
+              'soccer'
+            );
+
+            if (dataSpace && !('error' in dataSpace)) {
+              const userProfile: UserProfile = {
+                id: session.user.id,
+                email: session.user.email!,
+                name: session.user.user_metadata?.['name'] || session.user.email!.split('@')[0],
+                provider: 'email' as const,
+                sportSelected: false
+              };
+              setUser(userProfile);
+              setIsNewUser(true);
+              secureStorage.setItem('statsor_user', JSON.stringify(userProfile));
+            } else {
+              console.error('[AuthContext] Failed to initialize data space during session restore:', dataSpace);
             }
           }
+        } else {
+          console.log('[AuthContext] No active session found');
         }
-        
-        const token = secureStorage.getItem('auth_token');
-        const userProfile = secureStorage.getItem('statsor_user');
-        const onboardingStatus = localStorage.getItem('statsor_onboarding_completed');
-        
-        // Set initialized immediately to make context available
+
+        // Generate CSRF token
+        const csrf = csrfToken.generate();
+        csrfToken.store(csrf);
+
         setIsInitialized(true);
-        
-        if (token && userProfile) {
-          // Set user immediately from stored data
-          const parsedUser = JSON.parse(userProfile);
-          setUser(parsedUser);
-          setHasCompletedOnboarding(onboardingStatus === 'true');
-          
-          // Generate new CSRF token for the session
-          const csrf = csrfToken.generate();
-          csrfToken.store(csrf);
-          
-          // Validate session in background (non-blocking)
-          validateSession().then(isValidSession => {
-            if (!isValidSession) {
-              // Try to refresh token in background
-              refreshToken().then(refreshed => {
-                if (!refreshed) {
-                  // Force logout if refresh fails
-                  logout();
-                }
-              }).catch(error => {
-                console.error('Token refresh failed:', error);
-                logout();
-              });
-            }
-          }).catch(error => {
-            console.error('Session validation failed:', error);
-          });
-        }
       } catch (error) {
-        console.error('Failed to initialize auth:', error);
+        console.error('[AuthContext] Failed to initialize auth:', error);
         // Clear potentially corrupted data
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('statsor_user');
+        sessionManager.clearSession();
+        secureStorage.removeItem('statsor_user');
         localStorage.removeItem('statsor_onboarding_completed');
-        localStorage.removeItem('user_type');
-        localStorage.removeItem('demo_account_data');
         csrfToken.clear();
         setIsInitialized(true);
       } finally {
@@ -214,172 +237,455 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeAuth();
+
+    // Listen for storage events to sync session across tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'auth_token' || e.key === 'statsor_user') {
+        if (!e.newValue) {
+          // Token removed in another tab - logout
+          setUser(null);
+          setIsInitialized(true);
+        } else if (e.key === 'statsor_user') {
+          // User updated in another tab
+          try {
+            const newUser = JSON.parse(e.newValue);
+            setUser(newUser);
+          } catch (err) {
+            console.error('Failed to parse synced user:', err);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+
+  console.log(user)
 
   // Set up periodic session validation (every 15 minutes) - separate effect
   useEffect(() => {
     if (!user || !isInitialized) return;
-    
-    const sessionCheckInterval = setInterval(async () => {
-      try {
-        const isValid = await validateSession();
-        if (!isValid) {
-          const refreshed = await refreshToken();
-          if (!refreshed) {
-            toast.error('Session expired. Please log in again.');
-            await logout();
+
+    const sessionCheckInterval = setInterval(
+      async () => {
+        try {
+          const isValid = await validateSession();
+          if (!isValid) {
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              toast.error('Session expired. Please log in again.');
+              await logout();
+            }
           }
+        } catch (error) {
+          console.error('Session check failed:', error);
         }
-      } catch (error) {
-        console.error('Session check failed:', error);
-      }
-    }, 15 * 60 * 1000); // 15 minutes
+      },
+      15 * 60 * 1000
+    ); // 15 minutes
 
     return () => clearInterval(sessionCheckInterval);
-  }, [user, isInitialized])
+  }, [user, isInitialized]);
 
-  const signUp = async (email: string, password: string, additionalData?: any) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    additionalData?: Record<string, unknown>
+  ) => {
     if (loading || isSigningIn) {
-      toast.error('Please wait, authentication in progress...')
-      return { data: null, error: 'Authentication in progress' }
+      toast.error('Please wait, authentication in progress...');
+      return { data: null, error: 'Authentication in progress' };
     }
 
-    // Rate limiting check
-    if (!authRateLimiter.isAllowed('signup')) {
-      toast.error('Too many signup attempts. Please wait before trying again.')
-      return { data: null, error: 'Rate limit exceeded' }
-    }
-
-    setIsSigningIn(true)
-    setLoading(true)
+    setIsSigningIn(true);
+    setLoading(true);
     try {
-      console.log('[AuthContext] Initiating email signup for:', email)
-      // Generate and include CSRF token
-      const csrf = csrfToken.generate()
-      csrfToken.store(csrf)
+      console.log('[AuthContext] Initiating email signup for:', email);
 
-      const response = await authAPI.register({
+      // Clear ALL demo and cached data before signup
+      userInitializationService.cleanupDemoData();
+
+      // Parse name into first and last name
+      const nameParts = ((additionalData && 'name' in additionalData ? String(additionalData['name']) : undefined) || email.split('@')[0]).split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      // Use Supabase for signup to ensure proper auth integration
+      const { data: supabaseData, error: supabaseError } = await supabase.auth.signUp({
         email,
         password,
-        name: additionalData?.name || email.split('@')[0],
-        location: additionalData?.location || '',
-        csrfToken: csrf
-      })
-
-      console.log('[AuthContext] Signup API response:', response.data)
-
-      if (response.data.success) {
-        const { user, session } = response.data.data
-        const userProfile = {
-          id: user?.id || 'user_' + Date.now(),
-          email: user?.email || email,
-          name: additionalData?.name || user?.user_metadata?.name || email.split('@')[0],
-          provider: 'email' as const,
-          sportSelected: false,
-          created_at: new Date().toISOString(),
-          location: additionalData?.location || ''
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            name: (additionalData && 'name' in additionalData ? String(additionalData['name']) : undefined) || email.split('@')[0],
+            location: (additionalData && 'location' in additionalData ? String(additionalData['location']) : '')
+          }
         }
-        setUser(userProfile)
-        setIsNewUser(true)
-        setHasCompletedOnboarding(false)
+      });
 
-        // Secure token storage
-        secureStorage.setItem('auth_token', session?.access_token || 'token_' + Date.now())
-        secureStorage.setItem('statsor_user', JSON.stringify(userProfile))
-        localStorage.removeItem('statsor_onboarding_completed')
-        console.log('[AuthContext] Signup successful, user profile created')
-        return { data: { user: userProfile }, error: null }
+      if (supabaseError) {
+        console.error('[AuthContext] Supabase signup error:', supabaseError);
+        toast.error(supabaseError.message);
+        return { data: null, error: supabaseError.message };
       }
-      console.error('[AuthContext] Signup failed:', response.data.error || response.data.message)
-      return { data: null, error: response.data.error || response.data.message || 'Registration failed' }
-    } catch (error: any) {
-      console.error('[AuthContext] Unexpected signup error:', error)
-      return { data: null, error: error.message || 'Network error during registration. Please check your connection.' }
+
+      if (supabaseData?.user) {
+        console.log('[AuthContext] Supabase user created:', supabaseData.user.id);
+
+        // Initialize user data space (profile, team, subscription)
+        const dataSpace = await userInitializationService.initializeUserDataSpace(
+          supabaseData.user.id,
+          email,
+          firstName,
+          lastName,
+          'soccer'
+        );
+
+        if (!dataSpace || 'error' in dataSpace) {
+          const errorMsg = dataSpace && 'error' in dataSpace ? dataSpace.error : 'Data space initialization failed';
+          console.error('[AuthContext] Failed to initialize user data space:', errorMsg);
+          toast.error(`Account created but initialization failed: ${errorMsg}`);
+          return { data: null, error: errorMsg };
+        }
+
+        console.log('[AuthContext] User data space initialized:', dataSpace);
+
+        // Send welcome email using the centralized email service
+        try {
+          await emailService.sendWelcomeEmail({
+            name: firstName || email.split('@')[0],
+            email: email
+          });
+          console.log('[AuthContext] Welcome email sent successfully');
+        } catch (emailErr) {
+          console.warn('[AuthContext] Welcome email send failed:', emailErr);
+          // Don't fail signup if email fails
+        }
+
+        const userProfile: UserProfile = {
+          id: supabaseData.user.id,
+          email: email,
+          name: (additionalData && 'name' in additionalData ? String(additionalData['name']) : undefined) || firstName,
+          provider: 'email' as const,
+          sportSelected: false
+        };
+
+        setUser(userProfile);
+        setIsNewUser(true);
+
+        // Save session with profile ID
+        if (supabaseData.session) {
+          const sessionData = {
+            token: supabaseData.session.access_token,
+            refreshToken: supabaseData.session.refresh_token ?? undefined,
+            expiresAt: new Date(supabaseData.session.expires_at ?? Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
+            userId: supabaseData.user.id,
+            profileId: dataSpace.profileId
+          };
+          sessionManager.saveSession(sessionData);
+          secureStorage.setItem('statsor_user', JSON.stringify(userProfile));
+        }
+
+        toast.success('Account created successfully! Welcome to Statsor.');
+        console.log('[AuthContext] Signup successful - Real user account created');
+        return { data: { user: userProfile }, error: null };
+      }
+
+      // Fallback: Try backend API if Supabase fails
+      try {
+        const response = await authAPI.register({
+          email,
+          password,
+          firstName,
+          lastName,
+          role: 'manager',
+          position: 'midfielder',
+          name: (additionalData && 'name' in additionalData ? String(additionalData['name']) : undefined) || email.split('@')[0],
+          location: (additionalData?.['location'] as string) || ''
+        });
+
+        if (response.data.success && response.data.data) {
+          const { user: apiUser, session } = response.data.data;
+
+          // Also create Supabase profile for compatibility
+          try {
+            const { data: supabaseData, error: supabaseError } = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  name: (additionalData && 'name' in additionalData ? String(additionalData['name']) : undefined) || email.split('@')[0],
+                  location: (additionalData?.['location'] as string) || ''
+                }
+              }
+            });
+
+            if (supabaseError && !supabaseError.message.includes('already registered')) {
+              console.warn('[AuthContext] Supabase signup warning:', supabaseError);
+            }
+
+            if (supabaseData?.user) {
+              // Create profile in Supabase database
+              const { data: profile } = await supabase
+                .from('profiles')
+                .insert({
+                  auth_user_id: supabaseData.user.id,
+                  email: supabaseData.user.email,
+                  first_name: firstName,
+                  last_name: lastName,
+                  sport_selected: false,
+                  status: 'active'
+                })
+                .select()
+                .single();
+
+              if (profile) {
+                await supabase
+                  .from('subscriptions')
+                  .insert({
+                    user_id: profile.id,
+                    plan: 'free',
+                    status: 'active',
+                    current_period_start: new Date().toISOString(),
+                    current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                    cancel_at_period_end: false
+                  });
+              }
+            }
+          } catch (supabaseErr) {
+            console.warn('[AuthContext] Supabase profile creation skipped:', supabaseErr);
+          }
+
+          let supabaseUserId = null;
+          try {
+            const { data: supabaseData } = await supabase.auth.getUser();
+            supabaseUserId = supabaseData?.user?.id;
+          } catch (e) {
+            // Ignore
+          }
+
+          const userProfile = {
+            id: apiUser?.id || supabaseUserId || 'user_' + Date.now(),
+            email: apiUser?.email || email,
+            name: (additionalData && 'name' in additionalData ? String(additionalData['name']) : undefined) || apiUser?.first_name || email.split('@')[0],
+            provider: 'email' as const,
+            sportSelected: false
+          };
+
+          setUser(userProfile);
+          setIsNewUser(true);
+
+          // Mark as real user (not demo) - CRITICAL
+          localStorage.setItem('user_type', 'real');
+
+          if (session?.access_token) {
+            secureStorage.setItem('auth_token', session.access_token);
+            secureStorage.setItem('statsor_user', JSON.stringify(userProfile));
+          }
+
+          toast.success('Account created successfully! Welcome email sent.');
+          console.log('[AuthContext] Signup successful - Real user account created with backend API');
+          return { data: { user: userProfile }, error: null };
+        } else {
+          const errorMsg = response.data.error || response.data.message || 'Registration failed';
+          toast.error(errorMsg);
+          return { data: null, error: errorMsg };
+        }
+      } catch (apiError: unknown) {
+        console.error('[AuthContext] Backend API signup error:', apiError);
+        // Fallback to Supabase if backend fails
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: (additionalData && 'name' in additionalData ? String(additionalData['name']) : undefined) || email.split('@')[0],
+              location: (additionalData?.['location'] as string) || ''
+            }
+          }
+        });
+
+        if (error) {
+          toast.error(error.message);
+          return { data: null, error: error.message };
+        }
+
+        if (data.user) {
+          // Try to send welcome email via centralized service
+          try {
+            await emailService.sendWelcomeEmail({
+              name: firstName || data.user.email?.split('@')[0] || 'User',
+              email: data.user.email!
+            });
+            console.log('[AuthContext] Welcome email sent successfully');
+          } catch (emailErr) {
+            console.warn('[AuthContext] Welcome email send failed:', emailErr);
+          }
+
+          const userProfile = {
+            id: data.user.id,
+            email: data.user.email || email,
+            name: (additionalData && 'name' in additionalData ? String(additionalData['name']) : undefined) || email.split('@')[0],
+            provider: 'email' as const,
+            sportSelected: false
+          };
+
+          setUser(userProfile);
+          setIsNewUser(true);
+          localStorage.setItem('user_type', 'real');
+
+          if (data.session) {
+            secureStorage.setItem('auth_token', data.session.access_token);
+            secureStorage.setItem('statsor_user', JSON.stringify(userProfile));
+          }
+
+          toast.success('Account created successfully!');
+          return { data: { user: userProfile }, error: null };
+        }
+
+        return { data: null, error: (apiError instanceof Error ? apiError.message : 'Signup failed') };
+      }
+    } catch (error: unknown) {
+      console.error('[AuthContext] Unexpected signup error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Signup failed';
+      toast.error(errorMessage);
+      return { data: null, error: errorMessage };
     } finally {
-      setLoading(false)
-      setIsSigningIn(false)
+      setLoading(false);
+      setIsSigningIn(false);
     }
-  }
+  };
 
   const signIn = async (email: string, password: string) => {
     if (loading || isSigningIn) {
-      toast.error('Please wait, authentication in progress...')
-      return { data: null, error: 'Authentication in progress' }
+      toast.error('Please wait, authentication in progress...');
+      return { data: null, error: 'Authentication in progress' };
     }
 
-    // Rate limiting check
-    if (!authRateLimiter.isAllowed('signin')) {
-      toast.error('Too many login attempts. Please wait before trying again.')
-      return { data: null, error: 'Rate limit exceeded' }
-    }
-
-    setIsSigningIn(true)
-    setLoading(true)
+    setIsSigningIn(true);
+    setLoading(true);
     try {
-      console.log('[AuthContext] Initiating email signin for:', email)
-      // Generate and include CSRF token
-      const csrf = csrfToken.generate()
-      csrfToken.store(csrf)
+      console.log('[AuthContext] Initiating email signin for:', email);
 
-      const response = await authAPI.login({
+      // Clear ALL demo and cached data before signin
+      userInitializationService.cleanupDemoData();
+
+      // Use Supabase for signin
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
-        csrfToken: csrf
-      })
+        password
+      });
 
-      console.log('[AuthContext] Signin API response:', response.data)
-
-      if (response.data.success) {
-        const { user, session } = response.data.data
-        const userProfile = {
-          id: user?.id || 'user_' + Date.now(),
-          email: user?.email || email,
-          name: user?.name || user?.user_metadata?.name || email.split('@')[0],
-          provider: 'email' as const,
-          sportSelected: user?.sportSelected || false,
-          created_at: user?.created_at || new Date().toISOString(),
-          location: user?.location || ''
-        }
-        setUser(userProfile)
-        setIsNewUser(false)
-        const onboardingStatus = localStorage.getItem('statsor_onboarding_completed')
-        setHasCompletedOnboarding(onboardingStatus === 'true')
-
-        // Secure token storage
-        secureStorage.setItem('auth_token', session?.access_token || 'token_' + Date.now())
-        secureStorage.setItem('statsor_user', JSON.stringify(userProfile))
-        console.log('[AuthContext] Signin successful, user profile loaded')
-        return { data: { user: userProfile }, error: null }
+      if (error) {
+        console.error('[AuthContext] Signin error:', error);
+        toast.error(error.message);
+        return { data: null, error: error.message };
       }
-      console.error('[AuthContext] Signin failed:', response.data.error || response.data.message)
-      return { data: null, error: response.data.error || response.data.message || 'Login failed' }
-    } catch (error: any) {
-      console.error('[AuthContext] Unexpected signin error:', error)
-      return { data: null, error: 'Network error during login. Please check your connection.' }
+
+      if (data.user && data.session) {
+        console.log('[AuthContext] User authenticated:', data.user.id);
+
+        // Ensure user has complete data space
+        await userInitializationService.ensureDataSpace(data.user.id);
+
+        // Get profile from database
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('auth_user_id', data.user.id)
+          .single();
+
+        if (!profile) {
+          console.error('[AuthContext] No profile found for user');
+          toast.error('Account profile not found. Please contact support.');
+          return { data: null, error: 'Profile not found' };
+        }
+
+        const sportValue = profile?.['sport'];
+        const userName = profile?.['first_name'] && profile?.['last_name']
+          ? `${profile['first_name']} ${profile['last_name']}`.trim()
+          : data.user.email!.split('@')[0];
+        const userProfile: UserProfile = {
+          id: data.user.id,
+          email: data.user.email!,
+          name: userName || 'User',
+          provider: 'email' as const,
+          sportSelected: profile?.['sport_selected'] || false
+        };
+        if (sportValue === 'soccer' || sportValue === 'futsal') {
+          userProfile.sport = sportValue;
+        }
+
+        setUser(userProfile);
+        setIsNewUser(false);
+        setHasCompletedOnboarding(profile?.sport_selected || false);
+
+        // Save session with profile ID
+        const sessionData = {
+          token: data.session.access_token,
+          refreshToken: data.session.refresh_token ?? undefined,
+          expiresAt: new Date(data.session.expires_at ?? Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(),
+          userId: data.user.id,
+          profileId: profile.id
+        };
+        sessionManager.saveSession(sessionData);
+        secureStorage.setItem('statsor_user', JSON.stringify(userProfile));
+
+        toast.success('Welcome back!');
+        console.log('[AuthContext] Signin successful - Real user account');
+        return { data: { user: userProfile }, error: null };
+      }
+
+      return { data: null, error: 'Signin failed' };
+    } catch (error: unknown) {
+      console.error('[AuthContext] Unexpected signin error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Signin failed';
+      toast.error(errorMessage);
+      return { data: null, error: errorMessage };
     } finally {
-      setLoading(false)
-      setIsSigningIn(false)
+      setLoading(false);
+      setIsSigningIn(false);
     }
-  }
+  };
 
   const signInWithGoogle = async () => {
     if (loading || isSigningIn) {
-      toast.error('Please wait, authentication in progress...')
-      return { data: null, error: 'Authentication in progress' }
+      toast.error('Please wait, authentication in progress...');
+      return { data: null, error: 'Authentication in progress' };
     }
 
-    setIsSigningIn(true)
-    setLoading(true)
+    setIsSigningIn(true);
+    setLoading(true);
 
     try {
+      // Determine redirect URL based on environment
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const redirectUrl = isLocalhost
+        ? `${window.location.origin}/auth/google/callback`
+        : import.meta.env['VITE_APP_URL']
+          ? `${import.meta.env['VITE_APP_URL']}/auth/google/callback`
+          : `${window.location.origin}/auth/google/callback`;
+
+      console.log('[Auth] Environment:', {
+        hostname: window.location.hostname,
+        origin: window.location.origin,
+        isLocalhost,
+        VITE_APP_URL: import.meta.env['VITE_APP_URL'],
+        redirectUrl
+      });
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `https://statsor.com/api/v1/auth/google/callback`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
           },
+          skipBrowserRedirect: false,
         },
       });
 
@@ -388,136 +694,142 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       return { data, error: null };
-
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Google auth error:', error);
-      const errorMessage = error?.message || 'Google authentication failed. Please check your internet connection and try again.';
+      const errorMessage =
+        error instanceof Error ? error.message :
+          'Google authentication failed. Please check your internet connection and try again.';
       toast.error(errorMessage);
       return { data: null, error: errorMessage };
     } finally {
-      setIsSigningIn(false)
-      setLoading(false)
+      setIsSigningIn(false);
+      setLoading(false);
     }
-  }
+  };
 
   const handleGoogleCallback = async (code: string, state?: string) => {
     try {
       setLoading(true);
-      
+
       // Validate state parameter to prevent CSRF attacks
       const storedState = sessionStorage.getItem('google_oauth_state');
       if (state && storedState && state !== storedState) {
         throw new Error('Invalid state parameter. Possible CSRF attack.');
       }
-      
+
       // Get code verifier for PKCE
       const codeVerifier = sessionStorage.getItem('google_oauth_code_verifier');
       if (!codeVerifier) {
-        throw new Error('Missing code verifier. Please restart the authentication process.');
+        throw new Error(
+          'Missing code verifier. Please restart the authentication process.'
+        );
       }
-      
+
       // Exchange authorization code for tokens
       const response = await authAPI.verifyGoogleToken(code, codeVerifier);
-      
+
       if (response.data.success && response.data.data) {
         const { user: responseUser, token: authToken } = response.data.data;
-        
+
         // Create full user profile with enhanced capabilities
         const fullUserProfile = {
           ...responseUser,
           subscription: {
             plan: 'free' as const,
             status: 'active' as const,
-            expiresAt: null
+            expiresAt: null,
           },
           permissions: {
             canEdit: true,
             canDelete: true,
             canCreate: true,
             canShare: true,
-            canExport: true
+            canExport: true,
           },
           features: {
             analytics: true,
             teamManagement: true,
             advancedStats: true,
-            customReports: true
-          }
+            customReports: true,
+          },
         };
-        
+
         setUser(fullUserProfile);
         setIsNewUser(!responseUser.sportSelected);
         setHasCompletedOnboarding(responseUser.sportSelected || false);
         localStorage.setItem('auth_token', authToken);
         localStorage.setItem('statsor_user', JSON.stringify(fullUserProfile));
-        
+
         // Clean up OAuth session data
         sessionStorage.removeItem('google_oauth_code_verifier');
         sessionStorage.removeItem('google_oauth_state');
-        
+
         toast.success('Welcome! Google authentication successful.');
-        
+
         // Navigate based on user state
         if (!responseUser.sportSelected) {
           navigate('/select-sport');
         } else {
           navigate('/dashboard');
         }
-        
+
         return { data: { user: fullUserProfile }, error: null };
       } else {
         const error = response.data.message || 'Google authentication failed';
         toast.error(error);
         return { data: null, error };
       }
-      
     } catch (error) {
       console.error('Google callback error:', error);
       // Clean up OAuth session data on error
       sessionStorage.removeItem('google_oauth_code_verifier');
       sessionStorage.removeItem('google_oauth_state');
-      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Authentication failed';
       toast.error(errorMessage);
       return { data: null, error: errorMessage };
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   const signOut = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       // Include CSRF token for secure logout
       const csrf = csrfToken.get();
-      
+
       // Call logout API with CSRF protection
       try {
         await authAPI.logout({ csrfToken: csrf || '' });
         console.log('User logged out successfully');
       } catch (apiError) {
-        console.warn('Logout API call failed, but local session cleared:', apiError);
+        console.warn(
+          'Logout API call failed, but local session cleared:',
+          apiError
+        );
         // Don't throw error here as local logout should still proceed
       }
-      
+
       // Secure cleanup of all stored data
       localStorage.removeItem('auth_token');
       localStorage.removeItem('statsor_user');
       localStorage.removeItem('statsor_sport');
       localStorage.removeItem('statsor_sport_selection_completed');
       localStorage.removeItem('statsor_onboarding_completed');
-      
+
       // Clear CSRF token and session data
       csrfToken.clear();
       sessionStorage.clear();
-      
-      setUser(null)
-      setIsNewUser(false)
-      setHasCompletedOnboarding(false)
-      
+
+      setUser(null);
+      setIsNewUser(false);
+      setHasCompletedOnboarding(false);
+
       toast.success('Logged out successfully');
       navigate('/signin');
-      return { error: null }
-    } catch (error: any) {
+      return { error: null };
+    } catch (error: unknown) {
       console.error('Logout error:', error);
       // Force cleanup even if API call fails
       localStorage.removeItem('auth_token');
@@ -527,76 +839,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       toast.error('Logged out (with errors)');
       navigate('/signin');
-      return { error: error.message };
+      return { error: error instanceof Error ? error.message : 'Logout failed' };
     } finally {
-      setIsSigningIn(false)
-      setLoading(false)
+      setIsSigningIn(false);
+      setLoading(false);
     }
-  }
+  };
 
-  const updateSportPreference = async (sport: 'soccer' | 'futsal') => {
-    try {
-      const response = await authAPI.updateSportPreference(sport)
-      if (response.data.success) {
-        if (user) {
-          const updatedUser: UserProfile = { 
-            ...user, 
-            sport, 
-            sportSelected: true 
-          }
-          setUser(updatedUser)
-          localStorage.setItem('statsor_user', JSON.stringify(updatedUser))
-          return { data: { user: updatedUser }, error: null }
-        }
-      }
-      return { data: null, error: response.data.message }
-    } catch (error: any) {
-      console.error('Update sport preference error:', error);
-      return { data: null, error: error.message }
-    }
-  }
-  
-  const completeOnboarding = () => {
-    setHasCompletedOnboarding(true)
-    setIsNewUser(false)
-    localStorage.setItem('statsor_onboarding_completed', 'true')
-  }
-
-  const skipOnboarding = () => {
-    setHasCompletedOnboarding(true)
-    setIsNewUser(false)
-    localStorage.setItem('statsor_onboarding_completed', 'true')
-  }
-
-  // Enhanced logout function with secure cleanup
   const logout = async () => {
     setLoading(true);
     try {
-      // Include CSRF token for secure logout
-      const csrf = csrfToken.get();
-      await authAPI.logout({ csrfToken: csrf || '' });
-      
-      // Secure cleanup of all stored data
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('statsor_user');
+      console.log('[AuthContext] Logging out user');
+
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+
+      // Try backend API logout
+      try {
+        const csrf = csrfToken.get();
+        await authAPI.logout({ csrfToken: csrf || '' });
+      } catch (apiError) {
+        console.warn('[AuthContext] Backend logout failed:', apiError);
+      }
+
+      // Clear session manager
+      sessionManager.clearSession();
+
+      // Clear all stored data
+      secureStorage.removeItem('statsor_user');
       localStorage.removeItem('statsor_onboarding_completed');
-      
-      // Clear CSRF token and session data
       csrfToken.clear();
       sessionStorage.clear();
-      
+
       // Reset state
       setUser(null);
       setIsNewUser(false);
       setHasCompletedOnboarding(false);
-      
+
       toast.success('Logged out successfully');
       navigate('/signin');
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      // Force cleanup even if API call fails
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('statsor_user');
+    } catch (error: unknown) {
+      console.error('[AuthContext] Logout error:', error);
+      // Force cleanup even if errors occur
+      sessionManager.clearSession();
+      secureStorage.removeItem('statsor_user');
+      localStorage.removeItem('statsor_onboarding_completed');
       csrfToken.clear();
       sessionStorage.clear();
       setUser(null);
@@ -605,6 +892,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateSportPreference = async (sport: 'soccer' | 'futsal') => {
+    try {
+      if (!user) {
+        console.error('[AuthContext] No user logged in');
+        return { data: null, error: 'No user logged in' };
+      }
+
+      // Get and validate session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !sessionData?.session?.user) {
+        console.error('[AuthContext] Session error:', sessionError);
+        return { data: null, error: 'Session expired. Please sign in again.' };
+      }
+
+      const userId = sessionData.session.user.id;
+
+      // Update in Supabase with proper error handling
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          sport: sport,
+          sport_selected: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('auth_user_id', userId);
+
+      if (updateError) {
+        console.error('[AuthContext] Database update error:', updateError);
+        return {
+          data: null,
+          error: `Failed to save sport preference: ${updateError.message}`
+        };
+      }
+
+      // Update local state only after successful database update
+      const updatedUser: UserProfile = {
+        ...user,
+        sport,
+        sportSelected: true,
+      };
+      setUser(updatedUser);
+      secureStorage.setItem('statsor_user', JSON.stringify(updatedUser));
+
+      console.log('[AuthContext] Sport preference updated successfully:', sport);
+      return { data: { user: updatedUser }, error: null };
+
+    } catch (error: unknown) {
+      console.error('[AuthContext] Unexpected error in updateSportPreference:', error);
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'An unexpected error occurred'
+      };
+    }
+  };
+
+  const completeOnboarding = () => {
+    setHasCompletedOnboarding(true);
+    setIsNewUser(false);
+    localStorage.setItem('statsor_onboarding_completed', 'true');
+  };
+
+  const skipOnboarding = () => {
+    setHasCompletedOnboarding(true);
+    setIsNewUser(false);
+    localStorage.setItem('statsor_onboarding_completed', 'true');
   };
 
   // Alias methods for compatibility
@@ -624,58 +979,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
     // Rate limiting check for password reset
     if (!passwordResetLimiter.isAllowed('reset')) {
-      toast.error('Too many password reset attempts. Please wait before trying again.')
-      return { data: null, error: 'Rate limit exceeded' }
+      toast.error(
+        'Too many password reset attempts. Please wait before trying again.'
+      );
+      return { data: null, error: 'Rate limit exceeded' };
     }
 
     setLoading(true);
     try {
-      // Generate and include CSRF token
-      const csrf = csrfToken.generate()
-      csrfToken.store(csrf)
+      console.log('[AuthContext] Sending password reset email to:', email);
 
-      const response = await authAPI.forgotPassword({ 
-        email
+      const redirectUrl = window.location.origin + '/reset-password';
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
       });
-      if (response.data.success) {
-        return { data: { message: 'Reset code sent to your email' }, error: null };
-      }
-      return { data: null, error: response.data.message || 'Failed to send reset code' };
-    } catch (error: any) {
-      console.error('Reset password error:', error);
-      return { data: null, error: error.message || 'Failed to send reset code' };
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const verifyResetCode = async (email: string, code: string) => {
-    setLoading(true);
-    try {
-      const response = await authAPI.verifyResetCode({ email, code });
-      if (response.data.success) {
-        return { data: { valid: true }, error: null };
+      if (error) {
+        console.error('[AuthContext] Password reset error:', error);
+        toast.error(error.message);
+        return {
+          data: null,
+          error: error.message,
+        };
       }
-      return { data: { valid: false }, error: response.data.message || 'Invalid reset code' };
-    } catch (error: any) {
-      console.error('Verify reset code error:', error);
-      return { data: { valid: false }, error: error.message || 'Invalid reset code' };
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const resetPasswordWithCode = async (email: string, code: string, newPassword: string) => {
-    setLoading(true);
-    try {
-      const response = await authAPI.resetPassword({ email, code, password: newPassword });
-      if (response.data.success) {
-        return { data: { message: 'Password reset successful' }, error: null };
-      }
-      return { data: null, error: response.data.message || 'Failed to reset password' };
-    } catch (error: any) {
-      console.error('Reset password with code error:', error);
-      return { data: null, error: error.message || 'Failed to reset password' };
+      console.log('[AuthContext] Password reset email sent successfully');
+      toast.success('Password reset link sent to your email');
+      return {
+        data: { message: 'Reset link sent to your email' },
+        error: null,
+      };
+    } catch (error: unknown) {
+      console.error('[AuthContext] Unexpected password reset error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send reset link';
+      toast.error(errorMessage);
+      return {
+        data: null,
+        error: errorMessage,
+      };
     } finally {
       setLoading(false);
     }
@@ -696,15 +1038,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     register,
     resetPassword,
-    verifyResetCode,
-    resetPasswordWithCode,
     updateProfile,
     updateUser,
     updateSportPreference,
     completeOnboarding,
     skipOnboarding,
     setUser,
-  }
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

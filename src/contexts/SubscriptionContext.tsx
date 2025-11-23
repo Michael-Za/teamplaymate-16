@@ -12,6 +12,7 @@ export interface Plan {
   maxTeams: number;
   maxPlayers: number;
   aiAccess: boolean;
+  aiRequestsPerDay: number; // -1 for unlimited
   priority: boolean;
   popular?: boolean;
   description: string;
@@ -52,7 +53,9 @@ interface SubscriptionContextType {
   canCreateTeam: () => boolean;
   canAddPlayer: (currentCount: number) => boolean;
   canUseAI: () => boolean;
-  getUsageStats: () => { teams: number; players: number; aiUsage: number };
+  getAIRequestsRemaining: () => number;
+  incrementAIUsage: () => boolean;
+  getUsageStats: () => { teams: number; players: number; aiUsage: number; aiRequestsToday: number; aiRequestsRemaining: number };
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -74,18 +77,21 @@ const defaultPlans: Plan[] = [
     interval: 'monthly',
     description: 'Perfect for trying out the platform',
     features: [
-      'Track up to 5 players',
+      '1 team',
+      'Track up to 15 players',
+      '10 AI Assistant requests per day',
       'Basic match tracking',
-      '1 team maximum',
       'Manual data entry',
       'Basic performance statistics',
+      'Football & Futsal support',
       'CSV export',
-      '7 days data retention',
+      '30 days data retention',
       'Community support'
     ],
     maxTeams: 1,
-    maxPlayers: 5,
-    aiAccess: false,
+    maxPlayers: 15,
+    aiAccess: true,
+    aiRequestsPerDay: 10,
     priority: false
   },
   {
@@ -96,22 +102,25 @@ const defaultPlans: Plan[] = [
     interval: 'yearly',
     description: 'For serious coaches and teams',
     features: [
-      'Unlimited players tracking',
-      'Up to 3 teams',
+      '1 team',
+      'Unlimited players',
+      '50 AI Assistant requests per day',
+      'Player profile pictures',
       'AI-powered Tactical Assistant',
       'Advanced match analytics dashboard',
       'Real-time match tracking',
       'Training session planner',
       'Player performance insights',
-      'Multi-sport support (Football, Basketball, Volleyball, etc.)',
+      'Football & Futsal support',
       'Interactive tactical board',
       'PDF & Excel exports',
-      '90 days data retention',
-      'Email support (24h response)'
+      'Unlimited data retention',
+      'Priority email support (24h response)'
     ],
-    maxTeams: 3,
+    maxTeams: 1,
     maxPlayers: -1,
     aiAccess: true,
+    aiRequestsPerDay: 50,
     priority: false,
     popular: true
   },
@@ -124,7 +133,8 @@ const defaultPlans: Plan[] = [
     description: 'Enterprise-grade solutions',
     features: [
       'Everything in Pro',
-      'Unlimited teams and players',
+      'Custom team configurations',
+      'Unlimited AI Assistant requests',
       'Advanced AI coaching insights',
       'Custom tactical analysis',
       'White-label branding options',
@@ -136,9 +146,10 @@ const defaultPlans: Plan[] = [
       'Priority phone & email support',
       'Custom reporting and analytics'
     ],
-    maxTeams: -1,
+    maxTeams: 1,
     maxPlayers: -1,
     aiAccess: true,
+    aiRequestsPerDay: -1,
     priority: true
   }
 ];
@@ -154,36 +165,74 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     loadSubscriptionData();
   }, []);
 
+  const getFreePlan = (): Plan => {
+    const freePlan = plans[0] || defaultPlans[0];
+    if (!freePlan) {
+      throw new Error('No free plan available');
+    }
+    return freePlan;
+  };
+
   const loadSubscriptionData = async () => {
     setLoading(true);
     try {
+      console.log('[Subscription] Loading subscription data');
+      
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (user) {
-        const { data: subscriptionData } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .maybeSingle();
+      if (!user) {
+        console.log('[Subscription] No authenticated user - defaulting to free');
+        setCurrentPlan(getFreePlan());
+        setLoading(false);
+        return;
+      }
 
-        if (subscriptionData) {
-          const sub: Subscription = {
-            id: subscriptionData.id,
-            planId: subscriptionData.plan_id,
-            status: subscriptionData.status,
-            currentPeriodStart: subscriptionData.start_date,
-            currentPeriodEnd: subscriptionData.end_date,
-            cancelAtPeriodEnd: subscriptionData.cancel_at_period_end
-          };
-          setSubscription(sub);
-          const plan = plans.find(p => p.id === subscriptionData.plan_id);
-          setCurrentPlan(plan || plans[0]);
-        } else {
-          setCurrentPlan(plans[0]);
-        }
+      console.log('[Subscription] User authenticated:', user.id);
+
+      // Get user's profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error('[Subscription] Profile error:', profileError);
+        console.log('[Subscription] No profile found - defaulting to free');
+        setCurrentPlan(getFreePlan());
+        setLoading(false);
+        return;
+      }
+
+      console.log('[Subscription] Profile found:', profile.id);
+
+      const { data: subscriptionData, error: subError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (subError) {
+        console.error('[Subscription] Subscription query error:', subError);
+      }
+
+      if (subscriptionData) {
+        const sub: Subscription = {
+          id: subscriptionData.id,
+          planId: subscriptionData.plan,
+          status: subscriptionData.status,
+          currentPeriodStart: subscriptionData.current_period_start,
+          currentPeriodEnd: subscriptionData.current_period_end,
+          cancelAtPeriodEnd: subscriptionData.cancel_at_period_end
+        };
+        setSubscription(sub);
+        const plan = plans.find(p => p.id === subscriptionData.plan) || getFreePlan();
+        setCurrentPlan(plan);
+        console.log(`[Subscription] Loaded plan: ${plan.name} (${subscriptionData.plan})`);
       } else {
-        setCurrentPlan(plans[0]);
+        console.log('[Subscription] No active subscription found - defaulting to free');
+        setCurrentPlan(getFreePlan());
       }
 
       const savedPaymentMethods = localStorage.getItem('statsor_payment_methods');
@@ -191,14 +240,14 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setPaymentMethods(JSON.parse(savedPaymentMethods));
       }
     } catch (error) {
-      console.error('Error loading subscription data:', error);
-      setCurrentPlan(plans[0]);
+      console.error('[Subscription] Unexpected error:', error);
+      setCurrentPlan(getFreePlan());
     } finally {
       setLoading(false);
     }
   };
 
-  const subscribe = async (planId: string, paymentMethodId?: string): Promise<boolean> => {
+  const subscribe = async (planId: string, _paymentMethodId?: string): Promise<boolean> => {
     setLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -216,7 +265,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         currentPeriodStart: new Date().toISOString(),
         currentPeriodEnd: new Date(Date.now() + (plan.interval === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000).toISOString(),
         cancelAtPeriodEnd: false,
-        trialEnd: plan.price === 0 ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined
+        ...(plan.price === 0 && { trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() })
       };
 
       setSubscription(newSubscription);
@@ -263,7 +312,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  const updatePaymentMethod = async (paymentMethodId: string): Promise<boolean> => {
+  const updatePaymentMethod = async (_paymentMethodId: string): Promise<boolean> => {
     setLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -364,11 +413,64 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return hasFeature('ai_access');
   };
 
+  const getAIRequestsRemaining = (): number => {
+    if (!currentPlan) return 0;
+    if (currentPlan.aiRequestsPerDay === -1) return -1; // Unlimited
+
+    const today = new Date().toDateString();
+    const storedDate = localStorage.getItem('statsor_ai_usage_date');
+    const storedCount = parseInt(localStorage.getItem('statsor_ai_usage_today') || '0');
+
+    // Reset count if it's a new day
+    if (storedDate !== today) {
+      localStorage.setItem('statsor_ai_usage_date', today);
+      localStorage.setItem('statsor_ai_usage_today', '0');
+      return currentPlan.aiRequestsPerDay;
+    }
+
+    return Math.max(0, currentPlan.aiRequestsPerDay - storedCount);
+  };
+
+  const incrementAIUsage = (): boolean => {
+    if (!currentPlan) return false;
+
+    // Unlimited for Pro plans
+    if (currentPlan.aiRequestsPerDay === -1) return true;
+
+    const today = new Date().toDateString();
+    const storedDate = localStorage.getItem('statsor_ai_usage_date');
+    let storedCount = parseInt(localStorage.getItem('statsor_ai_usage_today') || '0');
+
+    // Reset count if it's a new day
+    if (storedDate !== today) {
+      localStorage.setItem('statsor_ai_usage_date', today);
+      storedCount = 0;
+    }
+
+    // Check if limit reached
+    if (storedCount >= currentPlan.aiRequestsPerDay) {
+      return false;
+    }
+
+    // Increment usage
+    const newCount = storedCount + 1;
+    localStorage.setItem('statsor_ai_usage_today', newCount.toString());
+
+    return true;
+  };
+
   const getUsageStats = () => {
+    const today = new Date().toDateString();
+    const storedDate = localStorage.getItem('statsor_ai_usage_date');
+    const aiRequestsToday = storedDate === today ? parseInt(localStorage.getItem('statsor_ai_usage_today') || '0') : 0;
+    const remaining = getAIRequestsRemaining();
+
     return {
       teams: parseInt(localStorage.getItem('statsor_team_count') || '0'),
       players: parseInt(localStorage.getItem('statsor_player_count') || '0'),
-      aiUsage: parseInt(localStorage.getItem('statsor_ai_usage_count') || '0')
+      aiUsage: parseInt(localStorage.getItem('statsor_ai_usage_count') || '0'),
+      aiRequestsToday,
+      aiRequestsRemaining: remaining
     };
   };
 
@@ -388,6 +490,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     canCreateTeam,
     canAddPlayer,
     canUseAI,
+    getAIRequestsRemaining,
+    incrementAIUsage,
     getUsageStats
   };
 

@@ -82,11 +82,13 @@ const Matches = () => {
   const fetchMatches = async () => {
     try {
       setLoading(true);
+      console.log('[Matches] Fetching matches...');
       
       // Check if this is a demo account
       const isDemo = localStorage.getItem('user_type') === 'demo';
       
       if (isDemo) {
+        console.log('[Matches] Loading demo matches');
         // For demo accounts, load matches from demo service
         const demoMatches = demoAccountService.getDemoMatches();
         // Transform demo matches to match our interface
@@ -100,45 +102,33 @@ const Matches = () => {
           venue: match.venue === 'home' ? 'Victory Stadium' : match.opponent,
           status: match.result === 'win' || match.result === 'loss' || match.result === 'draw' ? 'completed' : 'upcoming'
         }));
+        console.log('[Matches] Loaded demo matches:', transformedMatches.length);
         setMatches(transformedMatches);
       } else {
-        // For real accounts, fetch from Supabase
-        const { data: { user } } = await supabase.auth.getUser();
+        console.log('[Matches] Loading real matches using dataManagementService');
+        // Use dataManagementService for consistent data access
+        const matchesData = await dataManagementService.getMatches();
         
-        if (!user) {
-          toast.error('Please sign in to view matches');
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('matches')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('match_date', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching matches:', error);
-          toast.error('Error loading matches');
-          return;
-        }
-
+        console.log('[Matches] Fetched matches:', matchesData?.length || 0);
+        
         // Transform database data to match component expectations
-        const transformedMatches = data.map((match: any) => ({
-          id: match.id.toString(),
-          date: match.match_date,
-          homeTeam: match.home_team,
-          awayTeam: match.away_team,
+        const transformedMatches = (matchesData || []).map((match: any) => ({
+          id: match.id?.toString() || '',
+          date: match.match_date || match.date || '',
+          homeTeam: match.home_team || (match.is_home ? 'Your Team' : match.opponent_name) || 'TBD',
+          awayTeam: match.away_team || (match.is_home ? match.opponent_name : 'Your Team') || 'TBD',
           homeScore: match.home_score || 0,
           awayScore: match.away_score || 0,
-          venue: match.venue || 'TBD',
-          status: match.status as 'completed' | 'upcoming'
+          venue: match.venue || match.location || 'TBD',
+          status: (match.status || 'upcoming') as 'completed' | 'upcoming'
         }));
 
         setMatches(transformedMatches);
       }
     } catch (error) {
-      console.error('Error fetching matches:', error);
-      toast.error('Error loading matches');
+      console.error('[Matches] Error fetching matches:', error);
+      // Show empty state instead of error for better UX
+      setMatches([]);
     } finally {
       setLoading(false);
     }
@@ -207,24 +197,58 @@ const Matches = () => {
           return;
         }
 
+        // Get user's profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+
+        if (profileError || !profile) {
+          console.error('Error fetching profile:', profileError);
+          toast.error('Profile not found. Please complete your profile setup.');
+          return;
+        }
+
+        // Get user's team
+        const { data: teams, error: teamsError } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('manager_id', profile.id)
+          .limit(1);
+
+        if (teamsError || !teams || teams.length === 0) {
+          console.error('Error fetching team:', teamsError);
+          toast.error('No team found. Please create a team first.');
+          return;
+        }
+
+        const teamId = teams[0]?.id;
+        
+        if (!teamId) {
+          toast.error('Invalid team data. Please try again.');
+          return;
+        }
+
         const { data, error } = await supabase
           .from('matches')
           .insert({
-            user_id: user.id,
-            home_team: newMatch.homeTeam,
-            away_team: newMatch.awayTeam,
+            home_team_id: teamId,
+            away_team_id: null,
+            competition: 'Friendly',
             match_date: newMatch.date,
             venue: newMatch.venue,
             status: newMatch.status,
             home_score: newMatch.homeScore,
-            away_score: newMatch.awayScore
+            away_score: newMatch.awayScore,
+            notes: `${newMatch.homeTeam} vs ${newMatch.awayTeam}`
           })
           .select()
           .single();
 
         if (error) {
           console.error('Error adding match:', error);
-          toast.error('Error adding match');
+          toast.error(`Error adding match: ${error.message}`);
           return;
         }
 
@@ -232,8 +256,8 @@ const Matches = () => {
         const transformedMatch: Match = {
           id: data.id.toString(),
           date: data.match_date,
-          homeTeam: data.home_team,
-          awayTeam: data.away_team,
+          homeTeam: newMatch.homeTeam,
+          awayTeam: newMatch.awayTeam,
           homeScore: data.home_score || 0,
           awayScore: data.away_score || 0,
           venue: data.venue,

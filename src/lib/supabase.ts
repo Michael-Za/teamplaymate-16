@@ -1,72 +1,63 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Force refresh - timestamp: 1756584002672
+// Force refresh - timestamp: 1732147200000
 
-// Supabase configuration with fallback to demo values
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://demo-project.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+// Supabase configuration - ALWAYS use real credentials if available
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Determine configuration status
-const isDemoMode = supabaseUrl.includes('demo-project.supabase.co');
-const hasValidCredentials = supabaseUrl && supabaseKey && supabaseUrl.startsWith('http');
-const isRealSupabase = hasValidCredentials && !isDemoMode && 
-  supabaseUrl !== 'your-supabase-url' && 
-  supabaseKey !== 'your-supabase-anon-key';
+// Validate credentials
+const hasValidCredentials = 
+  supabaseUrl && 
+  supabaseKey && 
+  supabaseUrl.startsWith('http') &&
+  !supabaseUrl.includes('your-supabase') &&
+  !supabaseKey.includes('your-supabase');
 
 // Configuration messaging
-if (isDemoMode) {
-  console.info('🔧 Running in demo mode with mock Supabase configuration.\n' +
-    'For full functionality, configure your own Supabase project in .env file.');
-} else if (!isRealSupabase && hasValidCredentials) {
-  console.warn('⚠️ Using placeholder Supabase credentials. Please configure your actual project credentials.');
+console.log('🔍 Supabase Configuration Debug:', {
+  supabaseUrl: supabaseUrl || 'NOT SET',
+  hasKey: !!supabaseKey,
+  keyLength: supabaseKey?.length || 0,
+  hasValidCredentials,
+  envVars: {
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+    hasAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY
+  }
+});
+
+if (!hasValidCredentials) {
+  console.error('❌ CRITICAL: Supabase credentials not configured properly!');
+  console.error('Please check your .env file has:');
+  console.error('- VITE_SUPABASE_URL=https://kieihchqtyqquvispker.supabase.co');
+  console.error('- VITE_SUPABASE_ANON_KEY=your_key_here');
+  throw new Error('Supabase credentials not configured. Check console for details.');
 }
 
-// Create Supabase client or mock client
-export const supabase = (isRealSupabase || isDemoMode) ? createClient(supabaseUrl, supabaseKey, {
+console.info('✅ Supabase client initialized with real credentials');
+
+// Create Supabase client - ALWAYS create real client if we have credentials
+export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storage: localStorage
+    storage: localStorage,
   },
   global: {
     headers: {
       'X-Client-Info': 'statsor-app',
-      // Add cache-busting header to prevent caching in production
-      'Cache-Control': 'no-cache'
-    }
-  }
-}) : {
-  // Mock Supabase client for development
-  auth: {
-    getUser: async () => ({ data: { user: null }, error: null }),
-    getSession: async () => ({ data: { session: null }, error: null }),
-    signUp: async () => ({ 
-      data: { user: null, session: null }, 
-      error: { 
-        message: 'Database not configured. Please set up Supabase credentials in your environment variables.' 
-      } 
-    }),
-    signInWithPassword: async () => ({ 
-      data: { user: null, session: null }, 
-      error: { 
-        message: 'Database not configured. Please set up Supabase credentials in your environment variables.' 
-      } 
-    }),
-    signOut: async () => ({ error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+      'Cache-Control': 'no-cache',
+    },
   },
-  from: () => ({
-    select: () => ({ data: [], error: null }),
-    insert: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-    update: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-    delete: () => ({ data: null, error: { message: 'Supabase not configured' } })
-  })
-} as any;
+});
 
 // Auth state management
 export const getUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
   if (error) {
     console.error('Error getting user:', error);
     return null;
@@ -75,7 +66,10 @@ export const getUser = async () => {
 };
 
 export const getSession = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
   if (error) {
     console.error('Error getting session:', error);
     return null;

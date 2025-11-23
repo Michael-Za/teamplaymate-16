@@ -1,25 +1,41 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { useSport } from '../contexts/SportContext';
-import { useLanguage } from '../contexts/LanguageContext';
-import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { toast } from 'sonner';
 
 const SelectSport = () => {
   const [selectedSport, setSelectedSport] = useState<'soccer' | 'futsal' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { user, updateSportPreference } = useAuth();
+  const { user, updateSportPreference, loading: authLoading } = useAuth();
   const { setSport, completeSportSelection } = useSport();
-  const { t } = useLanguage();
   const navigate = useNavigate();
 
+  // Show loading while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleSportSelection = async () => {
-    if (!selectedSport || !user) {
+    if (!selectedSport) {
       toast.error('Please select a sport');
+      return;
+    }
+
+    if (!user) {
+      console.error('[SelectSport] User not found in context');
+      toast.error('Authentication error. Please sign in again.');
+      navigate('/signin');
       return;
     }
 
@@ -30,6 +46,7 @@ const SelectSport = () => {
       const { error } = await updateSportPreference(selectedSport);
       
       if (error) {
+        console.error('[SelectSport] Update error:', error);
         throw new Error(error);
       }
 
@@ -38,10 +55,13 @@ const SelectSport = () => {
       completeSportSelection();
       
       toast.success(`${selectedSport === 'soccer' ? 'Football' : 'Futsal'} selected successfully!`);
-      navigate('/dashboard');
+      
+      // Redirect to user-specific dashboard
+      const userPath = (user as any).userNumber ? `/dashboard/u${(user as any).userNumber}` : '/dashboard';
+      navigate(userPath);
       
     } catch (error) {
-      console.error('Sport selection error:', error);
+      console.error('[SelectSport] Sport selection error:', error);
       toast.error('Failed to save sport preference. Please try again.');
     } finally {
       setIsLoading(false);
@@ -51,13 +71,13 @@ const SelectSport = () => {
   const sports = [
     {
       id: 'soccer' as const,
-      name: t('sport.soccer'),
-      description: t('sport.soccer.description'),
+      name: 'Football (Soccer)',
+      description: 'Manage your football team with comprehensive tools',
       features: [
-        t('sport.soccer.feature1'),
-        t('sport.soccer.feature2'),
-        t('sport.soccer.feature3'),
-        t('sport.soccer.feature4')
+        'Track 11-a-side matches',
+        'Outdoor field management',
+        'Full season statistics',
+        'Tournament organization'
       ],
       icon: '⚽',
       color: 'from-green-500 to-green-600',
@@ -66,13 +86,13 @@ const SelectSport = () => {
     },
     {
       id: 'futsal' as const,
-      name: t('sport.futsal'),
-      description: t('sport.futsal.description'),
+      name: 'Futsal',
+      description: 'Specialized tools for indoor futsal management',
       features: [
-        t('sport.futsal.feature1'),
-        t('sport.futsal.feature2'),
-        t('sport.futsal.feature3'),
-        t('sport.futsal.feature4')
+        'Track 5-a-side matches',
+        'Indoor court management',
+        'Fast-paced game stats',
+        'League management'
       ],
       icon: '🏟️',
       color: 'from-blue-500 to-blue-600',
@@ -105,10 +125,10 @@ const SelectSport = () => {
             className="text-center mb-12"
           >
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              {t('sport.selection.title')}
+              Choose Your Sport
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              {t('sport.selection.subtitle')}
+              Select the sport you want to manage. You can change this later in settings.
             </p>
             {user && (
               <p className="text-lg text-gray-500 mt-4">
@@ -164,7 +184,7 @@ const SelectSport = () => {
                         className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/20"
                       >
                         <p className="text-sm text-primary font-medium text-center">
-                          {t('sport.selection.selected')}
+                          ✓ Selected
                         </p>
                       </motion.div>
                     )}
@@ -191,7 +211,7 @@ const SelectSport = () => {
                   Processing...
                 </>
               ) : (
-                t('sport.selection.confirm')
+                'Continue to Dashboard'
               )}
             </Button>
           </motion.div>
