@@ -208,3 +208,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 For support, please open an issue on the GitHub repository or contact the development team.
+
+---
+Last deployed: November 23, 2025
