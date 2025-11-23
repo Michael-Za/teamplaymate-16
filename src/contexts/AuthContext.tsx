@@ -661,39 +661,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
 
     try {
-      // Determine redirect URL based on environment
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const redirectUrl = isLocalhost
-        ? `${window.location.origin}/auth/google/callback`
-        : import.meta.env['VITE_APP_URL']
-          ? `${import.meta.env['VITE_APP_URL']}/auth/google/callback`
-          : `${window.location.origin}/auth/google/callback`;
+      // Clear any demo data
+      userInitializationService.cleanupDemoData();
 
-      console.log('[Auth] Environment:', {
-        hostname: window.location.hostname,
-        origin: window.location.origin,
-        isLocalhost,
-        VITE_APP_URL: import.meta.env['VITE_APP_URL'],
-        redirectUrl
-      });
+      console.log('[Auth] Redirecting to backend Google OAuth...');
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-          skipBrowserRedirect: false,
-        },
-      });
+      // Redirect to backend Google OAuth endpoint
+      // Backend will handle OAuth flow and redirect back to frontend with tokens
+      const backendUrl = import.meta.env.VITE_API_URL || 'https://widespread-erminia-me11222222-6c28b28e.koyeb.app/api/v1';
+      window.location.href = `${backendUrl}/auth/google`;
 
-      if (error) {
-        throw error;
-      }
-
-      return { data, error: null };
+      return { data: null, error: null };
     } catch (error: unknown) {
       console.error('Google auth error:', error);
       const errorMessage =
@@ -702,8 +680,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       toast.error(errorMessage);
       return { data: null, error: errorMessage };
     } finally {
-      setIsSigningIn(false);
-      setLoading(false);
+      // Don't set loading to false here since we're redirecting
+      // setIsSigningIn(false);
+      // setLoading(false);
     }
   };
 
