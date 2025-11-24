@@ -38,8 +38,8 @@ const TacticalChat = lazy(() => import("./pages/TacticalChat"));
 const AdvancedAnalytics = lazy(() => import("./pages/AdvancedAnalytics"));
 const CommunityHub = lazy(() => import("./pages/CommunityHub"));
 const DatabaseStatusPage = lazy(() => import("./pages/DatabaseStatusPage"));
-const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
-const AuthCallback = lazy(() => import("./pages/AuthCallbackSimple"));
+// const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
 const PayPalPayment = lazy(() => import("./pages/PayPalPayment"));
@@ -458,7 +458,6 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/auth/google/callback" element={<AuthCallback />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/test-render" element={<TestRender />} />
               </Routes>

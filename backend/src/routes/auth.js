@@ -109,11 +109,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-<<<<<<< HEAD
     callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/api/v1/auth/google/callback'
-=======
-    callbackURL: 'https://widespread-erminia-me11222222-6c28b28e.koyeb.app/api/v1/auth/google/callback'
->>>>>>> 82fe0b32b5e72ea2e5f940145b8a9f587eb86295
   }, async (accessToken, refreshToken, profile, done) => {
     try {
       // Check if user exists with Google ID
