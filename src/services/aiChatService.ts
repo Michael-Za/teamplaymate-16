@@ -48,6 +48,18 @@ class AIChatService {
         return this.generateHelpfulResponse('empty_message', userContext);
       }
 
+      // Check if this is a demo account
+      const isDemoAccount = this.isDemoAccount();
+      if (isDemoAccount) {
+        return this.generateDemoResponse(message, userContext);
+      }
+
+      // Get auth token from secure storage
+      const token = this.getAuthToken();
+      if (!token) {
+        return this.generateHelpfulResponse('no_auth', userContext);
+      }
+
       // Add user message to conversation history
       this.addToConversationMemory(userContext.userId, {
         id: Date.now().toString(),
@@ -83,7 +95,7 @@ class AIChatService {
 
       // Final fallback to enhanced template responses
       return this.generateIntelligentResponse(message, userContext);
-      
+       
     } catch (error) {
       console.error('Critical error in processMessage:', error);
       return this.generateErrorRecoveryResponse(message, userContext);
@@ -92,9 +104,12 @@ class AIChatService {
 
   private async callBackendAIAssistant(message: string, userContext: UserContext): Promise<AIResponse> {
     try {
-      // Get auth token from localStorage
-      const token = localStorage.getItem('auth_token');
-      
+      // Get auth token from secure storage
+      const token = this.getAuthToken();
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+       
       // Prepare request data
       const requestData = {
         message: message,
@@ -108,7 +123,7 @@ class AIChatService {
 
       // Make API call to backend proxy
       const response = await axios.post(
-        `${this.apiBaseUrl}/api/v1/ai-proxy/chat`,
+        `${this.getApiUrl('/api/v1/ai-proxy/chat')}`,
         requestData,
         {
           headers: {
@@ -193,7 +208,7 @@ class AIChatService {
       ]
     };
 
-    return suggestions[intent || "default"] || suggestions["default"];
+    return suggestions[intent || "default"] || suggestions["default"] || [];
   }
 
   private generateFollowUpQuestions(message: string, intent?: string): string[] {
@@ -245,16 +260,16 @@ class AIChatService {
       ]
     };
 
-    return questions[intent || "default"] || questions["default"];
+    return questions[intent || "default"] || questions["default"] || [];
   }
 
   private isValidResponse(response: AIResponse): boolean {
-    return response && 
+    return !!(response && 
            response.content && 
            response.content.trim().length > 0 && 
            response.confidence > 0 &&
            !response.content.includes('Sorry, I encountered an error') &&
-           !response.content.includes('technical difficulties');
+           !response.content.includes('technical difficulties'));
   }
 
   private enhanceResponse(response: AIResponse, originalMessage: string, userContext: UserContext): AIResponse {
@@ -296,7 +311,7 @@ class AIChatService {
       }
     };
     
-    return responses[type] || this.generateIntelligentResponse('help', userContext);
+    return (responses as any)[type] || this.generateIntelligentResponse('help', userContext);
   }
 
   private generateErrorRecoveryResponse(originalMessage: string, userContext: UserContext): AIResponse {
@@ -497,7 +512,7 @@ This analysis is based on current football tactics and your query: "${originalMe
 
   async sendMessage(message: string, context?: any): Promise<any> {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = this.getAuthToken();
       
       // Check if we have a token
       if (!token) {
@@ -505,7 +520,7 @@ This analysis is based on current football tactics and your query: "${originalMe
       }
       
       // Try to make the API call
-      const response = await api.post('/ai-proxy/chat', {
+      const response = await axios.post(`${this.getApiUrl('/api/v1/ai-proxy/chat')}`, {
         message,
         context
       }, {
@@ -516,23 +531,14 @@ This analysis is based on current football tactics and your query: "${originalMe
       
       return response.data;
     } catch (error: any) {
-      console.error('Error sending message to AI assistant:', error);
+      console.error('Error sending message:', error);
       
-      // Handle different types of errors
-      if (error.response) {
-        // Server responded with error status
-        switch (error.response.status) {
-          case 401:
-            throw new Error('Authentication failed. Please log in again.');
-          case 403:
-            throw new Error('Access denied. You don\'t have permission for this action.');
-          case 404:
-            throw new Error('AI assistant service not found. Please check if all services are running.');
-          case 503:
-            throw new Error('AI assistant service is temporarily unavailable. Please try again later.');
-          default:
-            throw new Error(`Service error: ${error.response.data?.error || error.response.statusText}`);
-        }
+      if (error.response?.status === 401) {
+        throw new Error('Your session has expired. Please log in again.');
+      } else if (error.response?.status === 403) {
+        throw new Error('You do not have permission to send messages.');
+      } else if (error.response?.status === 429) {
+        throw new Error('Too many requests. Please try again later.');
       } else if (error.request) {
         // Network error (no response received)
         throw new Error('Unable to connect to the AI assistant service. Please ensure all services are running.');
@@ -545,8 +551,8 @@ This analysis is based on current football tactics and your query: "${originalMe
 
   async getTeamData(): Promise<any> {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await api.get('/ai-proxy/team-data', {
+      const token = this.getAuthToken();
+      const response = await axios.get(`${this.getApiUrl('/api/v1/ai-proxy/team-data')}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -561,8 +567,8 @@ This analysis is based on current football tactics and your query: "${originalMe
 
   async updateTeamData(teamData: any): Promise<any> {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await api.post('/ai-proxy/team-data', teamData, {
+      const token = this.getAuthToken();
+      const response = await axios.post(`${this.getApiUrl('/api/v1/ai-proxy/team-data')}`, teamData, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -573,6 +579,90 @@ This analysis is based on current football tactics and your query: "${originalMe
       console.error('Error updating team data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get auth token from secure storage - Production ready
+   */
+  private getAuthToken(): string | null {
+    // Try multiple storage methods for production compatibility
+    const token = localStorage.getItem('auth_token') || 
+                  sessionStorage.getItem('auth_token') ||
+                  this.getCookie('auth_token');
+    return token;
+  }
+
+  /**
+   * Get API URL based on environment - Production ready
+   */
+  private getApiUrl(endpoint: string): string {
+    const isProduction = import.meta.env.PROD;
+    const baseUrl = isProduction 
+      ? (import.meta.env.VITE_API_URL || 'https://api.statsor.com')
+      : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
+    return `${baseUrl}${endpoint}`;
+  }
+
+  /**
+   * Get cookie value - Production ready
+   */
+  private getCookie(name: string): string | null {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop()?.split(';').shift() || null;
+    }
+    return null;
+  }
+
+  /**
+   * Check if current user is using a demo account
+   */
+  private isDemoAccount(): boolean {
+    try {
+      const userStr = localStorage.getItem('statsor_user');
+      if (!userStr) return false;
+      
+      const user = JSON.parse(userStr);
+      return user.provider === 'demo' || 
+             user.email?.includes('demo') || 
+             user.id?.startsWith('demo-') ||
+             user.isDemo === true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Generate demo responses for demo accounts
+   */
+  private generateDemoResponse(message: string, _userContext: UserContext): AIResponse {
+    const msg = message.toLowerCase();
+    
+    if (msg.includes('player') || msg.includes('team')) {
+      return {
+        content: "In demo mode, I can show you sample player data and team analytics. You have 3 demo players: John Smith (forward), Mike Johnson (defender), and Sarah Wilson (midfielder). Would you like to see their performance stats?",
+        confidence: 0.9,
+        suggestions: ['Show player stats', 'View team analysis', 'Compare players'],
+        followUpQuestions: ['Which player interests you most?', 'Do you want to see performance trends?']
+      };
+    }
+    
+    if (msg.includes('hello') || msg.includes('hi')) {
+      return {
+        content: "Hello! I'm your demo AI assistant. I can help you explore player management, team analytics, and performance insights. What would you like to know about your demo team?",
+        confidence: 0.95,
+        suggestions: ['Show player roster', 'View team performance', 'Analyze recent matches'],
+        followUpQuestions: ['What aspect of team management interests you?', 'Do you want to see player statistics?']
+      };
+    }
+    
+    return {
+      content: "This is a demo response. In the full version, I would provide detailed analysis based on your actual team data. For now, you can explore the demo features and sample data.",
+      confidence: 0.8,
+      suggestions: ['Explore demo features', 'View sample data', 'Try player management'],
+      followUpQuestions: ['What would you like to explore?', 'Need help with navigation?']
+    };
   }
 }
 

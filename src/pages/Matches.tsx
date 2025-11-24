@@ -127,6 +127,7 @@ const Matches = () => {
       }
     } catch (error) {
       console.error('[Matches] Error fetching matches:', error);
+      toast.error('Error loading matches. Please try again.');
       // Show empty state instead of error for better UX
       setMatches([]);
     } finally {

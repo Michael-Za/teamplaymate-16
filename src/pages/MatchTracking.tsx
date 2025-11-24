@@ -38,20 +38,58 @@ const MatchTracking: React.FC = () => {
         
         if (!user) {
           toast.error('Please sign in to view match tracking');
+          setLoading(false);
           return;
         }
 
-        // Fetch completed matches
+        // Get user's profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+
+        if (profileError || !profile) {
+          console.error('Error fetching profile:', profileError);
+          toast.error('Profile not found. Please complete your profile setup.');
+          setLoading(false);
+          return;
+        }
+
+        // Get user's team
+        const { data: teams, error: teamsError } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('manager_id', profile.id)
+          .limit(1);
+
+        if (teamsError || !teams || teams.length === 0) {
+          console.error('Error fetching team:', teamsError);
+          toast.error('No team found. Please create a team first.');
+          setLoading(false);
+          return;
+        }
+
+        const teamId = teams[0]?.id;
+        
+        if (!teamId) {
+          toast.error('Invalid team data. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        // Fetch completed matches for the team
         const { data, error } = await supabase
           .from('matches')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('team_id', teamId)
           .eq('status', 'completed')
           .order('match_date', { ascending: false });
 
         if (error) {
           console.error('Error fetching matches:', error);
           toast.error('Error loading matches');
+          setLoading(false);
           return;
         }
 
@@ -59,11 +97,11 @@ const MatchTracking: React.FC = () => {
         const transformedMatches: Match[] = data.map((match: any) => ({
           id: match.id.toString(),
           date: match.match_date,
-          homeTeam: match.home_team,
-          awayTeam: match.away_team,
+          homeTeam: match.home_team || 'Your Team',
+          awayTeam: match.away_team || 'Opponent',
           homeScore: match.home_score || 0,
           awayScore: match.away_score || 0,
-          venue: match.venue || 'TBD',
+          venue: match.venue || match.location || 'TBD',
           status: 'completed',
           statistics: match.statistics || {}
         }));
@@ -71,6 +109,9 @@ const MatchTracking: React.FC = () => {
         if (transformedMatches.length > 0) {
           setLatestMatch(transformedMatches[0] || null);
           setPreviousMatches(transformedMatches.slice(1));
+        } else {
+          setLatestMatch(null);
+          setPreviousMatches([]);
         }
       } catch (error) {
         console.error('Error fetching matches:', error);

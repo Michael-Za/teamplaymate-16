@@ -300,29 +300,15 @@ export const authAPI: AuthAPI = {
 
   verifyGoogleToken: async (code: string, codeVerifier: string) => {
     try {
-      const redirectUri = `${window.location.origin}/auth/google/callback`;
-
-      const { data: authData, error } =
-        await supabase.auth.exchangeCodeForSession(code);
-
-      if (error) {
-        console.error('Google OAuth error:', error);
-        return {
-          data: {
-            success: false,
-            message: error.message || 'Google authentication failed',
-            error: error.message || 'Unknown error',
-          },
-        };
-      }
-
+      // This function should not be called when using backend OAuth flow
+      // The backend handles the OAuth flow and redirects back to frontend with tokens
+      // If we get here, it means there's a configuration issue
+      console.error('verifyGoogleToken called unexpectedly in backend OAuth flow');
       return {
         data: {
-          success: true,
-          data: {
-            user: authData.user,
-            token: authData.session?.access_token,
-          },
+          success: false,
+          message: 'Authentication flow error. Please try again.',
+          error: 'Misconfigured authentication flow',
         },
       };
     } catch (error: any) {

@@ -27,6 +27,7 @@ import { subscriptionService } from '../services/subscriptionService';
 import { InteractiveDashboard } from '../components/InteractiveDashboard';
 import { StatsCard } from '../components/StatsCard';
 import { dataManagementService } from '../services/dataManagementService';
+import { playerManagementService } from '../services/playerManagementService';
 // NotificationDemo removed - no more automatic demo notifications
 
 interface Team {
@@ -106,15 +107,32 @@ const Dashboard: React.FC = () => {
           }
         }
 
-        // Load matches from localStorage as fallback
-        const savedMatches = localStorage.getItem('statsor_matches');
-        if (savedMatches) {
-          setMatches(JSON.parse(savedMatches));
+        // Load matches using dataManagementService
+        const matchesData = await dataManagementService.getMatches();
+        if (matchesData && matchesData.length > 0) {
+          // Transform matches data
+          const transformedMatches: Match[] = matchesData.map((match: any) => ({
+            id: match.id?.toString() || '',
+            homeTeam: match.home_team || (match.is_home ? 'Your Team' : match.opponent_name) || 'TBD',
+            awayTeam: match.away_team || (match.is_home ? match.opponent_name : 'Your Team') || 'TBD',
+            homeScore: match.home_score || 0,
+            awayScore: match.away_score || 0,
+            date: match.match_date || match.date || '',
+            status: (match.status || 'upcoming') as 'scheduled' | 'live' | 'completed'
+          }));
+          setMatches(transformedMatches);
         } else {
-          setMatches([]);
+          // Fallback to localStorage if no real data
+          const savedMatches = localStorage.getItem('statsor_matches');
+          if (savedMatches) {
+            setMatches(JSON.parse(savedMatches));
+          } else {
+            setMatches([]);
+          }
         }
       } catch (error) {
         console.error('Error loading dashboard data:', error);
+        toast.error('Error loading dashboard data. Please try again.');
         // Fallback to localStorage
         try {
           const savedTeams = localStorage.getItem('statsor_teams');
@@ -144,24 +162,9 @@ const Dashboard: React.FC = () => {
     loadDashboardData();
     
     // Subscribe to player updates
-    dataManagementService.setPlayersUpdateCallback((updatedPlayers) => {
-      // Update teams with new player count
-      setTeams(prevTeams => {
-        if (prevTeams.length > 0 && prevTeams[0]) {
-          const updatedTeams = [...prevTeams];
-          updatedTeams[0] = {
-            id: prevTeams[0].id,
-            name: prevTeams[0].name,
-            players: updatedPlayers.length,
-            matches: prevTeams[0].matches,
-            wins: prevTeams[0].wins,
-            losses: prevTeams[0].losses,
-            draws: prevTeams[0].draws
-          };
-          return updatedTeams;
-        }
-        return prevTeams;
-      });
+    const unsubscribe = playerManagementService.onPlayersUpdated(() => {
+      // Reload dashboard data when players are updated
+      loadDashboardData();
     });
     
     if (user?.id) {
@@ -171,7 +174,7 @@ const Dashboard: React.FC = () => {
     }
     
     return () => {
-      dataManagementService.setPlayersUpdateCallback(null);
+      unsubscribe();
     };
   }, [user]); // Remove teams from dependency array to prevent infinite loop
 

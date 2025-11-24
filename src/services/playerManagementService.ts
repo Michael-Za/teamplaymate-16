@@ -486,38 +486,202 @@ class PlayerManagementService {
    */
   async getPlayers(teamId?: string): Promise<PlayerData[]> {
     try {
-      console.log('[PlayerManagement] Fetching players, teamId:', teamId);
+      console.log('[PlayerManagement] Fetching players via backend API, teamId:', teamId);
 
-      // Get profile ID
-      const profileId = await this.getUserProfileId();
-      if (!profileId) {
-        console.log('[PlayerManagement] No profile ID, returning empty array');
-        return [];
+      // Get auth token from secure storage
+      const token = this.getAuthToken();
+      if (!token) {
+        console.log('[PlayerManagement] No auth token found - user not authenticated');
+        throw new Error('Authentication required. Please log in to access player data.');
       }
 
-      // Build query
-      let query = supabase
-        .from('players')
-        .select('*')
-        .eq('profile_id', profileId);
+      // Use production-ready API URL
+      const apiUrl = this.getApiUrl('/api/v1/players');
+      
+      // Call backend API with proper error handling
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      if (teamId) {
-        query = query.eq('team_id', teamId);
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Your session has expired. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('You do not have permission to access player data.');
+        } else if (response.status === 404) {
+          throw new Error('Player data not found. Please check your team setup.');
+        } else {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('[PlayerManagement] Database error:', error);
-        return [];
-      }
-
-      console.log(`[PlayerManagement] Fetched ${data?.length || 0} players`);
-      return data || [];
+      const data = await response.json();
+      console.log(`[PlayerManagement] Fetched ${data.players?.length || 0} players from backend`);
+      
+      // Transform backend data to frontend format
+      return (data.players || []).map(this.transformBackendPlayer);
     } catch (error) {
-      console.error('[PlayerManagement] Unexpected error:', error);
-      return [];
+      console.error('[PlayerManagement] Error fetching players:', error);
+      throw error; // Re-throw to let the UI handle the error properly
     }
+  }
+
+  /**
+   * Get auth token from secure storage
+   */
+  private getAuthToken(): string | null {
+    // Try multiple storage methods for production compatibility
+    const token = localStorage.getItem('auth_token') || 
+                  sessionStorage.getItem('auth_token') ||
+                  this.getCookie('auth_token');
+    return token;
+  }
+
+  /**
+   * Get API URL based on environment
+   */
+  private getApiUrl(endpoint: string): string {
+    const isProduction = import.meta.env.PROD;
+    const baseUrl = isProduction 
+      ? (import.meta.env.VITE_API_URL || 'https://api.statsor.com')
+      : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
+    return `${baseUrl}${endpoint}`;
+  }
+
+  /**
+   * Get cookie value
+   */
+  private getCookie(name: string): string | null {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      return parts.pop()?.split(';').shift() || null;
+    }
+    return null;
+  }
+
+  /**
+   * Check if current user is using a demo account
+   */
+  private isDemoAccount(): boolean {
+    try {
+      const userStr = localStorage.getItem('statsor_user');
+      if (!userStr) return false;
+      
+      const user = JSON.parse(userStr);
+      return user.provider === 'demo' || 
+             user.email?.includes('demo') || 
+             user.id?.startsWith('demo-') ||
+             user.isDemo === true;
+    } catch (error) {
+      console.error('[PlayerManagement] Error checking demo account:', error);
+      return false;
+    }
+  }
+
+/**
+   * Get mock players data for fallback (demo accounts only)
+   */
+  private getMockPlayers(): PlayerData[] {
+    return [
+      {
+        id: '1',
+        name: 'John Smith',
+        first_name: 'John',
+        last_name: 'Smith',
+        position: 'forward',
+        jersey_number: 10,
+        age: 25,
+        nationality: 'England',
+        height: 180,
+        weight: 75,
+        goals: 15,
+        assists: 8,
+        minutes: 1200,
+        games: 20,
+        yellow_cards: 2,
+        red_cards: 0,
+        fitness: 85,
+        status: 'active',
+        photo_url: '',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        name: 'Mike Johnson',
+        first_name: 'Mike',
+        last_name: 'Johnson',
+        position: 'defender',
+        jersey_number: 4,
+        age: 28,
+        nationality: 'England',
+        height: 185,
+        weight: 80,
+        goals: 2,
+        assists: 3,
+        minutes: 1500,
+        games: 22,
+        yellow_cards: 5,
+        red_cards: 1,
+        fitness: 90,
+        status: 'active',
+        photo_url: '',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '3',
+        name: 'Sarah Wilson',
+        first_name: 'Sarah',
+        last_name: 'Wilson',
+        position: 'midfielder',
+        jersey_number: 8,
+        age: 23,
+        nationality: 'England',
+        height: 165,
+        weight: 60,
+        goals: 8,
+        assists: 12,
+        minutes: 1100,
+        games: 18,
+        yellow_cards: 3,
+        red_cards: 0,
+        fitness: 88,
+        status: 'injured',
+        photo_url: '',
+        created_at: new Date().toISOString()
+      }
+    ];
+  }
+
+  /**
+   * Transform backend player data to frontend format
+   */
+  private transformBackendPlayer(backendPlayer: any): PlayerData {
+    return {
+      id: backendPlayer.id,
+      name: `${backendPlayer.first_name || ''} ${backendPlayer.last_name || ''}`.trim() || backendPlayer.name || 'Unknown',
+      first_name: backendPlayer.first_name,
+      last_name: backendPlayer.last_name,
+      position: backendPlayer.position,
+      jersey_number: backendPlayer.jersey_number,
+      age: backendPlayer.age || 25,
+      nationality: backendPlayer.nationality,
+      height: backendPlayer.height,
+      weight: backendPlayer.weight,
+      goals: backendPlayer.goals || 0,
+      assists: backendPlayer.assists || 0,
+      minutes: backendPlayer.minutes_played || 0,
+      games: backendPlayer.games || 0,
+      yellow_cards: backendPlayer.yellow_cards || 0,
+      red_cards: backendPlayer.red_cards || 0,
+      fitness: 85,
+      status: backendPlayer.status || 'active',
+      photo_url: backendPlayer.avatar_url || '',
+      created_at: backendPlayer.created_at
+    };
   }
 
   /**

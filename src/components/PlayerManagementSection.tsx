@@ -28,6 +28,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { dataManagementService, Player } from '../services/dataManagementService';
+import { playerManagementService } from '../services/playerManagementService';
 import { toast } from 'sonner';
 
 export const PlayerManagementSection: React.FC = () => {
@@ -43,12 +44,12 @@ export const PlayerManagementSection: React.FC = () => {
     loadPlayers();
     
     // Subscribe to player updates
-    dataManagementService.setPlayersUpdateCallback((updatedPlayers) => {
-      setPlayers(updatedPlayers);
+    const unsubscribe = dataManagementService.onPlayersUpdated(() => {
+      loadPlayers();
     });
     
     return () => {
-      dataManagementService.setPlayersUpdateCallback(null);
+      unsubscribe();
     };
   }, []);
 
@@ -75,7 +76,8 @@ export const PlayerManagementSection: React.FC = () => {
     goals: 0,
     assists: 0,
     minutes: 0,
-    cards: 0,
+    yellow_cards: 0,
+    red_cards: 0,
     injuries: [],
     notes: ''
   });
@@ -83,57 +85,80 @@ export const PlayerManagementSection: React.FC = () => {
   const positions = ['DEL', 'CEN', 'DEF', 'POR'];
 
   const handleAddPlayer = async () => {
-    if (newPlayer.name && newPlayer.position) {
-      try {
-        const playerData: Partial<Player> = {
-          name: newPlayer.name || '',
-          position: newPlayer.position || '',
-          age: newPlayer.age || 0,
-          height: newPlayer.height || 0,
-          weight: newPlayer.weight || 0,
-          fitness: newPlayer.fitness || 0,
-          goals: newPlayer.goals || 0,
-          assists: newPlayer.assists || 0,
-          minutes: newPlayer.minutes || 0,
-          cards: newPlayer.cards || 0,
-          injuries: newPlayer.injuries || [],
-          notes: newPlayer.notes || ''
-        };
+    if (!newPlayer.name || !newPlayer.position) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      const playerData: Partial<Player> = {
+        name: newPlayer.name || '',
+        position: newPlayer.position || '',
+        age: newPlayer.age || 0,
+        height: newPlayer.height || 0,
+        weight: newPlayer.weight || 0,
+        fitness: newPlayer.fitness || 0,
+        goals: newPlayer.goals || 0,
+        assists: newPlayer.assists || 0,
+        minutes: newPlayer.minutes || 0,
+        yellow_cards: newPlayer.yellow_cards || 0,
+        red_cards: newPlayer.red_cards || 0,
+        injuries: newPlayer.injuries || [],
+        notes: newPlayer.notes || ''
+      };
 
-        const createdPlayer = await dataManagementService.createPlayer(playerData);
-        if (createdPlayer) {
-          setPlayers([...players, createdPlayer]);
-          setNewPlayer({
-            name: '',
-            position: '',
-            age: 0,
-            height: 0,
-            weight: 0,
-            fitness: 0,
-            goals: 0,
-            assists: 0,
-            minutes: 0,
-            cards: 0,
-            injuries: [],
-            notes: ''
-          });
-          setIsAddingPlayer(false);
-          toast.success('Player added successfully!');
-        }
-      } catch (error) {
-        console.error('Error adding player:', error);
+      const result = await dataManagementService.addPlayer(playerData);
+      if (result) {
+        toast.success('Player added successfully!');
+        loadPlayers(); // Refresh the player list
+        // Reset form
+        setNewPlayer({
+          name: '',
+          position: '',
+          age: 0,
+          height: 0,
+          weight: 0,
+          fitness: 0,
+          goals: 0,
+          assists: 0,
+          minutes: 0,
+          yellow_cards: 0,
+          red_cards: 0,
+          injuries: [],
+          notes: ''
+        });
+        setIsAddingPlayer(false);
+      } else {
         toast.error('Failed to add player');
       }
+    } catch (error) {
+      console.error('Error adding player:', error);
+      toast.error('Failed to add player');
     }
   };
 
   const getPositionColor = (position: string) => {
-    switch (position) {
-      case 'DEL': return 'bg-red-100 text-red-800';
-      case 'CEN': return 'bg-blue-100 text-blue-800';
-      case 'DEF': return 'bg-green-100 text-green-800';
-      case 'POR': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+    const pos = (position || '').toLowerCase();
+    switch (pos) {
+      case 'del':
+      case 'forward':
+      case 'attacker':
+        return 'bg-red-100 text-red-800';
+      case 'cen':
+      case 'midfielder':
+      case 'midfield':
+        return 'bg-blue-100 text-blue-800';
+      case 'def':
+      case 'defender':
+      case 'defense':
+        return 'bg-green-100 text-green-800';
+      case 'por':
+      case 'goalkeeper':
+      case 'keeper':
+      case 'gk':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -340,9 +365,11 @@ export const PlayerManagementSection: React.FC = () => {
                                 <Badge className={getPositionColor(player.position)}>
                                   {player.position}
                                 </Badge>
-                                <span className="text-sm text-gray-600">Age: {player.age}</span>
+                                <span className="text-sm text-gray-600">Age: {player.age || 'N/A'}</span>
                                 <span className="text-sm text-gray-600">|</span>
-                                <span className="text-sm text-gray-600">{player.height}cm, {player.weight}kg</span>
+                                <span className="text-sm text-gray-600">
+                                  {player.height ? `${player.height}cm` : 'N/A'}, {player.weight ? `${player.weight}kg` : 'N/A'}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -351,17 +378,24 @@ export const PlayerManagementSection: React.FC = () => {
                               <div className="flex items-center space-x-2">
                                 <Heart className="h-4 w-4 text-gray-400" />
                                 <span className={`font-semibold ${getFitnessColor(player.fitness || 0)}`}>
-                                  {player.fitness}%
+                                  {player.fitness || 0}%
                                 </span>
                               </div>
                               <div className="text-sm text-gray-600 mt-1">
-                                {player.goals}G / {player.assists}A
+                                {(player.goals || 0)}G / {(player.assists || 0)}A
                               </div>
                             </div>
                             {player.injuries && player.injuries.length > 0 && (
                               <AlertCircle className="h-5 w-5 text-red-500" />
                             )}
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/players/${player.id}`);
+                              }}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                           </div>

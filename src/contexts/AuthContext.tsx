@@ -686,92 +686,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const handleGoogleCallback = async (code: string, state?: string) => {
-    try {
-      setLoading(true);
-
-      // Validate state parameter to prevent CSRF attacks
-      const storedState = sessionStorage.getItem('google_oauth_state');
-      if (state && storedState && state !== storedState) {
-        throw new Error('Invalid state parameter. Possible CSRF attack.');
-      }
-
-      // Get code verifier for PKCE
-      const codeVerifier = sessionStorage.getItem('google_oauth_code_verifier');
-      if (!codeVerifier) {
-        throw new Error(
-          'Missing code verifier. Please restart the authentication process.'
-        );
-      }
-
-      // Exchange authorization code for tokens
-      const response = await authAPI.verifyGoogleToken(code, codeVerifier);
-
-      if (response.data.success && response.data.data) {
-        const { user: responseUser, token: authToken } = response.data.data;
-
-        // Create full user profile with enhanced capabilities
-        const fullUserProfile = {
-          ...responseUser,
-          subscription: {
-            plan: 'free' as const,
-            status: 'active' as const,
-            expiresAt: null,
-          },
-          permissions: {
-            canEdit: true,
-            canDelete: true,
-            canCreate: true,
-            canShare: true,
-            canExport: true,
-          },
-          features: {
-            analytics: true,
-            teamManagement: true,
-            advancedStats: true,
-            customReports: true,
-          },
-        };
-
-        setUser(fullUserProfile);
-        setIsNewUser(!responseUser.sportSelected);
-        setHasCompletedOnboarding(responseUser.sportSelected || false);
-        localStorage.setItem('auth_token', authToken);
-        localStorage.setItem('statsor_user', JSON.stringify(fullUserProfile));
-
-        // Clean up OAuth session data
-        sessionStorage.removeItem('google_oauth_code_verifier');
-        sessionStorage.removeItem('google_oauth_state');
-
-        toast.success('Welcome! Google authentication successful.');
-
-        // Navigate based on user state
-        if (!responseUser.sportSelected) {
-          navigate('/select-sport');
-        } else {
-          navigate('/dashboard');
-        }
-
-        return { data: { user: fullUserProfile }, error: null };
-      } else {
-        const error = response.data.message || 'Google authentication failed';
-        toast.error(error);
-        return { data: null, error };
-      }
-    } catch (error) {
-      console.error('Google callback error:', error);
-      // Clean up OAuth session data on error
-      sessionStorage.removeItem('google_oauth_code_verifier');
-      sessionStorage.removeItem('google_oauth_state');
-      const errorMessage =
-        error instanceof Error ? error.message : 'Authentication failed';
-      toast.error(errorMessage);
-      return { data: null, error: errorMessage };
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const signOut = async () => {
     setLoading(true);
     try {
@@ -1011,7 +925,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     signUp,
     signIn,
     signInWithGoogle,
-    handleGoogleCallback,
     signOut,
     logout,
     login,
