@@ -109,24 +109,31 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+<<<<<<< HEAD
     callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/api/v1/auth/google/callback'
+=======
+    callbackURL: 'https://widespread-erminia-me11222222-6c28b28e.koyeb.app/api/v1/auth/google/callback'
+>>>>>>> 82fe0b32b5e72ea2e5f940145b8a9f587eb86295
   }, async (accessToken, refreshToken, profile, done) => {
     try {
-      // Check if user exists
+      // Check if user exists with Google ID
       let user = await db.findMany('users', { google_id: profile.id });
       if (user && user.length > 0) {
-        user = user[0]; // Get the first user
+        user = user[0];
         return done(null, user);
       }
 
       // Check if user exists with same email
       user = await db.findMany('users', { email: profile.emails[0].value });
       if (user && user.length > 0) {
-        user = user[0]; // Get the first user
+        user = user[0];
         // Link Google account to existing user
         await db.update('users', user.id, {
           google_id: profile.id,
+          provider: 'google',
           avatar_url: profile.photos[0]?.value,
+          email_verified: true,
+          status: 'active',
           updated_at: new Date().toISOString()
         });
         return done(null, user);
@@ -136,8 +143,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       const newUser = await db.create('users', {
         google_id: profile.id,
         email: profile.emails[0].value,
-        first_name: profile.name.givenName,
-        last_name: profile.name.familyName,
+        first_name: profile.name.givenName || profile.displayName?.split(' ')[0] || 'User',
+        last_name: profile.name.familyName || profile.displayName?.split(' ').slice(1).join(' ') || '',
+        provider: 'google',
         avatar_url: profile.photos[0]?.value,
         email_verified: true,
         role: 'player',
@@ -261,12 +269,13 @@ router.post('/register',
       teamId = team.id;
     }
 
-    // Create user
+    // Create user with proper field names
     const user = await db.create('users', {
       email,
       password_hash: hashedPassword,
       first_name: firstName,
       last_name: lastName,
+      provider: 'email',
       role,
       team_id: teamId,
       position: role === 'player' ? position : null,
@@ -608,6 +617,31 @@ router.get('/google/callback',
     const tokens = generateTokens(req.user.id, req.user.role);
 
     // Store refresh token
+    await redis.setRefreshToken(req.user.id, tokens.refreshToken);
+
+    // Get user data
+    const user = await db.findById('users', req.user.id);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    // Remove sensitive data
+    delete user.password_hash;
+    delete user.email_verification_token;
+    delete user.password_reset_token;
+
+    // Redirect to frontend with tokens
+    const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`;
+    res.redirect(redirectUrl);
+  })
+);
+
+// @route   GET /api/auth/me
+// @desc    Get current user
+// @access  Private
+router.get('/me',
+  authenticateToken,
+  asyncHandler(async (req, res) => {
     const user = await db.findById('users', req.user.id);
     if (!user) {
       throw new NotFoundError('User not found');
