@@ -135,7 +135,10 @@ class Server {
         'http://127.0.0.1:3008',
         'http://127.0.0.1:5173',
         'https://statsor.com',
-        'https://www.statsor.com'
+        'https://www.statsor.com',
+        // CodeSandbox URLs
+        'https://*.codesandbox.io',
+        'https://*.csb.app'
       ];
 
       const corsOptions = {
@@ -439,7 +442,17 @@ class Server {
 
       this.io = new SocketIOServer(this.server, {
         cors: {
-          origin: config.CORS_ORIGIN === '*' ? true : (config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : ['http://localhost:3006']),
+          origin: config.CORS_ORIGIN === '*' 
+            ? true 
+            : (config.CORS_ORIGIN 
+              ? config.CORS_ORIGIN.split(',').map(o => o.trim())
+              : [
+                  'http://localhost:3006',
+                  'https://statsor.com',
+                  'https://www.statsor.com',
+                  'https://*.codesandbox.io',
+                  'https://*.csb.app'
+                ]),
           credentials: true
         }
       });
@@ -519,11 +532,15 @@ class Server {
     try {
       await this.initialize();
 
-      this.server.listen(this.port, () => {
-        logger.info(`🚀 Server running on port ${this.port}`);
-        logger.info(`📚 API Documentation: http://localhost:${this.port}/api/docs`);
-        logger.info(`🏥 Health Check: http://localhost:${this.port}/health`);
+      // CodeSandbox-specific port handling
+      const port = process.env.PORT || 8000;
+      
+      this.server.listen(port, '0.0.0.0', () => {
+        logger.info(`🚀 Server running on port ${port}`);
+        logger.info(`📚 API Documentation: https://${process.env.CODESANDBOX_SANDBOX_ID || 'localhost'}.codesandbox.io/api/docs`);
+        logger.info(`🏥 Health Check: https://${process.env.CODESANDBOX_SANDBOX_ID || 'localhost'}.codesandbox.io/health`);
         logger.info(`🌍 Environment: ${config.NODE_ENV}`);
+        logger.info(`🔗 Public URL: https://${process.env.CODESANDBOX_SANDBOX_ID || 'localhost'}.codesandbox.io`);
 
         if (config.NODE_ENV === 'development') {
           logger.info(`🔧 Development mode - Hot reload enabled`);
@@ -548,4 +565,10 @@ if (require.main === module) {
   });
 }
 
+// Export for CodeSandbox
 module.exports = server;
+
+// CodeSandbox-specific export
+if (typeof window !== 'undefined') {
+  window.server = server;
+}
