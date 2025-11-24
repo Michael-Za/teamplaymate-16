@@ -23,7 +23,7 @@ interface AuthAPI {
 // API Configuration - use production URL in production, localhost in development
 const isProduction = import.meta.env.PROD;
 const API_BASE_URL = isProduction
-  ? import.meta.env.VITE_API_URL || 'https://api.statsor.com'
+  ? import.meta.env.VITE_API_URL || 'https://gw6624-2222.csb.app'
   : import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export const api = {
