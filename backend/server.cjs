@@ -1,7 +1,7 @@
 // Universal server entry point - Works for both Railway and Koyeb
-import express from 'express';
-import http from 'http';
-import path from 'path';
+const express = require('express');
+const http = require('http');
+const path = require('path');
 
 console.log('🚀 Starting StatSor Backend...');
 console.log('📁 Loading backend server...');
@@ -30,18 +30,19 @@ server.listen(port, () => {
   // Now load the full backend server
   console.log('📁 Loading full backend server...');
   try {
-    // Change to backend directory
-    process.chdir('./backend');
-    
-    // Load the full server
-    import(path.resolve('./src/server.js')).then(() => {
-      console.log('✅ Full backend server loaded successfully');
-    }).catch((error) => {
-      console.error('❌ Error loading backend server:', error.message);
-      // Don't exit, keep health check running
+    // Load the full server - no need to change directory as we're already in the right place
+    Promise.resolve().then(() => {
+      try {
+        // Use require instead of import for CommonJS compatibility
+        require('./src/server.js');
+        console.log('✅ Full backend server loaded successfully');
+      } catch (error) {
+        console.error('❌ Error loading backend server:', error.message);
+        // Don't exit, keep health check running
+      }
     });
   } catch (error) {
-    console.error('❌ Error changing directory or loading backend server:', error.message);
+    console.error('❌ Error loading backend server:', error.message);
     // Don't exit, keep health check running
   }
 });

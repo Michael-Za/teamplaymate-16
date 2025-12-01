@@ -78,8 +78,8 @@ export default defineConfig({
   define: {
     // Production domain configuration
     'import.meta.env.VITE_APP_URL': JSON.stringify(process.env.VITE_APP_URL || 'https://statsor.com'),
-    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://api.statsor.com'),
-    'import.meta.env.VITE_WS_URL': JSON.stringify(process.env.VITE_WS_URL || 'wss://api.statsor.com'),
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://web-production-22b3d.up.railway.app/api/v1'),
+    'import.meta.env.VITE_WS_URL': JSON.stringify(process.env.VITE_WS_URL || 'wss://web-production-22b3d.up.railway.app'),
     // Supabase configuration - CRITICAL for production
     'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || 'https://kieihchqtyqquvispker.supabase.co'),
     'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZWloY2hxdHlxcXV2aXNwa2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MzIyOTEsImV4cCI6MjA3NjIwODI5MX0.RTyUZcmdKv5Q24GBCsQPmYkyALAI4uz8y1m1ezh5g0g'),

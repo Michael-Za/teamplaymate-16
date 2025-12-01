@@ -1,26 +1,22 @@
+# Use Node.js 18 LTS for Koyeb/Railway compatibility
 FROM node:18-alpine
 
+# Set environment variables (PORT will be provided by the platform)
+ENV NODE_ENV=production
+
+# Create app directory
 WORKDIR /app
 
-# Copy package files
+# Copy package.json and package-lock.json
 COPY package*.json ./
+COPY backend/package*.json ./backend/
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install --production
+RUN cd backend && npm install --production
 
-# Copy source code
-COPY src ./src
-COPY tsconfig.json ./
+# Copy application files
+COPY . .
 
-# Create production environment
-COPY env.production .env
-
-# Expose port
-EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
-
-# Start the application
-CMD ["npm", "start"]
+# Start the application from root directory
+CMD ["node", "server.js"]

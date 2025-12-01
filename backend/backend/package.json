@@ -2,9 +2,10 @@
   "name": "statsor-backend",
   "version": "1.0.0",
   "description": "Enhanced backend for Statsor football management platform",
-  "main": "server.js",
+  "main": "src/server.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build": "echo \"No build step needed for CommonJS\"",
     "test": "jest",
