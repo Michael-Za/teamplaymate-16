@@ -285,16 +285,20 @@ const AIAssistant: React.FC = () => {
     try {
       console.log('[AIAssistant] Sending message to backend:', currentInput);
       
-      // Call backend AI assistant API
+      // Call backend AI assistant API with user context
       const backendUrl = import.meta.env['VITE_BACKEND_URL'] || 'http://localhost:3001';
-      const response = await fetch(`${backendUrl}/api/v1/ai-assistant/chat`, {
+      const response = await fetch(`${backendUrl}/api/v1/ai-proxy/chat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
         },
         body: JSON.stringify({
           message: currentInput,
-          context: {}
+          context: {
+            userId: user?.id || 'anonymous',
+            // We can add more context here in the future
+          }
         })
       });
 

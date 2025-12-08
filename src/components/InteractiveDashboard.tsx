@@ -540,8 +540,8 @@ export const InteractiveDashboard: React.FC = () => {
     { partido: 6, victories: 100, points: 3, goalsFor: 3, goalsAgainst: 0 }
   ]);
 
-  // Mock data for recent matches
-  const [recentMatches] = useState([
+  // State for real data
+  const [recentMatches, setRecentMatches] = useState([
     { id: '1', date: '2025-07-20', homeTeam: 'CD Statsor', awayTeam: 'Real Madrid', homeScore: 3, awayScore: 2, result: 'W' },
     { id: '2', date: '2025-07-15', homeTeam: 'CD Statsor', awayTeam: 'Barcelona', homeScore: 1, awayScore: 1, result: 'D' },
     { id: '3', date: '2025-07-10', homeTeam: 'CD Statsor', awayTeam: 'Atletico Madrid', homeScore: 2, awayScore: 0, result: 'W' },
@@ -549,8 +549,7 @@ export const InteractiveDashboard: React.FC = () => {
     { id: '5', date: '2025-06-30', homeTeam: 'CD Statsor', awayTeam: 'Sevilla', homeScore: 3, awayScore: 1, result: 'W' }
   ]);
 
-  // Mock data for analytics
-  const [analyticsData] = useState({
+  const [analyticsData, setAnalyticsData] = useState({
     performance: {
       goals: 15,
       assists: 12,
@@ -582,15 +581,26 @@ export const InteractiveDashboard: React.FC = () => {
     }
   });
 
+  // State for team stats
+  const [teamStats, setTeamStats] = useState({
+    points: 24,
+    lastResult: 'CD Statsor 5-3 Jaén',
+    lastResultDate: '3 days ago',
+    victoryPercentage: 66.7,
+    matchesPlayed: 12,
+    seasonInfo: 'Age Division'
+  });
+
   const [playersData, setPlayersData] = useState<DashboardPlayer[]>([]);
   const [loadingPlayers, setLoadingPlayers] = useState(true);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0] || '');
 
-  // Fetch real player data
+  // Fetch real data
   useEffect(() => {
-    const fetchPlayers = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch players
         setLoadingPlayers(true);
         const players = await dataManagementService.getPlayers();
         // Transform the data to match the dashboard format
@@ -606,8 +616,113 @@ export const InteractiveDashboard: React.FC = () => {
           fitCom: player.fouls_committed || 0
         }));
         setPlayersData(transformedPlayers);
+
+        // Fetch matches
+        const matches = await dataManagementService.getMatches();
+        const transformedMatches = matches.slice(0, 5).map((match: any) => ({
+          id: match.id?.toString() || '',
+          date: match.match_date || match.date || '',
+          homeTeam: match.home_team || (match.is_home ? 'Your Team' : match.opponent_name) || 'TBD',
+          awayTeam: match.away_team || (match.is_home ? match.opponent_name : 'Your Team') || 'TBD',
+          homeScore: match.home_score || 0,
+          awayScore: match.away_score || 0,
+          result: (match.home_score || 0) > (match.away_score || 0) ? 'W' : (match.home_score || 0) < (match.away_score || 0) ? 'L' : 'D'
+        }));
+        
+        if (transformedMatches.length > 0) {
+          setRecentMatches(transformedMatches);
+        }
+
+        // Calculate team stats from matches
+        let wins = 0, draws = 0, losses = 0, goalsFor = 0, goalsAgainst = 0;
+        matches.forEach((match: any) => {
+          const teamScore = match.is_home ? match.home_score : match.away_score;
+          const opponentScore = match.is_home ? match.away_score : match.home_score;
+          
+          goalsFor += teamScore || 0;
+          goalsAgainst += opponentScore || 0;
+          
+          if (teamScore > opponentScore) wins++;
+          else if (teamScore === opponentScore) draws++;
+          else losses++;
+        });
+        
+        const totalMatches = matches.length;
+        const points = (wins * 3) + draws;
+        const winPercentage = totalMatches > 0 ? (wins / totalMatches) * 100 : 0;
+        
+        // Get last match data safely
+        let lastResult = 'No matches';
+        let lastResultDate = '';
+        if (totalMatches > 0 && matches[0]) {
+          const lastMatch: any = matches[0];
+          // Use the same transformation logic as in Dashboard.tsx
+          const homeTeam = lastMatch.home_team || (lastMatch.is_home ? 'Your Team' : lastMatch.opponent_name) || 'TBD';
+          const awayTeam = lastMatch.away_team || (lastMatch.is_home ? lastMatch.opponent_name : 'Your Team') || 'TBD';
+          const homeScore = lastMatch.home_score || 0;
+          const awayScore = lastMatch.away_score || 0;
+          lastResult = `${homeTeam} ${homeScore}-${awayScore} ${awayTeam}`;
+          
+          if (lastMatch.match_date) {
+            const matchDate = new Date(lastMatch.match_date);
+            const daysAgo = Math.floor((Date.now() - matchDate.getTime()) / (1000 * 60 * 60 * 24));
+            lastResultDate = `${daysAgo} days ago`;
+          }
+        }
+        
+        setTeamStats({
+          points,
+          lastResult,
+          lastResultDate,
+          victoryPercentage: parseFloat(winPercentage.toFixed(1)),
+          matchesPlayed: totalMatches,
+          seasonInfo: 'Age Division'
+        });
+
+        // Calculate analytics data from players
+        const totalGoals = players.reduce((sum, player) => sum + (player.goals || 0), 0);
+        const totalAssists = players.reduce((sum, player) => sum + (player.assists || 0), 0);
+        const totalShots = players.reduce((sum, player) => sum + (player.shots || 0), 0);
+        const totalYellowCards = players.reduce((sum, player) => sum + (player.yellow_cards || 0), 0);
+        const totalRedCards = players.reduce((sum, player) => sum + (player.red_cards || 0), 0);
+        const totalTackles = players.reduce((sum, player) => sum + (player.duels_won || 0), 0);
+        const totalPasses = players.reduce((sum, player) => sum + (player.passes || 0), 0);
+        const totalPassAccuracy = players.reduce((sum, p) => sum + (p.pass_accuracy || 0), 0);
+        const avgPassAccuracy = players.length > 0 ? Math.round(totalPassAccuracy / players.length) : 85;
+        
+        setAnalyticsData({
+          performance: {
+            goals: totalGoals,
+            assists: totalAssists,
+            shotsOnTarget: Math.round(totalShots * 0.7), // Estimate
+            passAccuracy: avgPassAccuracy,
+            duelsWon: totalTackles,
+            possession: 55 // Default value
+          },
+          attack: {
+            shotsOnTarget: Math.round(totalShots * 0.7),
+            shotsOffTarget: Math.round(totalShots * 0.3),
+            goals: totalGoals,
+            assists: totalAssists,
+            keyPasses: Math.round(totalAssists * 2.5),
+            dribblesSuccessful: Math.round(totalGoals * 1.5)
+          },
+          defense: {
+            ballsRecovered: Math.round(totalTackles * 1.2),
+            interceptions: Math.round(totalTackles * 0.8),
+            tacklesWon: totalTackles,
+            goalsConceded: goalsAgainst,
+            defensiveDuelsWon: Math.round(totalTackles * 1.1)
+          },
+          discipline: {
+            foulsCommitted: Math.round(totalYellowCards * 5),
+            foulsReceived: Math.round(totalYellowCards * 4),
+            yellowCards: totalYellowCards,
+            redCards: totalRedCards
+          }
+        });
       } catch (error) {
-        console.error('Error fetching players:', error);
+        console.error('Error fetching data:', error);
         // Fallback to mock data if fetch fails
         const mockPlayers = [
           { name: 'Fernando Torres', position: 'DEL', minutes: 480, goals: 5, assists: 3, fitness: 8, shots: 12, cards: 2, fitCom: 2 },
@@ -622,7 +737,7 @@ export const InteractiveDashboard: React.FC = () => {
       }
     };
 
-    fetchPlayers();
+    fetchData();
   }, []);
 
   // Load attendance records from localStorage
@@ -682,7 +797,7 @@ export const InteractiveDashboard: React.FC = () => {
                 <div className="flex items-center justify-between flex-grow">
                   <div>
                     <p className="text-blue-100 text-sm font-medium">Points</p>
-                    <p className="text-3xl font-bold mt-1">24</p>
+                    <p className="text-3xl font-bold mt-1">{teamStats.points}</p>
                     <p className="text-blue-100 text-xs mt-1">Current Season</p>
                   </div>
                   <Trophy className="h-12 w-12 text-blue-200" />
@@ -697,8 +812,8 @@ export const InteractiveDashboard: React.FC = () => {
                 <div className="flex items-center justify-between flex-grow">
                   <div>
                     <p className="text-green-100 text-sm font-medium">Last Result</p>
-                    <p className="text-lg font-bold mt-1">CD Statsor 5-3 Jaén</p>
-                    <p className="text-green-100 text-xs mt-1">3 days ago</p>
+                    <p className="text-lg font-bold mt-1">{teamStats.lastResult}</p>
+                    <p className="text-green-100 text-xs mt-1">{teamStats.lastResultDate}</p>
                   </div>
                   <Target className="h-12 w-12 text-green-200" />
                 </div>
@@ -712,8 +827,8 @@ export const InteractiveDashboard: React.FC = () => {
                 <div className="flex items-center justify-between flex-grow">
                   <div>
                     <p className="text-purple-100 text-sm font-medium">% Victories</p>
-                    <p className="text-3xl font-bold mt-1">66.7%</p>
-                    <p className="text-purple-100 text-xs mt-1">6 of 12 matches</p>
+                    <p className="text-3xl font-bold mt-1">{teamStats.victoryPercentage}%</p>
+                    <p className="text-purple-100 text-xs mt-1">{Math.round((teamStats.victoryPercentage / 100) * teamStats.matchesPlayed)} of {teamStats.matchesPlayed} matches</p>
                   </div>
                   <TrendingUp className="h-12 w-12 text-purple-200" />
                 </div>
@@ -728,7 +843,7 @@ export const InteractiveDashboard: React.FC = () => {
                   <div>
                     <p className="text-orange-100 text-sm font-medium">Season - Jaén</p>
                     <p className="text-lg font-bold mt-1">Age</p>
-                    <p className="text-orange-100 text-xs mt-1">Division</p>
+                    <p className="text-orange-100 text-xs mt-1">{teamStats.seasonInfo}</p>
                   </div>
                   <Users className="h-12 w-12 text-orange-200" />
                 </div>
@@ -979,63 +1094,7 @@ export const InteractiveDashboard: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Recent Matches Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mb-6"
-        >
-          <Card className={`${
-            isHighContrast ? 'hc-card' :
-            theme === 'midnight' ? 'bg-white border-gray-200' : 'bg-white border-gray-200'
-          }`}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Recent Matches</span>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/matches')}
-                  className="text-sm"
-                >
-                  View All
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentMatches.map((match) => (
-                  <div key={match.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-base">{formatDate(match.date)}</p>
-                      <p className="text-sm text-gray-600 text-contained">
-                        {match.homeTeam} {match.homeScore} - {match.awayScore} {match.awayTeam}
-                      </p>
-                      <Badge 
-                        className={
-                          match.result === 'W' ? 'bg-green-100 text-green-800' : 
-                          match.result === 'D' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-red-100 text-red-800'
-                        }
-                      >
-                        {match.result === 'W' ? 'Win' : match.result === 'D' ? 'Draw' : 'Loss'}
-                      </Badge>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => navigate(`/matches`)}
-                      className="border-gray-300 text-gray-700 hover:bg-gray-100 text-sm"
-                    >
-                      Details
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+
 
         {/* Upcoming Matches - Horizontal Line Format */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="mb-6">

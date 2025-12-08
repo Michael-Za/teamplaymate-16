@@ -67,18 +67,164 @@ BACKEND_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:3001/api/v1')
 def fetch_user_data(user_id=None):
     """Fetch real user data from the backend API"""
     try:
-        # For now, we'll use mock data but in a real implementation,
-        # this would fetch from the backend API using the user_id
-        # Example API call:
-        # response = requests.get(f"{BACKEND_API_URL}/players", 
-        #                        headers={"Authorization": f"Bearer {access_token}"})
-        # if response.status_code == 200:
-        #     return response.json()
+        # If no user_id provided, return mock data
+        if not user_id:
+            print("No user ID provided, using mock data")
+            return USER_DATA
         
-        # Return the existing mock data for now
-        return USER_DATA
+        # For demo accounts, return mock data
+        if user_id.startswith('demo'):
+            print("Demo account detected, using mock data")
+            return USER_DATA
+            
+        # Try to fetch real data from the backend API
+        print(f"Fetching real data for user: {user_id}")
+        
+        # Fetch players data
+        players_response = requests.get(
+            f"{BACKEND_API_URL}/players", 
+            headers={"Authorization": f"Bearer {os.getenv('BACKEND_AUTH_TOKEN', '')}"}
+        )
+        
+        # Fetch team data
+        teams_response = requests.get(
+            f"{BACKEND_API_URL}/teams", 
+            headers={"Authorization": f"Bearer {os.getenv('BACKEND_AUTH_TOKEN', '')}"}
+        )
+        
+        # Fetch matches data
+        matches_response = requests.get(
+            f"{BACKEND_API_URL}/matches", 
+            headers={"Authorization": f"Bearer {os.getenv('BACKEND_AUTH_TOKEN', '')}"}
+        )
+        
+        user_data = {}
+        
+        # Process players data
+        if players_response.status_code == 200:
+            players_data = players_response.json()
+            user_data['players'] = []
+            for player in players_data:
+                user_data['players'].append({
+                    "id": player.get('id', ''),
+                    "name": player.get('name', 'Unknown Player'),
+                    "position": player.get('position', 'Unknown'),
+                    "goals": player.get('goals', 0),
+                    "assists": player.get('assists', 0),
+                    "rating": player.get('rating', 7.0),
+                    "fitness": player.get('fitness', 85),
+                    "injuries": player.get('injuries', []),
+                    "age": player.get('age', 25),
+                    "nationality": player.get('nationality', 'Unknown'),
+                    "market_value": player.get('market_value', '0M'),
+                    "contract_expiry": player.get('contract_end', '2025-06-30'),
+                    "strengths": ["General skills"],
+                    "weaknesses": ["Areas for improvement"]
+                })
+        else:
+            # Fallback to mock players data
+            user_data['players'] = USER_DATA['players']
+            print("Using mock players data as fallback")
+        
+        # Process team data
+        if teams_response.status_code == 200:
+            teams_data = teams_response.json()
+            if teams_data:
+                team = teams_data[0]  # Take the first team
+                user_data['team'] = {
+                    "name": team.get('name', 'My Team'),
+                    "formation": team.get('formation', '4-3-3'),
+                    "wins": 0,  # Will calculate from matches
+                    "losses": 0,
+                    "draws": 0,
+                    "goals_for": 0,
+                    "goals_against": 0,
+                    "clean_sheets": 0,
+                    "league_position": 1,
+                    "manager": "You",
+                    "recent_form": []
+                }
+            else:
+                user_data['team'] = USER_DATA['team']
+                print("Using mock team data as no teams found")
+        else:
+            user_data['team'] = USER_DATA['team']
+            print("Using mock team data as fallback")
+        
+        # Process matches data and update team stats
+        if matches_response.status_code == 200:
+            matches_data = matches_response.json()
+            user_data['matches'] = []
+            
+            wins = 0
+            losses = 0
+            draws = 0
+            goals_for = 0
+            goals_against = 0
+            clean_sheets = 0
+            
+            for match in matches_data[:5]:  # Last 5 matches
+                home_score = match.get('home_score', 0)
+                away_score = match.get('away_score', 0)
+                is_home = match.get('is_home', True)
+                
+                # Calculate team scores based on home/away
+                team_score = home_score if is_home else away_score
+                opponent_score = away_score if is_home else home_score
+                
+                # Update stats
+                goals_for += team_score
+                goals_against += opponent_score
+                
+                if team_score > opponent_score:
+                    wins += 1
+                    result = "Win"
+                elif team_score < opponent_score:
+                    losses += 1
+                    result = "Loss"
+                else:
+                    draws += 1
+                    result = "Draw"
+                
+                if opponent_score == 0:
+                    clean_sheets += 1
+                
+                user_data['matches'].append({
+                    "id": match.get('id', ''),
+                    "opponent": match.get('opponent_name', 'Unknown Opponent'),
+                    "date": match.get('match_date', '2023-01-01'),
+                    "result": result,
+                    "score": f"{team_score}-{opponent_score}",
+                    "home_away": "Home" if is_home else "Away",
+                    "competition": match.get('match_type', 'Friendly'),
+                    "goals": [],  # Simplified for now
+                    "tactical_notes": "Match analysis not available"
+                })
+            
+            # Update team stats with calculated values
+            if 'team' in user_data:
+                user_data['team'].update({
+                    "wins": wins,
+                    "losses": losses,
+                    "draws": draws,
+                    "goals_for": goals_for,
+                    "goals_against": goals_against,
+                    "clean_sheets": clean_sheets
+                })
+        else:
+            user_data['matches'] = USER_DATA['matches']
+            print("Using mock matches data as fallback")
+        
+        # Add training and upcoming matches data
+        user_data['training'] = USER_DATA['training']
+        user_data['upcoming_matches'] = USER_DATA['upcoming_matches']
+        
+        print(f"Successfully fetched data for user {user_id}")
+        return user_data
+        
     except Exception as e:
         print(f"Error fetching user data: {e}")
+        # Always fallback to mock data if there's any error
         return USER_DATA  # Fallback to mock data
 
 def update_user_data(user_id, data):

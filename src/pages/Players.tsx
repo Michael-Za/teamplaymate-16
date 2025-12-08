@@ -7,6 +7,7 @@ import { ArrowLeft, Camera, X, Plus } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AddPlayerForm from '../components/AddPlayerForm';
 import { PlayerPhotoUpload } from '../components/PlayerPhotoUpload';
+import { Player as DataPlayer } from '../services/dataManagementService';
 import { playerManagementService } from '../services/playerManagementService';
 import { toast } from 'sonner';
 
@@ -44,6 +45,10 @@ interface Player {
   saves: number;
   photo: string;
   shotMap: { [key: string]: number };
+  
+  // Additional properties for fitness and injuries
+  fitness: number;
+  injuries: string[];
 }
 
 const Players = () => {
@@ -91,7 +96,7 @@ const Players = () => {
       console.log('[Players] Loaded players:', playersData.length);
       
       // Transform the data to match our Player interface
-      const transformedPlayers: Player[] = playersData.map(player => ({
+      const transformedPlayers = playersData.map(player => ({
         id: player.id || '',
         name: player.name || 'Unknown',
         position: player.position || 'MID',
@@ -125,9 +130,11 @@ const Players = () => {
           'top-left': 0, 'top-center': 0, 'top-right': 0, 
           'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 
           'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 
-        }
+        },
+        fitness: player.fitness ?? 0,
+        injuries: player.injuries ?? []
       }));
-      setPlayers(transformedPlayers);
+      setPlayers(transformedPlayers as Player[]);
     } catch (error) {
       console.error('[Players] Error loading players:', error);
       toast.error('Failed to load players');
@@ -631,8 +638,36 @@ const Players = () => {
         </Button>
       </div>
 
+      {/* Player Statistics Summary */}
+      <div className="p-4 bg-white border-b">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="bg-blue-50 p-4 rounded-lg text-center">
+            <div className="text-2xl font-bold text-blue-600">{players.length}</div>
+            <div className="text-sm text-gray-600">Total Players</div>
+          </div>
+          <div className="bg-green-50 p-4 rounded-lg text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {players.filter(p => (p.fitness ?? 0) >= 70 && (!p.injuries || p.injuries.length === 0)).length}
+            </div>
+            <div className="text-sm text-gray-600">Available</div>
+          </div>
+          <div className="bg-red-50 p-4 rounded-lg text-center">
+            <div className="text-2xl font-bold text-red-600">
+              {players.filter(p => p.injuries && p.injuries.length > 0).length}
+            </div>
+            <div className="text-sm text-gray-600">Injured</div>
+          </div>
+          <div className="bg-yellow-50 p-4 rounded-lg text-center">
+            <div className="text-2xl font-bold text-yellow-600">
+              {players.filter(p => (p.fitness ?? 0) < 70).length}
+            </div>
+            <div className="text-sm text-gray-600">Low Fitness</div>
+          </div>
+        </div>
+      </div>
+
       {/* Players Grid - Full screen without extra padding */}
-      <div className="h-[calc(100vh-70px)] overflow-y-auto p-4">
+      <div className="h-[calc(100vh-140px)] overflow-y-auto p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {players.map((player) => (
             <Card 
