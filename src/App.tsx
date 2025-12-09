@@ -38,26 +38,20 @@ const TacticalChat = lazy(() => import("./pages/TacticalChat"));
 const AdvancedAnalytics = lazy(() => import("./pages/AdvancedAnalytics"));
 const CommunityHub = lazy(() => import("./pages/CommunityHub"));
 const DatabaseStatusPage = lazy(() => import("./pages/DatabaseStatusPage"));
-// const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
+
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("./pages/PaymentCancel"));
 const PayPalPayment = lazy(() => import("./pages/PayPalPayment"));
-const TestPage = lazy(() => import("./pages/TestPage"));
 const PlayerManagement = lazy(() => import("./pages/PlayerManagement"));
 const MatchTracking = lazy(() => import("./pages/MatchTracking"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const AIAssistant = lazy(() => import("./pages/AIAssistant"));
-const AIAssistantDirect = lazy(() => import("./pages/AIAssistantDirect"));
-const TestRender = lazy(() => import("./pages/TestRender"));
-const TestAIAssistant = lazy(() => import("./pages/TestAIAssistant"));
 const DataManagement = lazy(() => import("./pages/DataManagement"));
 const Suggestions = lazy(() => import("./pages/Suggestions"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Profile = lazy(() => import("./pages/Profile"));
 const GeneralNotepad = lazy(() => import("./pages/GeneralNotepad"));
-const TestPlayerIntegration = lazy(() => import("./pages/TestPlayerIntegration"));
-const DemoPlayerTest = lazy(() => import("./pages/DemoPlayerTest"));
 const SubscriptionGate = lazy(() => import("./components/SubscriptionGate"));
 
 const queryClient = new QueryClient({
@@ -193,7 +187,6 @@ function App() {
                 <Route path="/payment-success" element={<PaymentSuccess />} />
                 <Route path="/payment-cancel" element={<PaymentCancel />} />
                 <Route path="/paypal-payment" element={<PayPalPayment />} />
-                <Route path="/test" element={<TestPage />} />
 
                 {/* Protected Routes */}
                 <Route
@@ -222,26 +215,6 @@ function App() {
                     <ProtectedRoute>
                       <ResponsiveLayout>
                         <PlayerManagement />
-                      </ResponsiveLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/player-test"
-                  element={
-                    <ProtectedRoute>
-                      <ResponsiveLayout>
-                        <TestPlayerIntegration />
-                      </ResponsiveLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/demo-player-test"
-                  element={
-                    <ProtectedRoute>
-                      <ResponsiveLayout>
-                        <DemoPlayerTest />
                       </ResponsiveLayout>
                     </ProtectedRoute>
                   }
@@ -403,22 +376,6 @@ function App() {
                   }
                 />
                 <Route
-                  path="/ai-assistant-direct"
-                  element={
-                    <ProtectedRoute>
-                      <AIAssistantDirect />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/ai-assistant-test"
-                  element={
-                    <ProtectedRoute>
-                      <TestAIAssistant />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
                   path="/ai-assistant"
                   element={
                     <ProtectedRoute>
@@ -459,7 +416,6 @@ function App() {
                   }
                 />
                 <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/test-render" element={<TestRender />} />
               </Routes>
             </Suspense>
           </AppProviders>

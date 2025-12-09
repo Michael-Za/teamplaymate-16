@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { footballAnalysisService } from '../services/footballAnalysisService';
 import { emailService } from '../services/emailService';
 import { chatService, ChatSession, ChatMessage } from '../services/chatService';
+import { supabase } from '../lib/supabase';
 
 interface ChatbotContextType {
   sessions: ChatSession[];
@@ -73,7 +74,8 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
             }
           ],
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          isActive: true
         };
         setSessions([welcomeSession]);
       } else {
@@ -88,7 +90,8 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         title: 'Demo Chat',
         messages: [],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        isActive: true
       };
       setSessions([demoSession]);
     } finally {
@@ -111,7 +114,8 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         title: title || `Chat ${new Date().toLocaleDateString()}`,
         messages: [],
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        isActive: true
       };
       
       setSessions(prev => [newSession, ...prev]);
@@ -142,6 +146,7 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         messages: [],
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
+        isActive: true,
         metadata: data.metadata
       };
 
@@ -187,13 +192,13 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
             content: msg.content,
             timestamp: new Date(msg.timestamp),
             messageType: msg.message_type,
-            data: msg.data,
             actions: msg.actions,
             rating: msg.rating,
             feedback: msg.feedback
           })) || [],
           createdAt: new Date(data.created_at),
           updatedAt: new Date(data.updated_at),
+          isActive: true,
           metadata: data.metadata
         };
 
@@ -226,8 +231,7 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       // Process message and generate bot response
       const botResponse = await processUserMessage(content, type);
-      await saveMessage(botResponse);
-
+      
       // Update current session
       setCurrentSession(prev => prev ? {
         ...prev,
@@ -253,7 +257,16 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const sendSuggestion = async (suggestion: string, context: string): Promise<boolean> => {
     try {
-      const result = await emailService.sendSuggestionEmail(suggestion, user, context);
+      // Use the emailService to send the suggestion
+      const userInfo = user ? {
+        name: user.name,
+        email: user.email,
+        id: user.id,
+        role: 'user', // Default role since UserProfile doesn't have a role property
+        created_at: user.created_at || ''
+      } : {};
+      
+      const result = await emailService.sendSupportEmail(suggestion, userInfo, 'medium');
       return result.success;
     } catch (error) {
       console.error('Failed to send suggestion:', error);
@@ -280,7 +293,6 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         content: message.content,
         timestamp: message.timestamp.toISOString(),
         message_type: message.messageType,
-        data: message.data,
         actions: message.actions,
         rating: message.rating,
         feedback: message.feedback
@@ -314,16 +326,9 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
         response = {
           ...response,
-          content: `Here's the detailed analysis for ${analysisData.teams.home} vs ${analysisData.teams.away}:`,
+          content: `Here's the detailed analysis for ${teams.home || 'Team A'} vs ${teams.away || 'Team B'}:`,
           messageType: 'analysis',
-          data: analysisData,
           actions: [
-            {
-              id: 'export_pdf',
-              label: 'Export as PDF',
-              type: 'download',
-              action: () => footballAnalysisService.exportAnalysis(analysisData, 'pdf')
-            },
             {
               id: 'share_analysis',
               label: 'Share Analysis',
@@ -341,8 +346,7 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         response = {
           ...response,
           content: `Here are the latest statistics for ${playerName || 'top players'}:`,
-          messageType: 'stats',
-          data: { players: playerStats }
+          messageType: 'analysis'
         };
       } else if (lowerContent.includes('predict') || lowerContent.includes('prediction')) {
         const teams = extractTeamNames(content);
@@ -350,15 +354,13 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
           homeTeam: teams.home || 'Team A',
           awayTeam: teams.away || 'Team B',
           venue: 'home',
-          historicalData: true,
-          formAnalysis: true
+          historicalData: true
         });
 
         response = {
           ...response,
           content: `Here are my predictions for ${teams.home || 'Team A'} vs ${teams.away || 'Team B'}:`,
-          messageType: 'analysis',
-          data: { predictions }
+          messageType: 'analysis'
         };
       } else if (lowerContent.includes('help') || lowerContent.includes('tutorial')) {
         response = {
@@ -410,7 +412,7 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     const vsPattern = /(\w+(?:\s+\w+)*)\s+(?:vs|v|against)\s+(\w+(?:\s+\w+)*)/i;
     const match = content.match(vsPattern);
     
-    if (match) {
+    if (match && match[1] && match[2]) {
       return { home: match[1].trim(), away: match[2].trim() };
     }
 
@@ -447,7 +449,7 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         setCurrentSession(prev => prev ? {
           ...prev,
           messages: prev.messages.map(msg => 
-            msg.id === messageId ? { ...msg, rating, feedback } : msg
+            msg.id === messageId ? { ...msg, rating: rating ?? 0, feedback: feedback ?? '' } : msg
           )
         } : null);
       }
@@ -512,6 +514,7 @@ const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         messages: [],
         createdAt: new Date(session.created_at),
         updatedAt: new Date(session.updated_at),
+        isActive: true,
         metadata: session.metadata
       })) || [];
     } catch (err) {

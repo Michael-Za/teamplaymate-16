@@ -26,6 +26,11 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+    /* Allow JavaScript files */
+    "allowJs": true,
+    "checkJs": false,
+    "maxNodeModuleJsDepth": 0,
+    "esModuleInterop": true,
     /* Path mapping */
     "baseUrl": ".",
     "paths": {
@@ -43,6 +48,11 @@
     "src",
     "cypress",
     "cypress.config.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    }
   ],
   "exclude": [
     "node_modules",

@@ -1,43 +1,28 @@
 import express from 'express';
-import AiChatHistoryService from '../services/aiChatHistoryService.js';
-import { asyncHandler } from '../middleware/errorHandler.js';
+import Groq from 'groq-sdk'; // This is why we added the package above
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
-const chatHistoryService = new AiChatHistoryService();
 
-// @route   POST /api/v1/aichat/messages
-// @desc    Save a chat message and its response
-// @access  Private
-router.post(
-  '/messages',
-  authenticateToken,
-  asyncHandler(async (req, res) => {
-    const { message, response, context } = req.body;
-    const userId = req.user.id;
+// Initialize Groq
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY 
+});
 
-    const savedMessage = await chatHistoryService.addMessage(userId, message, response, context);
+router.post('/message', authenticateToken, async (req, res) => {
+    try {
+        const { message } = req.body;
+        
+        const completion = await groq.chat.completions.create({
+            messages: [{ role: 'user', content: message }],
+            model: 'mixtral-8x7b-32768', // Or 'llama3-70b-8192'
+        });
 
-    res.status(201).json({
-      message: 'Message saved successfully',
-      data: savedMessage,
-    });
-  })
-);
-
-// @route   GET /api/v1/aichat/history
-// @desc    Get the user's chat history
-// @access  Private
-router.get(
-  '/history',
-  authenticateToken,
-  asyncHandler(async (req, res) => {
-    const userId = req.user.id;
-    const history = await chatHistoryService.getHistory(userId);
-    res.json({
-      history,
-    });
-  })
-);
+        res.json({ response: completion.choices[0]?.message?.content || "" });
+    } catch (error) {
+        console.error("AI Error:", error);
+        res.status(500).json({ error: 'AI Assistant failed to respond' });
+    }
+});
 
 export default router;

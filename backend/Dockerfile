@@ -19,4 +19,4 @@ RUN cd backend && npm install --production
 COPY . .
 
 # Start the application from root directory
-CMD ["node", "server.js"]
+CMD ["node", "src/server.js"]

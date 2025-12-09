@@ -13,25 +13,21 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Health check endpoint
 router.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
+  res.json({ status: 'OK', uptime: process.uptime() });
 });
 
-// API routes
-router.use('/api/v1/auth', authRoutes);
-router.use('/api/v1/teams', authenticateToken, teamsRoutes);
-router.use('/api/v1/players', authenticateToken, playersRoutes);
-router.use('/api/v1/matches', authenticateToken, matchesRoutes);
-router.use('/api/v1/analytics', authenticateToken, analyticsRoutes);
-router.use('/api/v1/chat', authenticateToken, chatRoutes);
-router.use('/api/v1/events', authenticateToken, eventsRoutes);
-router.use('/api/v1/ai-assistant', aiAssistantRoutes);
-router.use('/api/v1/aichat', authenticateToken, aiChatRoutes);
-router.use('/api/v1/notifications', authenticateToken, notificationsRoutes);
+// REMOVE '/api/v1' from here. 
+// Just mount the specific feature names.
+router.use('/auth', authRoutes); // NOW: mounts on /auth
+router.use('/teams', authenticateToken, teamsRoutes); // NOW: mounts on /teams
+router.use('/players', authenticateToken, playersRoutes);
+router.use('/matches', authenticateToken, matchesRoutes);
+router.use('/analytics', authenticateToken, analyticsRoutes);
+router.use('/chat', authenticateToken, chatRoutes);
+router.use('/events', authenticateToken, eventsRoutes);
+router.use('/ai-assistant', aiAssistantRoutes);
+router.use('/aichat', authenticateToken, aiChatRoutes);
+router.use('/notifications', authenticateToken, notificationsRoutes);
 
 export default router;

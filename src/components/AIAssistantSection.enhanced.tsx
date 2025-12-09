@@ -95,7 +95,8 @@ import {
   Bar,
   AreaChart,
   Area,
-  Scatter
+  Scatter,
+  ScatterChart
 } from 'recharts';
 import { useTheme } from '../contexts/ThemeContext';
 import { dataManagementService, Player } from '../services/dataManagementService';
@@ -668,7 +669,7 @@ export const AIAssistantSection: React.FC = () => {
   const cardClasses = `
     h-full w-full flex flex-col
     ${isHighContrast ? 'hc-card' :
-      theme === 'dark' || theme === 'midnight' 
+      theme === 'midnight'
         ? isEyeFriendlyMode 
           ? 'bg-gray-900/80 border-gray-700 text-white' 
           : 'bg-gray-900 border-gray-800 text-white'
@@ -684,7 +685,7 @@ export const AIAssistantSection: React.FC = () => {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-3 border rounded-lg shadow-lg`}>
+        <div className={`${'bg-gray-800 border-gray-700'} p-3 border rounded-lg shadow-lg`}>
           <p className="font-semibold">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }}>
@@ -715,7 +716,7 @@ export const AIAssistantSection: React.FC = () => {
       className={containerClasses}
     >
       <Card className={cardClasses}>
-        <CardHeader className={`${theme === 'dark' || theme === 'midnight' ? 'border-gray-800' : 'border-gray-100'} border-b`}>
+        <CardHeader className={`${theme === 'midnight' ? 'border-gray-800' : 'border-gray-100'} border-b`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {!isFullScreen && (
@@ -733,7 +734,7 @@ export const AIAssistantSection: React.FC = () => {
                 <Bot className="h-6 w-6 text-white animate-pulse" />
               </div>
               <div>
-                <CardTitle className={`${theme === 'dark' || theme === 'midnight' ? 'text-white' : 'text-gray-900'} flex items-center space-x-2`}>
+                <CardTitle className={`${'text-white'} flex items-center space-x-2`}>
                   <span>AI Captain Pro</span>
                   <Badge className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-xs px-2 py-1 border-0">
                     GPT-4 Enhanced
@@ -795,11 +796,11 @@ export const AIAssistantSection: React.FC = () => {
       
         <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
-            <TabsList className={`grid w-full grid-cols-2 ${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800/50 border border-gray-700/50' : 'bg-white border border-gray-200 shadow-sm'} m-4 mb-0 p-1 rounded-xl`}>
+            <TabsList className={`grid w-full grid-cols-2 ${theme === 'midnight' ? 'bg-gray-800/50 border border-gray-700/50' : 'bg-white border border-gray-200 shadow-sm'} m-4 mb-0 p-1 rounded-xl`}>
               <TabsTrigger 
                 value="chat" 
                 className={`flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 px-4 py-2 ${
-                  theme === 'dark' || theme === 'midnight'
+                  theme === 'midnight'
                     ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300 hover:text-white hover:bg-gray-700/50' 
                     : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
@@ -810,7 +811,7 @@ export const AIAssistantSection: React.FC = () => {
               <TabsTrigger 
                 value="analytics" 
                 className={`flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-200 px-4 py-2 ${
-                  theme === 'dark' || theme === 'midnight'
+                  theme === 'midnight'
                     ? 'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300 hover:text-white hover:bg-gray-700/50' 
                     : 'data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
@@ -831,7 +832,7 @@ export const AIAssistantSection: React.FC = () => {
                       size="sm"
                       onClick={() => handleQuickPrompt(prompt.text)}
                       className={`flex items-center gap-1 text-xs ${
-                        theme === 'dark' || theme === 'midnight'
+                        theme === 'midnight'
                           ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700'
                           : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
                       }`}
@@ -852,7 +853,7 @@ export const AIAssistantSection: React.FC = () => {
                         className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
                           message.sender === 'user'
                             ? 'bg-blue-600 text-white'
-                            : theme === 'dark' || theme === 'midnight'
+                            : theme === 'midnight'
                               ? 'bg-gray-700 text-white border border-gray-600' 
                               : 'bg-white text-gray-900 border border-gray-200'
                         }`}
@@ -860,7 +861,7 @@ export const AIAssistantSection: React.FC = () => {
                         <p className="text-sm">{message.content}</p>
                         <div className="flex items-center justify-between mt-2">
                           <p className={`text-xs ${
-                            message.sender === 'user' ? 'text-blue-100' : theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'
+                            message.sender === 'user' ? 'text-blue-100' : 'text-gray-400'
                           }`}>
                             {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
@@ -916,7 +917,7 @@ export const AIAssistantSection: React.FC = () => {
                   ))}
                   {isTyping && (
                     <div className="flex justify-start">
-                      <div className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-700 text-white border border-gray-600' : 'bg-white text-gray-900 border border-gray-200'} px-4 py-3 rounded-lg`}>
+                      <div className={`${theme === 'midnight' ? 'bg-gray-700 text-white border border-gray-600' : 'bg-white text-gray-900 border border-gray-200'} px-4 py-3 rounded-lg`}>
                         <div className="flex items-center space-x-2">
                           <div className="flex space-x-1">
                             <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
@@ -1021,7 +1022,7 @@ export const AIAssistantSection: React.FC = () => {
                         value={analyticsFilter}
                         onChange={(e) => setAnalyticsFilter(e.target.value)}
                         className={`px-3 py-2 rounded-lg text-sm ${
-                          theme === 'dark' || theme === 'midnight'
+                          theme === 'midnight'
                             ? 'bg-gray-800 border-gray-700 text-white'
                             : 'bg-white border-gray-200 text-gray-900'
                         } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -1049,84 +1050,84 @@ export const AIAssistantSection: React.FC = () => {
                     <div className="space-y-6">
                       {/* Key Metrics */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                        <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Win Probability</p>
+                                <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Win Probability</p>
                                 <p className="text-2xl font-bold text-green-500">72%</p>
                               </div>
                               <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                                 <TrendingUp className="h-5 w-5 text-green-500" />
                               </div>
                             </div>
-                            <p className={`text-xs mt-2 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>+5% from last match</p>
+                            <p className={`text-xs mt-2 ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>+5% from last match</p>
                           </CardContent>
                         </Card>
                         
-                        <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                        <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Formation Efficiency</p>
+                                <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Formation Efficiency</p>
                                 <p className="text-2xl font-bold text-blue-500">85%</p>
                               </div>
                               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                                 <Target className="h-5 w-5 text-blue-500" />
                               </div>
                             </div>
-                            <p className={`text-xs mt-2 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>4-3-3 formation performing well</p>
+                            <p className={`text-xs mt-2 ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>4-3-3 formation performing well</p>
                           </CardContent>
                         </Card>
                         
-                        <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                        <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Pressing Intensity</p>
+                                <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Pressing Intensity</p>
                                 <p className="text-2xl font-bold text-yellow-500">68%</p>
                               </div>
                               <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
                                 <Zap className="h-5 w-5 text-yellow-500" />
                               </div>
                             </div>
-                            <p className={`text-xs mt-2 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Moderate pressure applied</p>
+                            <p className={`text-xs mt-2 ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Moderate pressure applied</p>
                           </CardContent>
                         </Card>
                         
-                        <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                        <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Counter Attack</p>
+                                <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>Counter Attack</p>
                                 <p className="text-2xl font-bold text-purple-500">91%</p>
                               </div>
                               <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                                 <Activity className="h-5 w-5 text-purple-500" />
                               </div>
                             </div>
-                            <p className={`text-xs mt-2 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>High success rate</p>
+                            <p className={`text-xs mt-2 ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>High success rate</p>
                           </CardContent>
                         </Card>
                       </div>
                       
                       {/* Performance Charts */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                        <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                           <CardHeader className="pb-2">
-                            <CardTitle className={`text-lg ${theme === 'dark' || theme === 'midnight' ? 'text-white' : 'text-gray-900'}`}>
+                            <CardTitle className={`text-lg ${'text-white'}`}>
                               Team Performance Over Time
                             </CardTitle>
-                            <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
+                            <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
                               Goals, assists, and ratings progression
                             </p>
                           </CardHeader>
                           <CardContent className="h-80">
                             <ResponsiveContainer width="100%" height="100%">
                               <RechartsLineChart data={enhancedPerformanceData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' || theme === 'midnight' ? '#374151' : '#f0f0f0'} />
-                                <XAxis dataKey="month" stroke={theme === 'dark' || theme === 'midnight' ? '#9CA3AF' : '#666'} />
-                                <YAxis stroke={theme === 'dark' || theme === 'midnight' ? '#9CA3AF' : '#666'} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={'#374151'} />
+                                <XAxis dataKey="month" stroke={'#9CA3AF'} />
+                                <YAxis stroke={'#9CA3AF'} />
                                 <Tooltip content={<CustomTooltip />} />
                                 <Line 
                                   type="monotone" 
@@ -1160,21 +1161,21 @@ export const AIAssistantSection: React.FC = () => {
                           </CardContent>
                         </Card>
                         
-                        <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                        <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                           <CardHeader className="pb-2">
-                            <CardTitle className={`text-lg ${theme === 'dark' || theme === 'midnight' ? 'text-white' : 'text-gray-900'}`}>
+                            <CardTitle className={`text-lg ${'text-white'}`}>
                               Player Efficiency Radar
                             </CardTitle>
-                            <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
+                            <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
                               Skills assessment across key metrics
                             </p>
                           </CardHeader>
                           <CardContent className="h-80">
                             <ResponsiveContainer width="100%" height="100%">
                               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={playerEfficiencyData}>
-                                <PolarGrid stroke={theme === 'dark' || theme === 'midnight' ? '#374151' : '#f0f0f0'} />
-                                <PolarAngleAxis dataKey="name" stroke={theme === 'dark' || theme === 'midnight' ? '#9CA3AF' : '#666'} />
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} stroke={theme === 'dark' || theme === 'midnight' ? '#9CA3AF' : '#666'} />
+                                <PolarGrid stroke={'#374151'} />
+                                <PolarAngleAxis dataKey="name" stroke={'#9CA3AF'} />
+                                <PolarRadiusAxis angle={30} domain={[0, 100]} stroke={'#9CA3AF'} />
                                 <Radar
                                   name="Efficiency"
                                   dataKey="value"
@@ -1190,12 +1191,12 @@ export const AIAssistantSection: React.FC = () => {
                       </div>
                       
                       {/* Key Insights */}
-                      <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                      <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                         <CardHeader className="pb-2">
-                          <CardTitle className={`text-lg ${theme === 'dark' || theme === 'midnight' ? 'text-white' : 'text-gray-900'}`}>
+                          <CardTitle className={`text-lg ${'text-white'}`}>
                             Key Insights
                           </CardTitle>
-                          <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
                             AI-powered tactical recommendations
                           </p>
                         </CardHeader>
@@ -1254,31 +1255,31 @@ export const AIAssistantSection: React.FC = () => {
                   {analyticsView === 'players' && (
                     <div className="space-y-6">
                       {/* Player Performance Scatter Plot */}
-                      <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                      <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                         <CardHeader className="pb-2">
-                          <CardTitle className={`text-lg ${theme === 'dark' || theme === 'midnight' ? 'text-white' : 'text-gray-900'}`}>
+                          <CardTitle className={`text-lg ${'text-white'}`}>
                             Player Performance Analysis
                           </CardTitle>
-                          <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
                             Goals vs Assists with Fitness as Size
                           </p>
                         </CardHeader>
                         <CardContent className="h-96">
                           <ResponsiveContainer width="100%" height="100%">
                             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                              <CartesianGrid stroke={theme === 'dark' || theme === 'midnight' ? '#374151' : '#f0f0f0'} />
+                              <CartesianGrid stroke={'#374151'} />
                               <XAxis 
                                 type="number" 
                                 dataKey="x" 
                                 name="Goals" 
-                                stroke={theme === 'dark' || theme === 'midnight' ? '#9CA3AF' : '#666'} 
+                                stroke={'#9CA3AF'} 
                                 label={{ value: 'Goals', position: 'insideBottom', offset: -5 }} 
                               />
                               <YAxis 
                                 type="number" 
                                 dataKey="y" 
                                 name="Assists" 
-                                stroke={theme === 'dark' || theme === 'midnight' ? '#9CA3AF' : '#666'} 
+                                stroke={'#9CA3AF'} 
                                 label={{ value: 'Assists', angle: -90, position: 'insideLeft' }} 
                               />
                               <Tooltip 
@@ -1295,18 +1296,18 @@ export const AIAssistantSection: React.FC = () => {
                                   } />
                                 ))}
                               </Scatter>
-                            </ScatterChart>
-                          </ResponsiveContainer>
+                        </ScatterChart>
+                      </ResponsiveContainer>
                         </CardContent>
                       </Card>
                       
                       {/* Player Stats Table */}
-                      <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                      <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                         <CardHeader className="pb-2">
-                          <CardTitle className={`text-lg ${theme === 'dark' || theme === 'midnight' ? 'text-white' : 'text-gray-900'}`}>
+                          <CardTitle className={`text-lg ${'text-white'}`}>
                             Player Statistics
                           </CardTitle>
-                          <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
                             Detailed performance metrics
                           </p>
                         </CardHeader>
@@ -1314,20 +1315,20 @@ export const AIAssistantSection: React.FC = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full">
                               <thead>
-                                <tr className={`${theme === 'dark' || theme === 'midnight' ? 'border-gray-700' : 'border-gray-200'} border-b`}>
-                                  <th className={`text-left py-2 px-3 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Player</th>
-                                  <th className={`text-left py-2 px-3 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Position</th>
-                                  <th className={`text-left py-2 px-3 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Goals</th>
-                                  <th className={`text-left py-2 px-3 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Assists</th>
-                                  <th className={`text-left py-2 px-3 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Rating</th>
-                                  <th className={`text-left py-2 px-3 ${theme === 'dark' || theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Form</th>
+                                <tr className={`${theme === 'midnight' ? 'border-gray-700' : 'border-gray-200'} border-b`}>
+                                  <th className={`text-left py-2 px-3 ${theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Player</th>
+                                  <th className={`text-left py-2 px-3 ${theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Position</th>
+                                  <th className={`text-left py-2 px-3 ${theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Goals</th>
+                                  <th className={`text-left py-2 px-3 ${theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Assists</th>
+                                  <th className={`text-left py-2 px-3 ${theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Rating</th>
+                                  <th className={`text-left py-2 px-3 ${theme === 'midnight' ? 'text-gray-300' : 'text-gray-700'}`}>Form</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {playerAnalytics.map((player, index) => (
                                   <tr 
                                     key={index} 
-                                    className={`${theme === 'dark' || theme === 'midnight' ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'} border-b`}
+                                    className={`${theme === 'midnight' ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'} border-b`}
                                   >
                                     <td className="py-3 px-3 font-medium">{player.name}</td>
                                     <td className="py-3 px-3">
@@ -1364,21 +1365,21 @@ export const AIAssistantSection: React.FC = () => {
                   {analyticsView === 'formations' && (
                     <div className="space-y-6">
                       {/* Formation Effectiveness */}
-                      <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                      <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                         <CardHeader className="pb-2">
-                          <CardTitle className={`text-lg ${theme === 'dark' || theme === 'midnight' ? 'text-white' : 'text-gray-900'}`}>
+                          <CardTitle className={`text-lg ${'text-white'}`}>
                             Formation Effectiveness
                           </CardTitle>
-                          <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
                             Performance metrics by tactical setup
                           </p>
                         </CardHeader>
                         <CardContent className="h-80">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={formationEffectiveness}>
-                              <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' || theme === 'midnight' ? '#374151' : '#f0f0f0'} />
-                              <XAxis dataKey="formation" stroke={theme === 'dark' || theme === 'midnight' ? '#9CA3AF' : '#666'} />
-                              <YAxis stroke={theme === 'dark' || theme === 'midnight' ? '#9CA3AF' : '#666'} />
+                              <CartesianGrid strokeDasharray="3 3" stroke={'#374151'} />
+                              <XAxis dataKey="formation" stroke={'#9CA3AF'} />
+                              <YAxis stroke={'#9CA3AF'} />
                               <Tooltip content={<CustomTooltip />} />
                               <Bar dataKey="wins" fill="#10B981" name="Wins" />
                               <Bar dataKey="draws" fill="#F59E0B" name="Draws" />
@@ -1390,12 +1391,12 @@ export const AIAssistantSection: React.FC = () => {
                       
                       {/* Tactical Distribution */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                        <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                           <CardHeader className="pb-2">
-                            <CardTitle className={`text-lg ${theme === 'dark' || theme === 'midnight' ? 'text-white' : 'text-gray-900'}`}>
+                            <CardTitle className={`text-lg ${'text-white'}`}>
                               Tactical Distribution
                             </CardTitle>
-                            <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
+                            <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
                               Focus areas during matches
                             </p>
                           </CardHeader>
@@ -1422,12 +1423,12 @@ export const AIAssistantSection: React.FC = () => {
                           </CardContent>
                         </Card>
                         
-                        <Card className={`${theme === 'dark' || theme === 'midnight' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg`}>
+                        <Card className={`${'bg-gray-800 border-gray-700'} rounded-lg`}>
                           <CardHeader className="pb-2">
-                            <CardTitle className={`text-lg ${theme === 'dark' || theme === 'midnight' ? 'text-white' : 'text-gray-900'}`}>
+                            <CardTitle className={`text-lg ${'text-white'}`}>
                               Formation Recommendations
                             </CardTitle>
-                            <p className={`text-sm ${theme === 'dark' || theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
+                            <p className={`text-sm ${theme === 'midnight' ? 'text-gray-400' : 'text-gray-500'}`}>
                               AI-powered tactical suggestions
                             </p>
                           </CardHeader>
