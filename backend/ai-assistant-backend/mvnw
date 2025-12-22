@@ -1,0 +1,79 @@
+#!/bin/sh
+
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# ----------------------------------------------------------------------------
+# Maven Start Up Script
+#
+# This script is a wrapper for the real Maven script, "mvn". It is
+# intentionally kept simple and may not handle all cases correctly.
+#
+# ----------------------------------------------------------------------------
+
+# The following variables are used by this script.
+#
+# MAVEN_PROJECTBASEDIR: The directory containing the ".mvn" directory.
+# MAVEN_SETTINGS: The path to the Maven settings file. Defaults to "${user.home}/.m2/settings.xml".
+# MAVEN_OPTS: The command-line options to pass to the Java virtual machine.
+# MAVEN_SKIP_RC: If set to "true", this script will not process the "/etc/mavenrc" and "~/.mavenrc" files.
+
+# Get the directory of this script.
+MAVEN_PROJECTBASEDIR=$(dirname "$0")
+
+# If MAVEN_PROJECTBASEDIR is a relative path, then make it absolute.
+case "${MAVEN_PROJECTBASEDIR}" in
+  */*)
+    # It's a relative path, so make it absolute.
+    MAVEN_PROJECTBASEDIR=$(cd "${MAVEN_PROJECTBASEDIR}" && pwd)
+    ;;
+  *)
+    # It's a simple name, so make it absolute.
+    MAVEN_PROJECTBASEDIR=$(pwd)
+    ;;
+esac
+
+# The directory containing the Maven Wrapper files.
+MAVEN_WRAPPER_DIR="${MAVEN_PROJECTBASEDIR}/.mvn/wrapper"
+
+# The path to the Maven Wrapper properties file.
+MAVEN_WRAPPER_PROPERTIES="${MAVEN_WRAPPER_DIR}/maven-wrapper.properties"
+
+# The path to the Maven Wrapper JAR file.
+MAVEN_WRAPPER_JAR="${MAVEN_WRAPPER_DIR}/maven-wrapper.jar"
+
+# The Maven Wrapper JAR file that is downloaded from the Maven repository.
+# The default value is "https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.1.0/maven-wrapper-3.1.0.jar".
+MAVEN_WRAPPER_URL=$(grep "wrapperUrl" "${MAVEN_WRAPPER_PROPERTIES}" | sed 's/wrapperUrl=//')
+
+# Download the Maven Wrapper JAR file if it does not exist.
+if [ ! -f "${MAVEN_WRAPPER_JAR}" ]; then
+  echo "Downloading ${MAVEN_WRAPPER_URL}"
+  # Use "curl" to download the Maven Wrapper JAR file.
+  if [ -x "$(command -v curl)" ]; then
+    curl -L -o "${MAVEN_WRAPPER_JAR}" "${MAVEN_WRAPPER_URL}"
+  # Use "wget" to download the Maven Wrapper JAR file.
+  elif [ -x "$(command -v wget)" ]; then
+    wget -O "${MAVEN_WRAPPER_JAR}" "${MAVEN_WRAPPER_URL}"
+  else
+    echo "Neither curl nor wget is available. Please install one of them."
+    exit 1
+  fi
+fi
+
+# Execute the Maven Wrapper JAR file.
+exec java -Dmaven.multiModuleProjectDirectory="${MAVEN_PROJECTBASEDIR}" -Dmaven.home="${MAVEN_PROJECTBASEDIR}" -jar "${MAVEN_WRAPPER_JAR}" "$@"
